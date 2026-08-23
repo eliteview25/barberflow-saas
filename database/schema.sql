@@ -1,0 +1,8 @@
+-- O schema oficial é criado/atualizado por: cd backend && npm run migrate
+-- Este arquivo documenta as entidades da versão SaaS.
+-- barbearias -> tenant isolado
+-- usuarios -> login e papéis (dono, gerente, recepcao, barbeiro)
+-- usuarios.barbeiro_id -> vínculo opcional e exclusivo para contas do tipo barbeiro
+-- assinaturas -> trial/plano/status
+-- clientes, barbeiros, servicos, horarios_trabalho, agendamentos -> todos possuem barbearia_id
+-- password_resets -> recuperação de senha com token de uso único

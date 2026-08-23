@@ -1,0 +1,15 @@
+const API='/api';
+function token(){return localStorage.getItem('bf_token')||''}
+function currentUser(){try{return JSON.parse(localStorage.getItem('bf_user')||'{}')}catch{return {}}}
+function authHeaders(extra={}){return {'Content-Type':'application/json','Authorization':`Bearer ${token()}`,...extra}}
+function money(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
+function dateBR(v){if(!v)return '-';const s=String(v).slice(0,10).split('-');return `${s[2]}/${s[1]}/${s[0]}`}
+function timeBR(v){return String(v||'').slice(0,5)}
+function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+function roleLabel(p){return ({dono:'Dono',gerente:'Gerente',recepcao:'Recepção',barbeiro:'Barbeiro'})[p]||p||''}
+function hasRole(...roles){return roles.includes(currentUser().papel)}
+async function api(path,opts={}){const r=await fetch(`${API}${path}`,{...opts,headers:authHeaders(opts.headers||{})});let d={};try{d=await r.json()}catch{}if(r.status===401){logout();throw new Error('Sessão expirada')}if(!r.ok)throw new Error(d.erro||'Erro na operação');return d}
+function logout(){localStorage.removeItem('bf_token');localStorage.removeItem('bf_user');localStorage.removeItem('bf_barbearia');location.href='/login.html'}
+function requireAuth(roles=null){if(!token()){location.href='/login.html';return false}const u=currentUser();if(Array.isArray(roles)&&!roles.includes(u.papel)){location.href='/';return false}document.querySelectorAll('[data-user-name]').forEach(e=>e.textContent=u.nome||'Usuário');document.querySelectorAll('[data-user-role]').forEach(e=>e.textContent=roleLabel(u.papel));return true}
+function flash(el,msg,type='success'){el.textContent=msg;el.className=`notice ${type}`;el.classList.remove('hidden');setTimeout(()=>el.classList.add('hidden'),4000)}
+function renderShell(active){const u=currentUser();const role=u.papel;const links=[['dashboard','/','🏠 Dashboard',['dono','gerente','recepcao','barbeiro']],['agendamentos','/pages/agendamentos.html','📅 Agendamentos',['dono','gerente','recepcao','barbeiro']],['clientes','/pages/clientes.html','👥 Clientes',['dono','gerente','recepcao']],['barbeiros','/pages/barbeiros.html','💈 Barbeiros',['dono','gerente']],['servicos','/pages/servicos.html','✂️ Serviços',['dono','gerente']],['financeiro','/pages/financeiro.html','💰 Financeiro',['dono','gerente']],['equipe','/pages/equipe.html','🔐 Equipe e acessos',['dono','gerente']],['config','/pages/configuracoes.html','⚙️ Configurações',['dono','gerente']],['assinatura','/pages/assinatura.html','💳 Assinatura',['dono']]];const menu=links.filter(x=>x[3].includes(role)).map(x=>`<a class="${active===x[0]?'active':''}" href="${x[1]}">${x[2]}</a>`).join('');return `<aside class="sidebar"><div class="logo">Barber<span>Flow</span></div><nav class="menu">${menu}</nav><div class="sidebar-bottom"><div class="muted" style="padding:10px 14px;color:#9ca3af">${esc(roleLabel(role))}</div><a href="#" onclick="logout()">↪ Sair</a></div></aside>`}

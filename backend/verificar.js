@@ -1,0 +1,2 @@
+require('dotenv').config(); const pool=require('./src/config/db');
+(async()=>{try{const r=await pool.query(`SELECT to_regclass('public.barbearias') barbearias,to_regclass('public.usuarios') usuarios,to_regclass('public.agendamentos') agendamentos`);console.log('Conexão PostgreSQL: OK');console.table(r.rows);const t=await pool.query('SELECT COUNT(*) total FROM barbearias');console.log('Barbearias:',t.rows[0].total);console.log('✅ Estrutura básica validada.');}catch(e){console.error('❌ Verificação falhou:',e.message);process.exitCode=1}finally{await pool.end()}})();
