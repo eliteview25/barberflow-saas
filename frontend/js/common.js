@@ -9,8 +9,35 @@ function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&l
 function roleLabel(p){return ({super_admin:'Master',dono:'Dono',gerente:'Gerente',recepcao:'Recepção',barbeiro:'Barbeiro'})[p]||p||''}
 function hasRole(...roles){return roles.includes(currentUser().papel)}
 async function api(path,opts={}){const r=await fetch(`${API}${path}`,{...opts,headers:authHeaders(opts.headers||{})});let d={};try{d=await r.json()}catch{}if(r.status===401){logout();throw new Error('Sessão expirada')}if(!r.ok)throw new Error(d.erro||'Erro na operação');return d}
-function logout(){localStorage.removeItem('bf_token');localStorage.removeItem('bf_user');localStorage.removeItem('bf_barbearia');location.href='/login.html'}
-function requireAuth(roles=null){if(!token()){location.href='/login.html';return false}const u=currentUser();if(Array.isArray(roles)&&!roles.includes(u.papel)){location.href='/';return false}document.querySelectorAll('[data-user-name]').forEach(e=>e.textContent=u.nome||'Usuário');document.querySelectorAll('[data-user-role]').forEach(e=>e.textContent=roleLabel(u.papel));return true}
+function logout(){localStorage.removeItem('bf_token');localStorage.removeItem('bf_user');localStorage.removeItem('bf_barbearia');location.replace('/login.html')}
+function tokenExpirado(){
+  const t=token();
+  if(!t)return true;
+  try{
+    const payload=JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    return payload.exp && Date.now() >= payload.exp*1000;
+  }catch{return true}
+}
+function mostrarPaginaProtegida(){
+  document.body.classList.remove('auth-checking');
+  document.body.classList.add('auth-ready');
+}
+function requireAuth(roles=null){
+  if(!token()||tokenExpirado()){
+    localStorage.removeItem('bf_token');localStorage.removeItem('bf_user');localStorage.removeItem('bf_barbearia');
+    location.replace('/login.html');
+    return false;
+  }
+  const u=currentUser();
+  if(Array.isArray(roles)&&!roles.includes(u.papel)){
+    location.replace(u.papel==='super_admin'?'/master.html':'/');
+    return false;
+  }
+  document.querySelectorAll('[data-user-name]').forEach(e=>e.textContent=u.nome||'Usuário');
+  document.querySelectorAll('[data-user-role]').forEach(e=>e.textContent=roleLabel(u.papel));
+  mostrarPaginaProtegida();
+  return true;
+}
 function flash(el,msg,type='success'){el.textContent=msg;el.className=`notice ${type}`;el.classList.remove('hidden');setTimeout(()=>el.classList.add('hidden'),4000)}
 
 function toggleMobileMenu(force){
