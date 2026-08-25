@@ -88,6 +88,7 @@ function renderShell(active){
     ['servicos','/pages/servicos.html','✂️','Serviços',['dono','gerente']],
     ['financeiro','/pages/financeiro.html','💰','Financeiro',['dono','gerente'],'financeiro_basico'],
     ['equipe','/pages/equipe.html','🔐','Equipe',['dono','gerente'],'equipe'],
+    ['gestao','/pages/gestao.html','🧰','Gestão',['dono','gerente','recepcao'],'pdv_estoque'],
     ['automacoes','/pages/automacoes.html','🤖','Automações',['dono','gerente'],'automacoes'],
     ['config','/pages/configuracoes.html','⚙️','Configurações',['dono','gerente']],
     ['assinatura','/pages/assinatura.html','💳','Assinatura',['dono']]

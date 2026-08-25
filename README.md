@@ -329,3 +329,21 @@ npm run verify
 npm run check
 npm run audit:config
 ```
+
+## Gestão operacional Premium — pacote 2026-08
+
+Esta versão consolida o BarberFlow como sistema de gestão, além da agenda:
+
+- Caixa/PDV para serviços e produtos;
+- Produtos, estoque e alerta de estoque mínimo;
+- Comissão por barbeiro em serviços e produtos;
+- Fila de espera e encaixes;
+- CRM avançado com histórico, visitas, faltas, gasto e pontos;
+- Cancelamento e reagendamento pelo cliente;
+- Avaliações pós-atendimento;
+- Fidelidade por pontos;
+- Pacotes/mensalidades comerciais;
+- Relatórios avançados;
+- Exportação CSV de clientes, agendamentos e vendas.
+
+Os novos módulos de gestão avançada são Premium e são protegidos também na API.

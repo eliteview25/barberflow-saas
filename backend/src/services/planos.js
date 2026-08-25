@@ -3,7 +3,7 @@ const pool=require('../config/db');
 const MATRIZ={
   starter:new Set(['agenda','clientes','barbeiros','servicos']),
   pro:new Set(['agenda','clientes','barbeiros','servicos','equipe','financeiro_basico','pagina_publica_simples','pagamentos_online']),
-  premium:new Set(['agenda','clientes','barbeiros','servicos','equipe','financeiro_basico','pagina_publica_simples','pagamentos_online','automacoes','financeiro_graficos','pagina_publica_completa','personalizacao_publica'])
+  premium:new Set(['agenda','clientes','barbeiros','servicos','equipe','financeiro_basico','pagina_publica_simples','pagamentos_online','automacoes','financeiro_graficos','pagina_publica_completa','personalizacao_publica','pdv_estoque','comissoes','fila_espera','crm_avancado','avaliacoes','fidelidade','relatorios_avancados','exportacao_dados'])
 };
 const ORDEM={starter:1,pro:2,premium:3};
 function planoValido(p){return MATRIZ[p]?p:'starter'}

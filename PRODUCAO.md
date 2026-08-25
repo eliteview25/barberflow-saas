@@ -105,3 +105,15 @@ EVOLUTION_API_KEY=<segredo>
 ```
 
 O QR é uma integração alternativa baseada em WhatsApp Web/Baileys e deve ser tratado como recurso de conveniência, não como substituto da Cloud API oficial para fluxos críticos.
+
+## Migração da gestão operacional
+
+Após publicar esta versão execute no Shell do serviço:
+
+```bash
+npm run migrate
+npm run verify
+npm run check
+```
+
+A migração cria produtos, vendas, itens de venda, fila de espera, avaliações, fidelidade e pacotes, além dos campos de comissão/CRM necessários. Não exige novas variáveis de ambiente.
