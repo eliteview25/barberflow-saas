@@ -241,3 +241,68 @@ Novas contas começam com **Premium em trial por 7 dias**.
 - **Premium**: tudo do Pro + personalização completa da página pública, gráficos financeiros e base de automações.
 
 Os bloqueios são aplicados no backend e no frontend. Dados de recursos Premium são preservados em downgrade e voltam a aparecer após upgrade.
+
+# Atualização: WhatsApp, automações, mídia e escala
+
+## WhatsApp Premium
+A área **Automações** permite cadastrar as credenciais da WhatsApp Business Platform / Cloud API por barbearia. O token é criptografado no banco com `APP_SECRETS_ENCRYPTION_KEY`.
+
+O bot conversa com o cliente pelo próprio WhatsApp e usa o mesmo motor público do BarberFlow:
+
+`serviço → barbeiro → data → horário → nome → pagamento → confirmação`.
+
+Formas suportadas no fluxo: Mercado Pago conectado pela barbearia, Pix manual e dinheiro, conforme a configuração do tenant.
+
+Variáveis:
+
+```env
+APP_SECRETS_ENCRYPTION_KEY=CHAVE_LONGA
+META_WHATSAPP_VERIFY_TOKEN=TOKEN_DE_VERIFICACAO
+WHATSAPP_GRAPH_VERSION=v23.0
+CRON_SECRET=SEGREDO_DO_CRON
+```
+
+Webhook Meta:
+
+```text
+GET/POST https://SEU_DOMINIO/api/whatsapp/webhook
+```
+
+Consulte `WHATSAPP.md` para setup, templates e cron.
+
+## Automações Premium
+O BarberFlow suporta lembretes de 24h, 2h e pós-atendimento. Mensagens proativas usam templates aprovados no WhatsApp Manager. O processamento é idempotente por `agendamento_id + tipo` para evitar envio duplicado.
+
+Configure um Cron Job para chamar:
+
+```text
+POST /api/cron/automacoes/processar
+Header: x-barberflow-cron: <CRON_SECRET>
+```
+
+## Upload direto de logo e banner
+No Premium, Configurações oferece **Enviar logo** e **Enviar banner**. As imagens são armazenadas no Cloudinary, nunca no disco efêmero do Web Service.
+
+```env
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+```
+
+## Financeiro Premium
+Além do resumo do Pro, Premium recebe gráficos de faturamento dos últimos seis meses e ranking mensal de barbeiros.
+
+## Checks antes do deploy
+
+```bash
+npm run check
+npm run audit:config
+npm run migrate
+npm run verify
+```
+
+- `check`: sintaxe e presença de módulos críticos;
+- `audit:config`: valida variáveis importantes e alerta integrações incompletas;
+- `verify`: conexão e estrutura básica do PostgreSQL.
+
+Leia também `ESCALABILIDADE.md`.

@@ -1,0 +1,13 @@
+if(requireAuth(['dono','gerente'])){
+  document.getElementById('shell').innerHTML=renderShell('automacoes');
+  if(!hasFeature('automacoes'))document.querySelector('main.main').innerHTML='<header class="topbar"><div><h1>Automações</h1></div></header><div class="upgrade-card"><strong>🔒 Premium</strong><p>WhatsApp e automações estão disponíveis no Premium.</p><a class="btn btn-primary" href="/pages/assinatura.html">Ver Premium</a></div>';
+  else{
+    webhookUrl.textContent=`${location.origin}/api/whatsapp/webhook`;
+    async function load(){try{const d=await api('/whatsapp/status');waStatus.textContent=d.conectado?'Conectado':'Não conectado';waStatus.className=`badge ${d.conectado?'status-concluido':'status-cancelado'}`;desconectar.classList.toggle('hidden',!d.conectado);if(d.integracao){phone_number_id.value=d.integracao.phone_number_id||'';business_account_id.value=d.integracao.business_account_id||'';numero.value=d.integracao.numero||''}const c=d.config||{};for(const id of ['lembrete_24h','lembrete_2h','pos_atendimento'])document.getElementById(id).checked=!!c[id];for(const id of ['template_lembrete_24h','template_lembrete_2h','template_pos_atendimento'])document.getElementById(id).value=c[id]||''}catch(e){flash(msg,e.message,'error')}}
+    conectar.onclick=async()=>{try{if(!access_token.value&&!waStatus.textContent.includes('Conectado'))throw new Error('Informe o Access Token');await api('/whatsapp/conectar',{method:'POST',body:JSON.stringify({phone_number_id:phone_number_id.value,business_account_id:business_account_id.value,numero:numero.value,access_token:access_token.value})});access_token.value='';flash(msg,'WhatsApp conectado');load()}catch(e){flash(msg,e.message,'error')}};
+    desconectar.onclick=async()=>{if(!confirm('Desconectar WhatsApp?'))return;try{await api('/whatsapp/conexao',{method:'DELETE'});flash(msg,'WhatsApp desconectado');load()}catch(e){flash(msg,e.message,'error')}};
+    testar.onclick=async()=>{const tel=prompt('Número para teste, com DDI e DDD:');if(!tel)return;try{await api('/whatsapp/teste',{method:'POST',body:JSON.stringify({telefone:tel})});flash(msg,'Mensagem de teste enviada')}catch(e){flash(msg,e.message,'error')}};
+    salvarAuto.onclick=async()=>{try{await api('/whatsapp/config',{method:'PUT',body:JSON.stringify({lembrete_24h:lembrete_24h.checked,lembrete_2h:lembrete_2h.checked,pos_atendimento:pos_atendimento.checked,template_lembrete_24h:template_lembrete_24h.value,template_lembrete_2h:template_lembrete_2h.value,template_pos_atendimento:template_pos_atendimento.value})});flash(msg,'Automações salvas')}catch(e){flash(msg,e.message,'error')}};
+    load();
+  }
+}

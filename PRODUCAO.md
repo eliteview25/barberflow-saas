@@ -56,3 +56,36 @@ Fluxo: Dono > Assinatura > escolher plano > checkout Mercado Pago > retorno ao B
 6. Entre como dono da barbearia > Configurações > Recebimentos > Conectar Mercado Pago.
 
 Nunca salve Access Tokens de vendedores em texto puro e nunca envie `MP_CLIENT_SECRET` ao frontend.
+
+## WhatsApp e automações
+No Render, adicione:
+
+```env
+APP_SECRETS_ENCRYPTION_KEY=<chave aleatória longa>
+META_WHATSAPP_VERIFY_TOKEN=<token escolhido por você>
+WHATSAPP_GRAPH_VERSION=<versão da Graph API usada pela sua aplicação Meta>
+CRON_SECRET=<segredo aleatório>
+```
+
+Cadastre o callback `/api/whatsapp/webhook` na aplicação Meta. Para lembretes, crie templates aprovados e um Cron Job que execute `POST /api/cron/automacoes/processar` com o header secreto.
+
+## Cloudinary
+Para upload direto de logo/banner:
+
+```env
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+```
+
+## Verificação de produção
+Antes de liberar uma versão:
+
+```bash
+npm run check
+npm run audit:config
+npm run migrate
+npm run verify
+```
+
+Não mude `APP_SECRETS_ENCRYPTION_KEY` ou `MP_TOKEN_ENCRYPTION_KEY` sem plano de rotação, pois tokens já salvos dependem dessas chaves.
