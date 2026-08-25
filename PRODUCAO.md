@@ -117,3 +117,25 @@ npm run check
 ```
 
 A migração cria produtos, vendas, itens de venda, fila de espera, avaliações, fidelidade e pacotes, além dos campos de comissão/CRM necessários. Não exige novas variáveis de ambiente.
+
+## Hardening e piloto
+
+A versão de piloto inclui CORS restrito ao `APP_URL`, rate limit global e específico de autenticação, IDs de requisição, logs estruturados, endpoints separados de liveness/readiness, pool PostgreSQL configurável e shutdown gracioso para deploys no Render.
+
+Comandos recomendados após cada deploy que altere banco:
+
+```bash
+npm run migrate
+npm run verify
+npm run qa
+npm run audit:config
+npm run audit:pilot
+```
+
+Configure um job recorrente para:
+
+```bash
+npm run maintenance
+```
+
+Para backup, use prioritariamente o mecanismo de backup/restore do provedor PostgreSQL. Exportações CSV/JSON da aplicação são complementares e não substituem snapshot/backup do banco.

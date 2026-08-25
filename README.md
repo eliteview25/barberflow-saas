@@ -347,3 +347,21 @@ Esta versão consolida o BarberFlow como sistema de gestão, além da agenda:
 - Exportação CSV de clientes, agendamentos e vendas.
 
 Os novos módulos de gestão avançada são Premium e são protegidos também na API.
+
+## Qualidade e operação
+
+Antes de pilotos ou produção, use:
+
+```bash
+npm run qa
+npm run audit:config
+npm run audit:pilot
+```
+
+Para limpeza periódica de reservas e tokens expirados:
+
+```bash
+npm run maintenance
+```
+
+Veja `QA-PILOTO.md` para o checklist de validação ponta a ponta.

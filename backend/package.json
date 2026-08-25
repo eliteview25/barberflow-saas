@@ -9,7 +9,11 @@
     "migrate": "node migrar-banco.js",
     "verify": "node verificar.js",
     "check": "node check.js",
-    "audit:config": "node auditar-config.js"
+    "audit:config": "node auditar-config.js",
+    "test": "node --test test/*.test.js",
+    "qa": "npm run check && npm test",
+    "audit:pilot": "node auditar-piloto.js",
+    "maintenance": "node manutencao.js"
   },
   "license": "ISC",
   "type": "commonjs",
