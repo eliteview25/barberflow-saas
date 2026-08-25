@@ -7,7 +7,7 @@ const router=express.Router();
 
 async function tenant(slug){
   return (await pool.query(`
-    SELECT b.id,b.nome,b.slug,b.telefone,b.email,b.endereco,b.cidade,b.estado,b.logo_url,b.cor_primaria,
+    SELECT b.id,b.nome,b.slug,b.telefone,b.email,b.endereco,b.cidade,b.estado,b.logo_url,b.banner_url,b.cor_primaria,b.cor_secundaria,b.cor_botao,b.cor_fundo,b.tema,b.descricao_publica,b.texto_boas_vindas,b.instagram,b.whatsapp_publico,b.mostrar_precos,b.mostrar_duracao,b.politica_cancelamento,
            COALESCE(b.pagamento_agendamento,'nenhum') pagamento_agendamento,
            COALESCE(b.percentual_sinal,50) percentual_sinal
     FROM barbearias b

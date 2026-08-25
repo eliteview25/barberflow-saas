@@ -187,3 +187,6 @@ BOOKING_HOLD_MINUTES=15
 ### Importante para o SaaS multiempresa
 
 Nesta versão, o fluxo de pagamento de agendamento reutiliza `MP_ACCESS_TOKEN` e é adequado para validar a experiência ponta a ponta. Antes de cobrar clientes reais de várias barbearias, o modelo correto é **Mercado Pago Marketplace + OAuth**, conectando a conta de cada barbearia. Assim, cada pagamento é processado com o Access Token do vendedor e pode ter `marketplace_fee` para a plataforma. Não use uma única conta Mercado Pago global para receber valores pertencentes a barbearias independentes em produção.
+
+## Personalização da página pública
+A barbearia pode configurar logo e banner por URL, cores principal/secundária/botão/fundo, tema claro/escuro, textos, Instagram, WhatsApp, política de cancelamento e visibilidade de preço/duração. Após atualizar esta versão, execute `npm run migrate` para criar os novos campos.
