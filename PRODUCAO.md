@@ -62,9 +62,10 @@ No Render, adicione:
 
 ```env
 APP_SECRETS_ENCRYPTION_KEY=<chave aleatória longa>
-META_WHATSAPP_VERIFY_TOKEN=<token escolhido por você>
 WHATSAPP_GRAPH_VERSION=<versão da Graph API usada pela sua aplicação Meta>
 CRON_SECRET=<segredo aleatório>
+EVOLUTION_API_URL=https://evolution.seu-dominio.com
+EVOLUTION_API_KEY=<segredo do conector QR>
 ```
 
 Cadastre o callback `/api/whatsapp/webhook` na aplicação Meta. Para lembretes, crie templates aprovados e um Cron Job que execute `POST /api/cron/automacoes/processar` com o header secreto.
@@ -89,3 +90,18 @@ npm run verify
 ```
 
 Não mude `APP_SECRETS_ENCRYPTION_KEY` ou `MP_TOKEN_ENCRYPTION_KEY` sem plano de rotação, pois tokens já salvos dependem dessas chaves.
+
+## Verify Token por tenant
+
+`META_WHATSAPP_VERIFY_TOKEN` não é mais necessário. Cada barbearia gera o próprio Verify Token no painel Premium de Automações e cadastra esse valor na Meta. O BarberFlow guarda somente o hash.
+
+## Conector WhatsApp QR
+
+O QR para lembretes é executado fora do Web Service principal. Suba uma Evolution API separada (preferencialmente Docker/VPS) e configure no BarberFlow:
+
+```env
+EVOLUTION_API_URL=https://evolution.seu-dominio.com
+EVOLUTION_API_KEY=<segredo>
+```
+
+O QR é uma integração alternativa baseada em WhatsApp Web/Baileys e deve ser tratado como recurso de conveniência, não como substituto da Cloud API oficial para fluxos críticos.

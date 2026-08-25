@@ -17,3 +17,9 @@ A versão atual já mantém `barbearia_id` em todos os dados operacionais e índ
 - Até ~100 barbearias: Render Web + PostgreSQL gerenciado + Cloudinary + Cron.
 - Centenas/milhares: múltiplas instâncias web, pooler, Redis, workers dedicados e observabilidade.
 - Grande escala: particionamento/arquivamento de agendamentos, filas regionais e revisão de multi-região conforme métricas reais.
+
+## WhatsApp QR em escala
+
+Não execute sessões WhatsApp Web dentro das instâncias HTTP do BarberFlow. Mantenha o conector QR como serviço separado, com armazenamento persistente próprio, e deixe o BarberFlow apenas criar instâncias, consultar status e disparar mensagens. Isso evita que reinícios/deploys do painel derrubem todas as sessões e reduz consumo de memória por tenant.
+
+Para crescimento, separe esse conector em infraestrutura própria e monitore quantidade de sessões conectadas, reconexões e falhas de envio. A Cloud API oficial continua sendo a opção recomendada para operações críticas.

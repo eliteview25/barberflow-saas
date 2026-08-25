@@ -257,9 +257,10 @@ Variáveis:
 
 ```env
 APP_SECRETS_ENCRYPTION_KEY=CHAVE_LONGA
-META_WHATSAPP_VERIFY_TOKEN=TOKEN_DE_VERIFICACAO
 WHATSAPP_GRAPH_VERSION=v23.0
 CRON_SECRET=SEGREDO_DO_CRON
+EVOLUTION_API_URL=https://evolution.seu-dominio.com
+EVOLUTION_API_KEY=CHAVE_DO_CONECTOR_QR
 ```
 
 Webhook Meta:
@@ -306,3 +307,25 @@ npm run verify
 - `verify`: conexão e estrutura básica do PostgreSQL.
 
 Leia também `ESCALABILIDADE.md`.
+
+# Atualização: Verify Token por barbearia + WhatsApp por QR
+
+O Verify Token da Cloud API agora é gerado pelo próprio dono em **Automações** e não depende mais de `META_WHATSAPP_VERIFY_TOKEN` no Render.
+
+Também existe um modo **WhatsApp por QR somente para lembretes**. O dono gera o QR dentro do BarberFlow e conecta em Dispositivos conectados. Esse modo usa um serviço Evolution API separado e não participa do bot de agendamento.
+
+Variáveis novas da infraestrutura para o modo QR:
+
+```env
+EVOLUTION_API_URL=https://evolution.seu-dominio.com
+EVOLUTION_API_KEY=CHAVE_GLOBAL_DO_CONECTOR
+```
+
+Depois de atualizar esta versão:
+
+```bash
+npm run migrate
+npm run verify
+npm run check
+npm run audit:config
+```
