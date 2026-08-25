@@ -3,67 +3,87 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#0f172a">
+  <meta name="theme-color" content="#0b1220">
   <title>Supermaster - BarberFlow</title>
   <link rel="stylesheet" href="/style.css">
 </head>
-<body class="auth-checking master-body">
+<body class="auth-checking master-body master-v2">
   <div id="shell"></div>
 
-  <main class="main master-main">
-    <header class="master-hero">
-      <div class="master-hero-copy">
-        <span class="master-eyebrow">CENTRAL DE CONTROLE</span>
-        <h1>Supermaster</h1>
-        <p>Gerencie o crescimento, a receita e as operações do BarberFlow em um só lugar.</p>
+  <main class="main master-main master-main-v2">
+    <header class="master-topbar-v2">
+      <div>
+        <div class="master-breadcrumb"><span>BarberFlow</span><b>/</b><strong id="masterSectionName">Visão geral</strong></div>
+        <h1 id="masterPageTitle">Central do Supermaster</h1>
+        <p id="masterPageSubtitle">Acompanhe operação, clientes e receita do BarberFlow.</p>
       </div>
-      <button id="atualizar" class="master-refresh" aria-label="Atualizar painel">
-        <span>↻</span> Atualizar
-      </button>
+      <div class="master-top-actions">
+        <div class="master-live-pill"><i></i> Produção</div>
+        <button id="atualizar" class="btn master-refresh-v2" aria-label="Atualizar painel">↻ <span>Atualizar</span></button>
+      </div>
     </header>
 
-    <nav class="master-tabs master-tabs-modern" aria-label="Seções do Supermaster">
-      <button class="master-tab active" data-section="visao"><span>◫</span> Visão geral</button>
-      <button class="master-tab" data-section="barbearias-sec"><span>▦</span> Barbearias</button>
-      <button class="master-tab" data-section="financeiro-sec"><span>↗</span> Financeiro SaaS</button>
-      <button class="master-tab" data-section="perfil-sec"><span>◎</span> Meu perfil</button>
-    </nav>
-
     <section id="visao" class="master-section">
-      <section class="cards master-cards master-kpis">
+      <section class="master-welcome-card">
+        <div class="master-welcome-copy">
+          <span class="master-eyebrow">PAINEL EXECUTIVO</span>
+          <h2>Visão geral do BarberFlow</h2>
+          <p>Tenha uma leitura rápida da operação, crescimento das barbearias e saúde financeira do SaaS.</p>
+        </div>
+        <div class="master-welcome-badge">
+          <span>MRR atual</span>
+          <strong id="mMrrHero">R$ 0</strong>
+          <small>Receita recorrente mensal</small>
+        </div>
+      </section>
+
+      <section class="cards master-kpis master-kpis-v2">
         <article class="card master-kpi"><div class="master-kpi-icon">🏪</div><div><div class="label">Barbearias</div><div class="value" id="mTotal">0</div><small>Total cadastradas</small></div></article>
         <article class="card master-kpi"><div class="master-kpi-icon master-kpi-green">✓</div><div><div class="label">Ativas</div><div class="value" id="mAtivas">0</div><small>Operando agora</small></div></article>
         <article class="card master-kpi"><div class="master-kpi-icon master-kpi-amber">7d</div><div><div class="label">Trials</div><div class="value" id="mTrials">0</div><small>Testando Premium</small></div></article>
         <article class="card master-kpi"><div class="master-kpi-icon master-kpi-blue">★</div><div><div class="label">Assinaturas</div><div class="value" id="mAssinaturas">0</div><small>Assinaturas ativas</small></div></article>
-        <article class="card master-kpi master-kpi-featured"><div class="master-kpi-icon master-kpi-green">R$</div><div><div class="label">MRR</div><div class="value" id="mMrr">R$ 0</div><small>Receita recorrente mensal</small></div></article>
+        <article class="card master-kpi master-kpi-featured"><div class="master-kpi-icon master-kpi-green">R$</div><div><div class="label">MRR</div><div class="value" id="mMrr">R$ 0</div><small>Receita mensal</small></div></article>
         <article class="card master-kpi"><div class="master-kpi-icon master-kpi-purple">📅</div><div><div class="label">Agendamentos</div><div class="value" id="mAgenda">0</div><small>No mês atual</small></div></article>
       </section>
 
-      <section class="panel master-overview-panel">
-        <div class="panel-head">
-          <div><span class="master-section-kicker">NEGÓCIO</span><h2>Resumo financeiro</h2><div class="muted">Visão rápida da saúde financeira do SaaS.</div></div>
-          <button class="master-inline-link" onclick="document.querySelector('[data-section=financeiro-sec]').click()">Ver financeiro →</button>
-        </div>
-        <div class="master-fin-summary master-fin-summary-modern">
-          <div><span>Realizado no mês</span><strong id="fRealMes">R$ 0</strong><small>Receita reconhecida</small></div>
-          <div><span>ARR atual</span><strong id="fArr">R$ 0</strong><small>Receita anual recorrente</small></div>
-          <div><span>Projetado 12 meses</span><strong id="fProj12">R$ 0</strong><small>Com base na base atual</small></div>
-        </div>
-      </section>
+      <div class="master-dashboard-grid">
+        <section class="panel master-overview-panel master-overview-card-v2">
+          <div class="panel-head">
+            <div><span class="master-section-kicker">FINANCEIRO</span><h2>Resumo da receita</h2><div class="muted">Indicadores essenciais para acompanhar o negócio.</div></div>
+            <button class="master-inline-link master-tab" data-section="financeiro-sec">Abrir financeiro →</button>
+          </div>
+          <div class="master-fin-summary master-fin-summary-modern master-fin-summary-v2">
+            <div><span>Realizado no mês</span><strong id="fRealMes">R$ 0</strong><small>Receita reconhecida</small></div>
+            <div><span>ARR atual</span><strong id="fArr">R$ 0</strong><small>Receita anual recorrente</small></div>
+            <div><span>Projetado 12 meses</span><strong id="fProj12">R$ 0</strong><small>Com base na carteira atual</small></div>
+          </div>
+        </section>
+
+        <section class="panel master-quick-panel">
+          <span class="master-section-kicker">ATALHOS</span>
+          <h2>Ações rápidas</h2>
+          <div class="master-quick-actions">
+            <button class="master-quick-card master-tab" data-section="barbearias-sec"><span>🏪</span><div><strong>Gerenciar barbearias</strong><small>Planos, bloqueios e exclusões</small></div><b>→</b></button>
+            <button class="master-quick-card master-tab" data-section="financeiro-sec"><span>📈</span><div><strong>Ver financeiro SaaS</strong><small>Histórico e projeções</small></div><b>→</b></button>
+            <button class="master-quick-card master-tab" data-section="perfil-sec"><span>👤</span><div><strong>Minha conta</strong><small>Perfil e segurança</small></div><b>→</b></button>
+          </div>
+        </section>
+      </div>
     </section>
 
     <section id="barbearias-sec" class="master-section hidden">
-      <section class="panel master-panel-wide">
-        <div class="panel-head master-panel-title">
-          <div><span class="master-section-kicker">CLIENTES SaaS</span><h2>Barbearias</h2><div class="muted">Planos, assinaturas, atividade e exclusão segura.</div></div>
-        </div>
-        <div class="form-grid three master-filters master-filter-card">
-          <div class="field"><label>Buscar barbearia</label><input id="busca" placeholder="Nome, slug ou e-mail do dono"></div>
-          <div class="field"><label>Status</label><select id="status"><option value="">Todas ativas</option><option value="trial">Trial</option><option value="ativa">Assinatura ativa</option><option value="inadimplente">Inadimplente</option><option value="cancelada">Cancelada</option><option value="excluida">Excluídas</option></select></div>
-          <div class="field master-filter-action"><label>&nbsp;</label><button id="filtrar" class="btn btn-dark">⌕ Filtrar</button></div>
+      <div class="master-section-heading">
+        <div><span class="master-section-kicker">CLIENTES SaaS</span><h2>Gestão de barbearias</h2><p>Controle planos, assinaturas, acesso e ciclo de vida de cada cliente.</p></div>
+        <div class="master-section-stat"><strong id="masterTenantCount">—</strong><span>na listagem atual</span></div>
+      </div>
+      <section class="panel master-panel-wide master-panel-v2">
+        <div class="master-toolbar-v2">
+          <div class="master-search-box"><span>⌕</span><input id="busca" placeholder="Buscar por nome, slug ou e-mail do dono"></div>
+          <select id="status" class="master-status-filter"><option value="">Todas ativas</option><option value="trial">Trial</option><option value="ativa">Assinatura ativa</option><option value="inadimplente">Inadimplente</option><option value="cancelada">Cancelada</option><option value="excluida">Excluídas</option></select>
+          <button id="filtrar" class="btn btn-dark">Filtrar</button>
         </div>
         <div id="msg" class="notice hidden"></div>
-        <div class="table-wrap master-table-wrap" style="margin-top:16px">
+        <div class="table-wrap master-table-wrap master-table-wrap-v2">
           <table class="table master-table">
             <thead><tr><th>Barbearia</th><th>Dono</th><th>Plano</th><th>Assinatura</th><th>Uso 30d</th><th>Status</th><th>Ações</th></tr></thead>
             <tbody id="barbearias"></tbody>
@@ -73,7 +93,11 @@
     </section>
 
     <section id="financeiro-sec" class="master-section hidden">
-      <section class="cards master-fin-cards master-fin-kpis">
+      <div class="master-section-heading">
+        <div><span class="master-section-kicker">FINANCEIRO SaaS</span><h2>Receita e projeções</h2><p>Acompanhe o realizado, recorrência e projeções futuras do BarberFlow.</p></div>
+        <span class="master-chip master-chip-blue">Atualização em tempo real</span>
+      </div>
+      <section class="cards master-fin-cards master-fin-kpis master-fin-kpis-v2">
         <article class="card"><div class="label">MRR atual</div><div class="value" id="finMrr">R$ 0</div><small>Recorrência mensal</small></article>
         <article class="card"><div class="label">ARR</div><div class="value" id="finArr">R$ 0</div><small>Receita anual recorrente</small></article>
         <article class="card"><div class="label">Realizado mês</div><div class="value" id="finMes">R$ 0</div><small>Receita confirmada</small></article>
@@ -81,18 +105,17 @@
         <article class="card"><div class="label">Realizado 12m</div><div class="value" id="fin12">R$ 0</div><small>Histórico acumulado</small></article>
         <article class="card master-kpi-featured"><div class="label">Projetado 12m</div><div class="value" id="finProj12">R$ 0</div><small>Projeção da carteira</small></article>
       </section>
-
-      <div class="master-fin-grid">
+      <div class="master-fin-grid master-fin-grid-v2">
         <section class="panel master-fin-panel"><div class="master-fin-panel-head"><div><span class="master-section-kicker">HISTÓRICO</span><h2>Períodos passados</h2></div><span class="master-chip">12 meses</span></div><p class="muted" id="finAviso"></p><div id="historicoFinanceiro" class="master-period-list"></div></section>
-        <section class="panel master-fin-panel"><div class="master-fin-panel-head"><div><span class="master-section-kicker">PREVISÃO</span><h2>Períodos futuros</h2></div><span class="master-chip master-chip-blue">Forecast</span></div><p class="muted">Projeção com base nas assinaturas ativas e trials atuais.</p><div id="futuroFinanceiro" class="master-period-list"></div></section>
+        <section class="panel master-fin-panel"><div class="master-fin-panel-head"><div><span class="master-section-kicker">PREVISÃO</span><h2>Períodos futuros</h2></div><span class="master-chip master-chip-blue">Forecast</span></div><p class="muted">Projeção com base nas assinaturas e trials atuais.</p><div id="futuroFinanceiro" class="master-period-list"></div></section>
       </div>
     </section>
 
     <section id="perfil-sec" class="master-section hidden">
-      <div class="master-profile-head"><div><span class="master-section-kicker">SUA CONTA</span><h2>Perfil do Supermaster</h2><p class="muted">Gerencie seus dados de acesso sem alterar dados das barbearias.</p></div></div>
-      <div class="master-profile-grid">
-        <section class="panel master-profile-card"><div class="master-profile-icon">👤</div><h2>Dados pessoais</h2><div id="perfilMsg" class="notice hidden"></div><div class="form-grid"><div class="field"><label>Nome</label><input id="perfilNome"></div><div class="field"><label>E-mail</label><input id="perfilEmail" type="email"></div><div class="field"><label>Telefone</label><input id="perfilTelefone"></div></div><button id="salvarPerfil" class="btn btn-primary master-save-btn">Salvar dados</button></section>
-        <section class="panel master-profile-card"><div class="master-profile-icon master-lock">🔐</div><h2>Segurança</h2><div id="senhaMsg" class="notice hidden"></div><div class="field"><label>Senha atual</label><input id="senhaAtual" type="password"></div><div class="field"><label>Nova senha</label><input id="senhaNova" type="password" minlength="12"></div><div class="field"><label>Confirmar nova senha</label><input id="senhaConfirmar" type="password" minlength="12"></div><button id="salvarSenha" class="btn btn-dark master-save-btn">Alterar senha</button></section>
+      <div class="master-section-heading"><div><span class="master-section-kicker">CONTA MASTER</span><h2>Perfil e segurança</h2><p>Gerencie exclusivamente os seus dados de Supermaster.</p></div></div>
+      <div class="master-profile-grid master-profile-grid-v2">
+        <section class="panel master-profile-card master-profile-card-v2"><div class="master-profile-card-head"><div class="master-profile-icon">👤</div><div><h2>Dados pessoais</h2><p>Nome, e-mail e contato administrativo.</p></div></div><div id="perfilMsg" class="notice hidden"></div><div class="form-grid"><div class="field"><label>Nome</label><input id="perfilNome"></div><div class="field"><label>E-mail</label><input id="perfilEmail" type="email"></div><div class="field"><label>Telefone</label><input id="perfilTelefone"></div></div><button id="salvarPerfil" class="btn btn-primary master-save-btn">Salvar dados</button></section>
+        <section class="panel master-profile-card master-profile-card-v2"><div class="master-profile-card-head"><div class="master-profile-icon master-lock">🔐</div><div><h2>Segurança</h2><p>Atualize sua senha de acesso ao Supermaster.</p></div></div><div id="senhaMsg" class="notice hidden"></div><div class="field"><label>Senha atual</label><input id="senhaAtual" type="password"></div><div class="field"><label>Nova senha</label><input id="senhaNova" type="password" minlength="12"></div><div class="field"><label>Confirmar nova senha</label><input id="senhaConfirmar" type="password" minlength="12"></div><button id="salvarSenha" class="btn btn-dark master-save-btn">Alterar senha</button></section>
       </div>
     </section>
   </main>

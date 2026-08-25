@@ -77,9 +77,31 @@ document.addEventListener('DOMContentLoaded',()=>setTimeout(initResponsiveTables
 function renderShell(active){
   const u=currentUser();const role=u.papel;
   if(role==='super_admin'){return `
-    <div class="mobile-appbar"><button class="icon-btn" onclick="toggleMobileMenu()">☰</button><a class="mobile-logo" href="/master.html">Barber<span>Flow</span> Master</a><div class="mobile-avatar">MA</div></div>
+    <div class="mobile-appbar master-mobile-appbar"><button class="icon-btn" onclick="toggleMobileMenu()">☰</button><a class="mobile-logo" href="/master.html">Barber<span>Flow</span></a><div class="mobile-avatar">MA</div></div>
     <div class="sidebar-backdrop" onclick="closeMobileMenu()"></div>
-    <aside class="sidebar"><div class="sidebar-mobile-head"><div class="logo">Barber<span>Flow</span></div><button class="close-drawer" onclick="closeMobileMenu()">×</button></div><div class="logo desktop-logo">Barber<span>Flow</span></div><nav class="menu"><a class="${active==='master'?'active':''}" href="/master.html"><span class="menu-icon">🛡️</span><span>Dashboard Master</span></a></nav><div class="sidebar-bottom"><div class="sidebar-user"><strong>${esc(u.nome||'Master')}</strong><span>Super Admin</span></div><a href="#" onclick="logout()"><span class="menu-icon">↪</span><span>Sair</span></a></div></aside><nav class="mobile-bottom-nav master-bottom"><a class="active" href="/master.html"><span>🛡️</span><small>Master</small></a><button onclick="toggleMobileMenu()"><span>☰</span><small>Menu</small></button></nav>`}
+    <aside class="sidebar master-sidebar-v2">
+      <div class="sidebar-mobile-head"><div class="master-brand-v2"><div class="master-brand-mark">BF</div><div><strong>BarberFlow</strong><span>SUPERMASTER</span></div></div><button class="close-drawer" onclick="closeMobileMenu()">×</button></div>
+      <div class="master-brand-v2 desktop-logo"><div class="master-brand-mark">BF</div><div><strong>BarberFlow</strong><span>SUPERMASTER</span></div></div>
+      <div class="master-sidebar-label">NAVEGAÇÃO</div>
+      <nav class="menu master-side-menu">
+        <button type="button" class="master-side-link master-tab active" data-section="visao" onclick="closeMobileMenu()"><span class="master-side-icon">⌂</span><span>Visão geral</span></button>
+        <button type="button" class="master-side-link master-tab" data-section="barbearias-sec" onclick="closeMobileMenu()"><span class="master-side-icon">▦</span><span>Barbearias</span></button>
+        <button type="button" class="master-side-link master-tab" data-section="financeiro-sec" onclick="closeMobileMenu()"><span class="master-side-icon">↗</span><span>Financeiro SaaS</span></button>
+        <button type="button" class="master-side-link master-tab" data-section="perfil-sec" onclick="closeMobileMenu()"><span class="master-side-icon">◎</span><span>Meu perfil</span></button>
+      </nav>
+      <div class="master-sidebar-label master-sidebar-system-label">SISTEMA</div>
+      <div class="master-system-card"><div><i></i><span>Ambiente</span></div><strong>Produção</strong></div>
+      <div class="sidebar-bottom master-sidebar-bottom-v2">
+        <div class="sidebar-user master-user-v2"><div class="master-user-avatar-v2">${esc((u.nome||'MA').slice(0,2).toUpperCase())}</div><div><strong>${esc(u.nome||'Master')}</strong><span>Super Admin</span></div></div>
+        <a href="#" onclick="logout()" class="master-logout-v2"><span class="menu-icon">↪</span><span>Sair</span></a>
+      </div>
+    </aside>
+    <nav class="mobile-bottom-nav master-bottom master-bottom-v2">
+      <button class="master-tab active" data-section="visao"><span>⌂</span><small>Início</small></button>
+      <button class="master-tab" data-section="barbearias-sec"><span>▦</span><small>Clientes</small></button>
+      <button class="master-tab" data-section="financeiro-sec"><span>↗</span><small>Financeiro</small></button>
+      <button class="master-tab" data-section="perfil-sec"><span>◎</span><small>Perfil</small></button>
+    </nav>`}
   const links=[
     ['dashboard','/','🏠','Dashboard',['dono','gerente','recepcao','barbeiro']],
     ['agendamentos','/pages/agendamentos.html','📅','Agenda',['dono','gerente','recepcao','barbeiro']],
