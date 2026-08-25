@@ -1,140 +1,169 @@
-# 💈 BarberFlow
+# BarberFlow SaaS 2.0
 
-Sistema SaaS completo para gestão e agendamento de barbearias.
+MVP SaaS de gestão e agendamento para barbearias, construído com Node.js, Express, PostgreSQL e frontend HTML/CSS/JavaScript.
 
-O **BarberFlow** foi desenvolvido para ajudar barbearias a organizar clientes, profissionais, serviços, horários e agendamentos em uma única plataforma.
+## O que já funciona
 
-Cada barbearia possui seu próprio ambiente isolado e uma página pública de agendamento, permitindo que clientes marquem horários online sem precisar criar uma conta.
+- Cadastro de uma nova barbearia com 14 dias de trial
+- Login com JWT e senhas protegidas com bcrypt
+- Multiempresa: clientes, agenda, barbeiros e serviços são isolados por `barbearia_id`
+- Usuários por barbearia e papéis `dono`, `gerente` e `recepcao`
+- CRUD de clientes + histórico
+- CRUD/ativação de barbeiros + expediente semanal
+- CRUD/ativação de serviços + duração + preço
+- Agenda com criar, editar, confirmar, iniciar, concluir e cancelar
+- Prevenção de conflito de horários
+- Dashboard com indicadores e faturamento do mês
+- Financeiro por período (atendimentos concluídos)
+- Página pública por slug: `/agendar/nome-da-barbearia`
+- Cliente público cria/atualiza cadastro pelo telefone e agenda sozinho
+- Configurações da barbearia e link público
+- Planos Starter / Pro / Premium e tabela de assinatura/trial
+- Recuperação de senha (fluxo local; em produção conectar um provedor de e-mail)
+- Helmet + rate limit nas rotas sensíveis
+- Backend serve o frontend: não precisa de Live Server
 
----
+## Instalação no Windows
 
-## 🚀 Principais recursos
+1. Tenha PostgreSQL e Node.js instalados.
+2. Entre no backend:
 
-### 📊 Dashboard
-Visão geral da operação da barbearia, com informações importantes sobre atendimentos e desempenho.
+```powershell
+cd backend
+npm install
+Copy-Item .env.example .env
+notepad .env
+```
 
-### 📅 Agendamentos
-Gerenciamento completo da agenda com:
+3. Preencha `.env`:
 
-- Cliente
-- Barbeiro
-- Serviço
-- Data
-- Horário
-- Status do atendimento
+```env
+PORT=3001
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=barberflow
+DB_USER=postgres
+DB_PASSWORD=SUA_SENHA_POSTGRES
+JWT_SECRET=USE_UMA_CHAVE_GRANDE_ALEATORIA
+APP_URL=http://localhost:3001
+BOOTSTRAP_ADMIN_EMAIL=admin@barberflow.local
+BOOTSTRAP_ADMIN_PASSWORD=TroqueEstaSenha123!
+```
 
-O sistema verifica automaticamente conflitos de horários.
+4. Rode a migração e depois o servidor:
 
-### 🌐 Agendamento público
+```powershell
+npm run migrate
+npm start
+```
 
-Cada barbearia possui sua própria página pública.
+5. Abra `http://localhost:3001`.
 
-Exemplo:
+### Banco antigo
 
-`/agendar/minha-barbearia`
+A migração não apaga os dados antigos. Registros legados sem `barbearia_id` são vinculados à **Barbearia Demo**. O usuário inicial usa `BOOTSTRAP_ADMIN_EMAIL` e `BOOTSTRAP_ADMIN_PASSWORD` do `.env`.
 
-O cliente pode:
+### Banco vazio
 
-1. escolher o serviço;
-2. escolher o barbeiro;
-3. selecionar uma data;
-4. visualizar horários disponíveis;
-5. informar seus dados;
-6. confirmar o agendamento.
+A mesma migração cria todas as tabelas do zero.
 
-Não é necessário login para o cliente.
+## Rotas principais
 
-### 👥 Clientes
+### Autenticação
+- `POST /api/auth/registrar`
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+- `POST /api/auth/solicitar-reset`
+- `POST /api/auth/redefinir-senha`
 
-Cadastro e gerenciamento da base de clientes da barbearia.
+### Painel autenticado
+- `/api/clientes`
+- `/api/barbeiros`
+- `/api/servicos`
+- `/api/agendamentos`
+- `/api/dashboard`
+- `/api/configuracoes`
+- `/api/usuarios`
+- `/api/assinatura`
 
-### 💈 Barbeiros
+### Público
+- `GET /api/publico/:slug`
+- `GET /api/publico/:slug/horarios`
+- `POST /api/publico/:slug/agendar`
 
-Gerenciamento dos profissionais e configuração individual dos horários de trabalho.
+## Status do agendamento
 
-### ✂️ Serviços
+`agendado` → `confirmado` → `em_atendimento` → `concluido`
 
-Cadastro dos serviços oferecidos, incluindo:
+Alternativas: `cancelado` e `nao_compareceu`.
 
-- nome;
-- duração;
-- preço.
+## Assinatura e pagamentos
 
-### 👤 Equipe e permissões
+O banco e a interface de planos já existem. O endpoint `/api/assinatura/selecionar-plano` permite testar o fluxo. Para cobrar clientes reais, conecte **Mercado Pago** ou **Stripe** no backend e atualize `assinaturas.status`, `referencia_externa` e `proxima_cobranca` através dos webhooks oficiais do provedor.
 
-O BarberFlow possui diferentes níveis de acesso:
+Não coloque chaves secretas de pagamento no frontend.
 
-- Dono
-- Gerente
-- Recepção
-- Barbeiro
+## Recuperação de senha em produção
 
-Cada usuário possui acesso somente às funcionalidades necessárias para sua função.
+O backend gera tokens de uso único com validade de 30 minutos. Em desenvolvimento ele retorna `link_dev`. Em produção (`NODE_ENV=production`) conecte Resend, Postmark, SendGrid, SES ou outro provedor para enviar o link ao e-mail cadastrado.
 
-### 🏢 Multiempresa
+## WhatsApp
 
-O BarberFlow foi desenvolvido como um sistema SaaS multiempresa.
+A agenda já contém telefone do cliente e os pontos necessários para eventos (criação/confirmação/cancelamento). Para envio real, conecte uma API oficial/fornecedor no backend. Não exponha token do WhatsApp no frontend.
 
-Cada barbearia possui seus próprios:
+Sugestão de eventos:
+- agendamento criado → confirmação
+- 24h antes → lembrete
+- alteração/cancelamento → aviso
 
-- usuários;
-- clientes;
-- barbeiros;
-- serviços;
-- agendamentos;
-- configurações;
-- dados financeiros.
+## Checklist antes de vender
 
-Os dados das barbearias permanecem separados.
+- Trocar `JWT_SECRET` e senha bootstrap
+- Usar PostgreSQL hospedado com backups
+- HTTPS obrigatório
+- Configurar domínio
+- Conectar provedor de cobrança
+- Conectar e-mail para recuperação de senha
+- Criar política de privacidade e termos (LGPD)
+- Configurar monitoramento/logs e backups
+- Testar concorrência de horários em ambiente de produção
+- Limitar CORS ao domínio da aplicação
 
-### 💳 Assinaturas
+## Deploy sugerido
 
-Estrutura para comercialização do BarberFlow através de planos recorrentes.
+Uma configuração simples:
+- Aplicação Node/Express: Render, Railway, Fly.io ou VPS
+- PostgreSQL: Neon, Supabase Postgres, Railway ou serviço gerenciado
+- Domínio: `app.seudominio.com`
+- O próprio Express serve o frontend e a API na mesma origem.
 
-Integração com Mercado Pago para gerenciamento de assinaturas e pagamentos.
+No ambiente de produção configure `NODE_ENV=production`, `APP_URL=https://app.seudominio.com`, credenciais do banco e `JWT_SECRET`.
 
----
+## Próximas integrações comerciais
 
-## 🛠️ Tecnologias
+O núcleo SaaS está pronto para evolução. As integrações que dependem de terceiros são: cobrança automática, WhatsApp transacional e envio de e-mail. O código foi estruturado para essas integrações entrarem no backend sem alterar o modelo multiempresa.
 
-### Front-end
+## Equipe e permissões
 
-- HTML5
-- CSS3
-- JavaScript
+A versão inclui controle de acesso no backend e no menu do painel:
 
-### Back-end
+- **Dono:** acesso total, equipe, configurações, financeiro e assinatura.
+- **Gerente:** operação, clientes, barbeiros, serviços, financeiro, configurações e visualização da equipe.
+- **Recepção:** clientes e agendamentos; não administra preço, equipe, assinatura ou configurações.
+- **Barbeiro:** enxerga somente a própria agenda e pode avançar o status dos próprios atendimentos.
 
-- Node.js
-- Express.js
-- API REST
+Para atualizar um banco que já estava rodando, execute novamente:
 
-### Banco de dados
+```powershell
+cd backend
+npm run migrate
+npm start
+```
 
-- PostgreSQL
+Depois entre como Dono e use **Equipe e acessos** para criar usuários. Ao criar um usuário com papel Barbeiro, vincule-o ao barbeiro correspondente.
 
-### Segurança e autenticação
+## Dashboard Master
+Defina `MASTER_ADMIN_EMAIL` e `MASTER_ADMIN_PASSWORD` (mínimo 12 caracteres) no ambiente e rode `npm run migrate`. Essa conta recebe papel `super_admin` e acessa `/master.html`, onde é possível acompanhar barbearias, MRR estimado, trials, assinaturas, uso, bloquear/ativar tenants e ajustar plano/status.
 
-- JWT
-- bcrypt
-- Controle de acesso por perfil
-- Isolamento multiempresa
-
-### Pagamentos
-
-- Mercado Pago
-
----
-
-## 🏗️ Arquitetura
-
-```text
-Cliente
-   ↓
-Frontend
-   ↓
-API REST
-   ↓
-Node.js + Express
-   ↓
-PostgreSQL
+## Mobile
+O painel possui drawer lateral, navegação inferior, tabelas em cards, modais em bottom-sheet e página pública otimizada para telas pequenas.

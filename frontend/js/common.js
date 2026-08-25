@@ -6,10 +6,79 @@ function money(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',c
 function dateBR(v){if(!v)return '-';const s=String(v).slice(0,10).split('-');return `${s[2]}/${s[1]}/${s[0]}`}
 function timeBR(v){return String(v||'').slice(0,5)}
 function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
-function roleLabel(p){return ({dono:'Dono',gerente:'Gerente',recepcao:'Recepção',barbeiro:'Barbeiro'})[p]||p||''}
+function roleLabel(p){return ({super_admin:'Master',dono:'Dono',gerente:'Gerente',recepcao:'Recepção',barbeiro:'Barbeiro'})[p]||p||''}
 function hasRole(...roles){return roles.includes(currentUser().papel)}
 async function api(path,opts={}){const r=await fetch(`${API}${path}`,{...opts,headers:authHeaders(opts.headers||{})});let d={};try{d=await r.json()}catch{}if(r.status===401){logout();throw new Error('Sessão expirada')}if(!r.ok)throw new Error(d.erro||'Erro na operação');return d}
 function logout(){localStorage.removeItem('bf_token');localStorage.removeItem('bf_user');localStorage.removeItem('bf_barbearia');location.href='/login.html'}
 function requireAuth(roles=null){if(!token()){location.href='/login.html';return false}const u=currentUser();if(Array.isArray(roles)&&!roles.includes(u.papel)){location.href='/';return false}document.querySelectorAll('[data-user-name]').forEach(e=>e.textContent=u.nome||'Usuário');document.querySelectorAll('[data-user-role]').forEach(e=>e.textContent=roleLabel(u.papel));return true}
 function flash(el,msg,type='success'){el.textContent=msg;el.className=`notice ${type}`;el.classList.remove('hidden');setTimeout(()=>el.classList.add('hidden'),4000)}
-function renderShell(active){const u=currentUser();const role=u.papel;const links=[['dashboard','/','🏠 Dashboard',['dono','gerente','recepcao','barbeiro']],['agendamentos','/pages/agendamentos.html','📅 Agendamentos',['dono','gerente','recepcao','barbeiro']],['clientes','/pages/clientes.html','👥 Clientes',['dono','gerente','recepcao']],['barbeiros','/pages/barbeiros.html','💈 Barbeiros',['dono','gerente']],['servicos','/pages/servicos.html','✂️ Serviços',['dono','gerente']],['financeiro','/pages/financeiro.html','💰 Financeiro',['dono','gerente']],['equipe','/pages/equipe.html','🔐 Equipe e acessos',['dono','gerente']],['config','/pages/configuracoes.html','⚙️ Configurações',['dono','gerente']],['assinatura','/pages/assinatura.html','💳 Assinatura',['dono']]];const menu=links.filter(x=>x[3].includes(role)).map(x=>`<a class="${active===x[0]?'active':''}" href="${x[1]}">${x[2]}</a>`).join('');return `<aside class="sidebar"><div class="logo">Barber<span>Flow</span></div><nav class="menu">${menu}</nav><div class="sidebar-bottom"><div class="muted" style="padding:10px 14px;color:#9ca3af">${esc(roleLabel(role))}</div><a href="#" onclick="logout()">↪ Sair</a></div></aside>`}
+
+function toggleMobileMenu(force){
+  const sidebar=document.querySelector('.sidebar');
+  const backdrop=document.querySelector('.sidebar-backdrop');
+  if(!sidebar)return;
+  const open=typeof force==='boolean'?force:!sidebar.classList.contains('mobile-open');
+  sidebar.classList.toggle('mobile-open',open);
+  backdrop?.classList.toggle('show',open);
+  document.body.classList.toggle('menu-open',open);
+}
+function closeMobileMenu(){toggleMobileMenu(false)}
+
+function enhanceResponsiveTable(table){
+  if(!table||table.dataset.responsiveReady==='1')return;
+  table.dataset.responsiveReady='1';
+  const apply=()=>{
+    const headers=[...table.querySelectorAll('thead th')].map(th=>th.textContent.trim());
+    table.querySelectorAll('tbody tr').forEach(tr=>{
+      const cells=[...tr.children];
+      if(cells.length===1&&cells[0].colSpan>1){cells[0].dataset.label='';return}
+      cells.forEach((td,i)=>td.dataset.label=headers[i]||'');
+    });
+  };
+  apply();
+  const tbody=table.querySelector('tbody');
+  if(tbody)new MutationObserver(apply).observe(tbody,{childList:true,subtree:true});
+}
+function initResponsiveTables(){document.querySelectorAll('.table').forEach(enhanceResponsiveTable)}
+document.addEventListener('DOMContentLoaded',()=>setTimeout(initResponsiveTables,0));
+
+function renderShell(active){
+  const u=currentUser();const role=u.papel;
+  if(role==='super_admin'){return `
+    <div class="mobile-appbar"><button class="icon-btn" onclick="toggleMobileMenu()">☰</button><a class="mobile-logo" href="/master.html">Barber<span>Flow</span> Master</a><div class="mobile-avatar">MA</div></div>
+    <div class="sidebar-backdrop" onclick="closeMobileMenu()"></div>
+    <aside class="sidebar"><div class="sidebar-mobile-head"><div class="logo">Barber<span>Flow</span></div><button class="close-drawer" onclick="closeMobileMenu()">×</button></div><div class="logo desktop-logo">Barber<span>Flow</span></div><nav class="menu"><a class="${active==='master'?'active':''}" href="/master.html"><span class="menu-icon">🛡️</span><span>Dashboard Master</span></a></nav><div class="sidebar-bottom"><div class="sidebar-user"><strong>${esc(u.nome||'Master')}</strong><span>Super Admin</span></div><a href="#" onclick="logout()"><span class="menu-icon">↪</span><span>Sair</span></a></div></aside><nav class="mobile-bottom-nav master-bottom"><a class="active" href="/master.html"><span>🛡️</span><small>Master</small></a><button onclick="toggleMobileMenu()"><span>☰</span><small>Menu</small></button></nav>`}
+  const links=[
+    ['dashboard','/','🏠','Dashboard',['dono','gerente','recepcao','barbeiro']],
+    ['agendamentos','/pages/agendamentos.html','📅','Agenda',['dono','gerente','recepcao','barbeiro']],
+    ['clientes','/pages/clientes.html','👥','Clientes',['dono','gerente','recepcao']],
+    ['barbeiros','/pages/barbeiros.html','💈','Barbeiros',['dono','gerente']],
+    ['servicos','/pages/servicos.html','✂️','Serviços',['dono','gerente']],
+    ['financeiro','/pages/financeiro.html','💰','Financeiro',['dono','gerente']],
+    ['equipe','/pages/equipe.html','🔐','Equipe',['dono','gerente']],
+    ['config','/pages/configuracoes.html','⚙️','Configurações',['dono','gerente']],
+    ['assinatura','/pages/assinatura.html','💳','Assinatura',['dono']]
+  ];
+  const allowed=links.filter(x=>x[4].includes(role));
+  const menu=allowed.map(x=>`<a class="${active===x[0]?'active':''}" href="${x[1]}" onclick="closeMobileMenu()"><span class="menu-icon">${x[2]}</span><span>${x[3]}</span></a>`).join('');
+  const quickKeys=['dashboard','agendamentos','clientes'];
+  const quick=allowed.filter(x=>quickKeys.includes(x[0])).slice(0,3);
+  const bottom=quick.map(x=>`<a class="${active===x[0]?'active':''}" href="${x[1]}"><span>${x[2]}</span><small>${x[3]}</small></a>`).join('');
+  return `
+    <div class="mobile-appbar">
+      <button class="icon-btn" type="button" onclick="toggleMobileMenu()" aria-label="Abrir menu">☰</button>
+      <a class="mobile-logo" href="/">Barber<span>Flow</span></a>
+      <div class="mobile-avatar">${esc((u.nome||'BF').slice(0,2).toUpperCase())}</div>
+    </div>
+    <div class="sidebar-backdrop" onclick="closeMobileMenu()"></div>
+    <aside class="sidebar">
+      <div class="sidebar-mobile-head"><div class="logo">Barber<span>Flow</span></div><button class="close-drawer" onclick="closeMobileMenu()">×</button></div>
+      <div class="logo desktop-logo">Barber<span>Flow</span></div>
+      <nav class="menu">${menu}</nav>
+      <div class="sidebar-bottom">
+        <div class="sidebar-user"><strong>${esc(u.nome||'Usuário')}</strong><span>${esc(roleLabel(role))}</span></div>
+        <a href="#" onclick="logout()"><span class="menu-icon">↪</span><span>Sair</span></a>
+      </div>
+    </aside>
+    <nav class="mobile-bottom-nav">${bottom}<button type="button" onclick="toggleMobileMenu()"><span>☰</span><small>Mais</small></button></nav>`
+}
