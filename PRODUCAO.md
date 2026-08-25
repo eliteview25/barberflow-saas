@@ -44,3 +44,15 @@ POST https://seu-dominio.com/api/webhooks/mercadopago
 O webhook trata `subscription_preapproval` e `subscription_authorized_payment`. Em produção, mantenha `MP_WEBHOOK_SECRET` configurado para validar `x-signature`.
 
 Fluxo: Dono > Assinatura > escolher plano > checkout Mercado Pago > retorno ao BarberFlow > webhook/sincronização > assinatura ativa.
+
+
+## Mercado Pago OAuth por barbearia
+
+1. Crie/edite a aplicação do BarberFlow em Mercado Pago Developers.
+2. Cadastre como Redirect URL: `https://SEU_DOMINIO/api/mercadopago/callback`.
+3. Adicione `MP_CLIENT_ID`, `MP_CLIENT_SECRET`, `MP_OAUTH_REDIRECT_URI` e `MP_TOKEN_ENCRYPTION_KEY` no Environment do Render.
+4. Faça Save and Deploy.
+5. Rode `npm run migrate` no Shell.
+6. Entre como dono da barbearia > Configurações > Recebimentos > Conectar Mercado Pago.
+
+Nunca salve Access Tokens de vendedores em texto puro e nunca envie `MP_CLIENT_SECRET` ao frontend.

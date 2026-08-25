@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
+const {contextoPlano}=require('../services/planos');
 
 async function autenticar(req, res, next) {
   const header = req.headers.authorization || '';
@@ -32,12 +33,11 @@ function exigirPapel(...papeis) {
 
 async function exigirAssinatura(req,res,next){
   try{
-    const r=await pool.query(`SELECT status,fim_trial FROM assinaturas WHERE barbearia_id=$1 ORDER BY id DESC LIMIT 1`,[req.usuario.barbearia_id]);
-    if(!r.rowCount)return res.status(402).json({erro:'Barbearia sem assinatura'});
-    const a=r.rows[0];
-    const trialOk=a.status==='trial' && a.fim_trial && new Date(a.fim_trial)>=new Date(new Date().toISOString().slice(0,10));
-    if(a.status!=='ativa' && !trialOk) return res.status(402).json({erro:'Assinatura inativa ou período de teste encerrado'});
-    req.assinatura=a; next();
+    const ctx=await contextoPlano(req.usuario.barbearia_id);
+    if(!ctx.assinatura)return res.status(402).json({erro:'Barbearia sem assinatura'});
+    if(ctx.assinatura.status!=='ativa'&&!ctx.trial_ativo)return res.status(402).json({erro:'Assinatura inativa ou período de teste encerrado'});
+    req.assinatura={...ctx.assinatura,plano_efetivo:ctx.plano_efetivo,recursos:ctx.recursos,trial_ativo:ctx.trial_ativo,dias_trial:ctx.dias_trial};
+    next();
   }catch(e){console.error(e);res.status(500).json({erro:'Erro ao validar assinatura'});}
 }
 module.exports = { autenticar, exigirPapel, exigirAssinatura };

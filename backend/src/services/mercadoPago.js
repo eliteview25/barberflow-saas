@@ -60,7 +60,7 @@ async function criarAssinatura({ barbeariaId, plano, email }) {
   return mpFetch('/preapproval', { method: 'POST', body: JSON.stringify(body) });
 }
 
-async function criarPreferenciaAgendamento({ reservaId, slug, servicoId, servicoNome, valor, nome, email }) {
+async function criarPreferenciaAgendamento({ reservaId, barbeariaId, slug, servicoId, servicoNome, valor, nome, email, accessToken, aceitarPix=true, aceitarCartao=true }) {
   const appUrl = (process.env.APP_URL || 'http://localhost:3001').replace(/\/$/, '');
   const retorno = `${appUrl}/agendar/${encodeURIComponent(slug)}?reserva=${reservaId}`;
   const body = {
@@ -79,14 +79,20 @@ async function criarPreferenciaAgendamento({ reservaId, slug, servicoId, servico
       failure: `${retorno}&retorno=failure`
     },
     auto_return: 'approved',
-    notification_url: `${appUrl}/api/webhooks/mercadopago`,
+    notification_url: `${appUrl}/api/webhooks/mercadopago?barbearia_id=${encodeURIComponent(barbeariaId)}&reserva_id=${encodeURIComponent(reservaId)}`,
     payment_methods: {
-      excluded_payment_types: [{ id: 'ticket' }],
-      installments: 1
+      excluded_payment_types: [
+        { id: 'ticket' },
+        ...(!aceitarPix ? [{ id: 'bank_transfer' }] : []),
+        ...(!aceitarCartao ? [{ id: 'credit_card' }, { id: 'debit_card' }, { id: 'prepaid_card' }] : [])
+      ],
+      installments: aceitarCartao ? 12 : 1
     }
   };
+  const feePct=Number(process.env.MP_MARKETPLACE_FEE_PERCENT||0);
+  if(feePct>0) body.marketplace_fee=Number((Number(valor)*feePct/100).toFixed(2));
   if (nome || email) body.payer = { ...(nome ? { name: nome } : {}), ...(email ? { email } : {}) };
-  return mpFetch('/checkout/preferences', { method: 'POST', body: JSON.stringify(body) });
+  return mpFetch('/checkout/preferences', { method: 'POST', body: JSON.stringify(body), accessToken });
 }
 
 async function obterAssinatura(id) {
@@ -104,8 +110,8 @@ async function obterPagamentoAutorizado(id) {
   return mpFetch(`/authorized_payments/${encodeURIComponent(id)}`);
 }
 
-async function obterPagamento(id) {
-  return mpFetch(`/v1/payments/${encodeURIComponent(id)}`);
+async function obterPagamento(id, accessToken) {
+  return mpFetch(`/v1/payments/${encodeURIComponent(id)}`, { accessToken });
 }
 
 function validarWebhook({ xSignature, xRequestId, dataId, secret }) {

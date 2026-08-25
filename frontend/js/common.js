@@ -1,6 +1,9 @@
 const API='/api';
 function token(){return localStorage.getItem('bf_token')||''}
 function currentUser(){try{return JSON.parse(localStorage.getItem('bf_user')||'{}')}catch{return {}}}
+function currentSubscription(){try{return JSON.parse(localStorage.getItem('bf_assinatura')||'{}')}catch{return {}}}
+function hasFeature(f){const a=currentSubscription();return Array.isArray(a.recursos)?a.recursos.includes(f):true}
+function planLabel(p){return ({starter:'Starter',pro:'Pro',premium:'Premium'})[p]||p||'-'}
 function authHeaders(extra={}){return {'Content-Type':'application/json','Authorization':`Bearer ${token()}`,...extra}}
 function money(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
 function dateBR(v){if(!v)return '-';const s=String(v).slice(0,10).split('-');return `${s[2]}/${s[1]}/${s[0]}`}
@@ -9,7 +12,8 @@ function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&l
 function roleLabel(p){return ({super_admin:'Master',dono:'Dono',gerente:'Gerente',recepcao:'Recepção',barbeiro:'Barbeiro'})[p]||p||''}
 function hasRole(...roles){return roles.includes(currentUser().papel)}
 async function api(path,opts={}){const r=await fetch(`${API}${path}`,{...opts,headers:authHeaders(opts.headers||{})});let d={};try{d=await r.json()}catch{}if(r.status===401){logout();throw new Error('Sessão expirada')}if(!r.ok)throw new Error(d.erro||'Erro na operação');return d}
-function logout(){localStorage.removeItem('bf_token');localStorage.removeItem('bf_user');localStorage.removeItem('bf_barbearia');location.replace('/login.html')}
+async function syncSubscription(){if(!token()||currentUser().papel==='super_admin')return;try{const r=await fetch('/api/assinatura/recursos',{headers:authHeaders()});if(r.ok){const a=await r.json();localStorage.setItem('bf_assinatura',JSON.stringify(a));}}catch{}}
+function logout(){localStorage.removeItem('bf_token');localStorage.removeItem('bf_user');localStorage.removeItem('bf_barbearia');localStorage.removeItem('bf_assinatura');localStorage.removeItem('bf_assinatura');location.replace('/login.html')}
 function tokenExpirado(){
   const t=token();
   if(!t)return true;
@@ -24,7 +28,7 @@ function mostrarPaginaProtegida(){
 }
 function requireAuth(roles=null){
   if(!token()||tokenExpirado()){
-    localStorage.removeItem('bf_token');localStorage.removeItem('bf_user');localStorage.removeItem('bf_barbearia');
+    localStorage.removeItem('bf_token');localStorage.removeItem('bf_user');localStorage.removeItem('bf_barbearia');localStorage.removeItem('bf_assinatura');
     location.replace('/login.html');
     return false;
   }
@@ -36,6 +40,7 @@ function requireAuth(roles=null){
   document.querySelectorAll('[data-user-name]').forEach(e=>e.textContent=u.nome||'Usuário');
   document.querySelectorAll('[data-user-role]').forEach(e=>e.textContent=roleLabel(u.papel));
   mostrarPaginaProtegida();
+  setTimeout(syncSubscription,0);
   return true;
 }
 function flash(el,msg,type='success'){el.textContent=msg;el.className=`notice ${type}`;el.classList.remove('hidden');setTimeout(()=>el.classList.add('hidden'),4000)}
@@ -81,12 +86,12 @@ function renderShell(active){
     ['clientes','/pages/clientes.html','👥','Clientes',['dono','gerente','recepcao']],
     ['barbeiros','/pages/barbeiros.html','💈','Barbeiros',['dono','gerente']],
     ['servicos','/pages/servicos.html','✂️','Serviços',['dono','gerente']],
-    ['financeiro','/pages/financeiro.html','💰','Financeiro',['dono','gerente']],
-    ['equipe','/pages/equipe.html','🔐','Equipe',['dono','gerente']],
+    ['financeiro','/pages/financeiro.html','💰','Financeiro',['dono','gerente'],'financeiro_basico'],
+    ['equipe','/pages/equipe.html','🔐','Equipe',['dono','gerente'],'equipe'],
     ['config','/pages/configuracoes.html','⚙️','Configurações',['dono','gerente']],
     ['assinatura','/pages/assinatura.html','💳','Assinatura',['dono']]
   ];
-  const allowed=links.filter(x=>x[4].includes(role));
+  const allowed=links.filter(x=>x[4].includes(role)&&(!x[5]||hasFeature(x[5])));
   const menu=allowed.map(x=>`<a class="${active===x[0]?'active':''}" href="${x[1]}" onclick="closeMobileMenu()"><span class="menu-icon">${x[2]}</span><span>${x[3]}</span></a>`).join('');
   const quickKeys=['dashboard','agendamentos','clientes'];
   const quick=allowed.filter(x=>quickKeys.includes(x[0])).slice(0,3);

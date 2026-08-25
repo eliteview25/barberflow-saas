@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const pool = require('../config/db');
 const { autenticar } = require('../middlewares/auth');
+const {contextoPlano}=require('../services/planos');
 const router = express.Router();
 
 function slugify(texto) {
@@ -24,10 +25,11 @@ router.post('/registrar', async (req,res) => {
     const tenant = await client.query(`INSERT INTO barbearias (nome,slug,telefone,ativo) VALUES ($1,$2,$3,true) RETURNING *`, [barbearia,slug,telefone||null]);
     const hash = await bcrypt.hash(senha, 12);
     const user = await client.query(`INSERT INTO usuarios (barbearia_id,nome,email,senha_hash,papel,ativo) VALUES ($1,$2,$3,$4,'dono',true) RETURNING id,nome,email,papel`, [tenant.rows[0].id,nome,email.toLowerCase(),hash]);
-    await client.query(`INSERT INTO assinaturas (barbearia_id,plano,status,inicio,fim_trial) VALUES ($1,'pro','trial',CURRENT_DATE,CURRENT_DATE + INTERVAL '14 days')`, [tenant.rows[0].id]);
+    await client.query(`INSERT INTO assinaturas (barbearia_id,plano,status,inicio,fim_trial) VALUES ($1,'premium','trial',CURRENT_DATE,CURRENT_DATE + INTERVAL '7 days')`, [tenant.rows[0].id]);
     await client.query('COMMIT');
     const token = jwt.sign({ id:user.rows[0].id, barbearia_id:tenant.rows[0].id, papel:user.rows[0].papel, nome:user.rows[0].nome }, process.env.JWT_SECRET, { expiresIn:'12h' });
-    res.status(201).json({ token, usuario:user.rows[0], barbearia:tenant.rows[0] });
+    const plano=await contextoPlano(tenant.rows[0].id);
+    res.status(201).json({ token, usuario:user.rows[0], barbearia:tenant.rows[0], assinatura:{...plano.assinatura,plano_efetivo:plano.plano_efetivo,recursos:plano.recursos,trial_ativo:plano.trial_ativo,dias_trial:plano.dias_trial} });
   } catch (e) { await client.query('ROLLBACK'); console.error(e); res.status(500).json({ erro:'Erro ao criar conta' }); }
   finally { client.release(); }
 });
@@ -38,7 +40,8 @@ router.post('/login', async (req,res) => {
   if (!r.rowCount || !(await bcrypt.compare(senha||'', r.rows[0].senha_hash))) return res.status(401).json({ erro:'E-mail ou senha inválidos' });
   const u = r.rows[0];
   const token = jwt.sign({ id:u.id, barbearia_id:u.barbearia_id, papel:u.papel, nome:u.nome }, process.env.JWT_SECRET, { expiresIn:'12h' });
-  res.json({ token, usuario:{id:u.id,nome:u.nome,email:u.email,papel:u.papel,barbeiro_id:u.barbeiro_id}, barbearia:{id:u.barbearia_id,nome:u.barbearia_nome,slug:u.slug} });
+  const plano=await contextoPlano(u.barbearia_id);
+  res.json({ token, usuario:{id:u.id,nome:u.nome,email:u.email,papel:u.papel,barbeiro_id:u.barbeiro_id}, barbearia:{id:u.barbearia_id,nome:u.barbearia_nome,slug:u.slug}, assinatura:{...plano.assinatura,plano_efetivo:plano.plano_efetivo,recursos:plano.recursos,trial_ativo:plano.trial_ativo,dias_trial:plano.dias_trial} });
 });
 
 

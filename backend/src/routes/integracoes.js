@@ -1,6 +1,7 @@
 const express = require('express');
 const pool = require('../config/db');
 const { obterAssinatura, obterPagamentoAutorizado, obterPagamento, validarWebhook } = require('../services/mercadoPago');
+const { getSellerAccessToken } = require('../services/mercadoPagoOAuth');
 const router = express.Router();
 
 function statusLocal(statusMp) {
@@ -49,7 +50,7 @@ async function finalizarReservaPagamento(reservaId,pagamento){
     let c=await client.query(`SELECT * FROM clientes WHERE barbearia_id=$1 AND telefone=$2 ORDER BY id LIMIT 1`,[r.barbearia_id,r.telefone]);
     if(!c.rowCount)c=await client.query(`INSERT INTO clientes(barbearia_id,nome,telefone,email) VALUES($1,$2,$3,$4) RETURNING *`,[r.barbearia_id,r.nome,r.telefone,r.email||null]);
     else await client.query(`UPDATE clientes SET nome=$1,email=COALESCE($2,email) WHERE id=$3`,[r.nome,r.email||null,c.rows[0].id]);
-    const ag=await client.query(`INSERT INTO agendamentos(barbearia_id,cliente_id,barbeiro_id,servico_id,data,horario,status,origem,observacoes) VALUES($1,$2,$3,$4,$5,$6,'confirmado','publico_pago',$7) RETURNING id`,[r.barbearia_id,c.rows[0].id,r.barbeiro_id,r.servico_id,r.data,r.horario,`Pagamento Mercado Pago #${pagamento.id}`]);
+    const ag=await client.query(`INSERT INTO agendamentos(barbearia_id,cliente_id,barbeiro_id,servico_id,data,horario,status,origem,observacoes,forma_pagamento,status_pagamento,valor_cobrado,valor_pago) VALUES($1,$2,$3,$4,$5,$6,'confirmado','publico_pago',$7,'mercado_pago','pago',$8,$8) RETURNING id`,[r.barbearia_id,c.rows[0].id,r.barbeiro_id,r.servico_id,r.data,r.horario,`Pagamento Mercado Pago #${pagamento.id}`,r.valor_cobrado]);
     await client.query(`UPDATE reservas_pagamento SET status='confirmada',agendamento_id=$1,mp_payment_id=$2,mp_status=$3,atualizado_em=NOW() WHERE id=$4`,[ag.rows[0].id,String(pagamento.id||''),pagamento.status,r.id]);
     await client.query('COMMIT');
   }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
@@ -66,9 +67,18 @@ router.post('/mercadopago', async (req,res) => {
     if (type === 'subscription_preapproval' && dataId) {await sincronizarPreapproval(dataId);return;}
     if (type === 'subscription_authorized_payment' && dataId) {const pagamento=await obterPagamentoAutorizado(dataId);if(pagamento?.preapproval_id)await sincronizarPreapproval(pagamento.preapproval_id);return;}
     if ((type === 'payment' || type === 'payments') && dataId) {
-      const pagamento=await obterPagamento(dataId);
+      const barbeariaId=Number(req.query.barbearia_id||0);
+      const reservaId=Number(req.query.reserva_id||0);
+      let pagamento;
+      if(barbeariaId){
+        const sellerToken=await getSellerAccessToken(barbeariaId);
+        pagamento=await obterPagamento(dataId,sellerToken);
+      }else{
+        pagamento=await obterPagamento(dataId);
+      }
       const m=String(pagamento.external_reference||'').match(/^barberflow-booking:(\d+)$/);
-      if(m) await finalizarReservaPagamento(Number(m[1]),pagamento);
+      const rid=m?Number(m[1]):reservaId;
+      if(rid) await finalizarReservaPagamento(rid,pagamento);
     }
   } catch (e) {console.error('Erro processando webhook Mercado Pago:', e.data||e.message);}
 });

@@ -190,3 +190,54 @@ Nesta versão, o fluxo de pagamento de agendamento reutiliza `MP_ACCESS_TOKEN` e
 
 ## Personalização da página pública
 A barbearia pode configurar logo e banner por URL, cores principal/secundária/botão/fundo, tema claro/escuro, textos, Instagram, WhatsApp, política de cancelamento e visibilidade de preço/duração. Após atualizar esta versão, execute `npm run migrate` para criar os novos campos.
+
+
+## Pagamentos por barbearia (Marketplace)
+
+A versão multiempresa permite que o dono configure em **Configurações > Recebimentos**:
+
+- Mercado Pago conectado à própria conta via OAuth;
+- Pix pelo Mercado Pago;
+- cartão pelo Mercado Pago;
+- Pix manual (chave, recebedor e banco);
+- dinheiro no local;
+- cobrança total, sinal percentual ou sem cobrança antecipada.
+
+Para o OAuth do Mercado Pago, configure no Render/Web Service:
+
+```env
+MP_CLIENT_ID=ID_DA_APLICACAO_MERCADO_PAGO
+MP_CLIENT_SECRET=SEGREDO_DA_APLICACAO
+MP_OAUTH_REDIRECT_URI=https://SEU_DOMINIO/api/mercadopago/callback
+MP_TOKEN_ENCRYPTION_KEY=UMA_CHAVE_LONGA_ALEATORIA
+MP_MARKETPLACE_FEE_PERCENT=0
+```
+
+A `MP_TOKEN_ENCRYPTION_KEY` é usada para criptografar Access Token e Refresh Token antes de salvá-los no PostgreSQL. Não compartilhe esta chave e não a altere depois de barbearias estarem conectadas sem antes planejar uma rotação dos tokens.
+
+No painel Mercado Pago Developers, a **Redirect URL** da aplicação deve ser exatamente a mesma de `MP_OAUTH_REDIRECT_URI`.
+
+O `MP_ACCESS_TOKEN` global continua sendo usado apenas pela cobrança da assinatura do próprio BarberFlow. Pagamentos de clientes usam o Access Token OAuth da barbearia.
+
+### Fluxos de pagamento
+
+- **Mercado Pago:** reserva o horário, abre Checkout Pro e confirma automaticamente via webhook.
+- **Pix manual:** reserva o horário e mostra a chave Pix; dono/gerente/recepção confirma o recebimento no painel.
+- **Dinheiro:** cria o agendamento com pagamento pendente para recebimento no atendimento.
+
+Depois de atualizar esta versão em produção, rode:
+
+```bash
+npm run migrate
+npm run verify
+```
+
+## Planos e trial
+
+Novas contas começam com **Premium em trial por 7 dias**.
+
+- **Starter**: agenda, clientes, barbeiros e serviços.
+- **Pro**: tudo do Starter + equipe, financeiro básico, página pública simples e pagamentos online.
+- **Premium**: tudo do Pro + personalização completa da página pública, gráficos financeiros e base de automações.
+
+Os bloqueios são aplicados no backend e no frontend. Dados de recursos Premium são preservados em downgrade e voltam a aparecer após upgrade.
