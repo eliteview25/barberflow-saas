@@ -12,7 +12,7 @@ async function autenticar(req, res, next) {
       SELECT u.id,u.barbearia_id,u.nome,u.email,u.papel,u.barbeiro_id
       FROM usuarios u
       JOIN barbearias b ON b.id=u.barbearia_id
-      WHERE u.id=$1 AND u.ativo=true AND b.ativo=true
+      WHERE u.id=$1 AND u.ativo=true AND (u.papel='super_admin' OR (b.ativo=true AND b.excluido_em IS NULL))
     `,[payload.id]);
     if (!r.rowCount) return res.status(401).json({ erro:'Usuário inativo ou removido' });
     req.usuario = r.rows[0];

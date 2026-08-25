@@ -36,9 +36,10 @@ router.post('/registrar', async (req,res) => {
 
 router.post('/login', async (req,res) => {
   const { email, senha } = req.body;
-  const r = await pool.query(`SELECT u.*, b.nome AS barbearia_nome, b.slug FROM usuarios u JOIN barbearias b ON b.id=u.barbearia_id WHERE LOWER(u.email)=LOWER($1) AND u.ativo=true AND b.ativo=true`, [email||'']);
+  const r = await pool.query(`SELECT u.*, b.nome AS barbearia_nome, b.slug FROM usuarios u JOIN barbearias b ON b.id=u.barbearia_id WHERE LOWER(u.email)=LOWER($1) AND u.ativo=true AND (u.papel='super_admin' OR (b.ativo=true AND b.excluido_em IS NULL))`, [email||'']);
   if (!r.rowCount || !(await bcrypt.compare(senha||'', r.rows[0].senha_hash))) return res.status(401).json({ erro:'E-mail ou senha inválidos' });
   const u = r.rows[0];
+  await pool.query(`UPDATE usuarios SET atualizado_em=NOW() WHERE id=$1`,[u.id]);
   const token = jwt.sign({ id:u.id, barbearia_id:u.barbearia_id, papel:u.papel, nome:u.nome }, process.env.JWT_SECRET, { expiresIn:'12h' });
   const plano=await contextoPlano(u.barbearia_id);
   res.json({ token, usuario:{id:u.id,nome:u.nome,email:u.email,papel:u.papel,barbeiro_id:u.barbeiro_id}, barbearia:{id:u.barbearia_id,nome:u.barbearia_nome,slug:u.slug}, assinatura:{...plano.assinatura,plano_efetivo:plano.plano_efetivo,recursos:plano.recursos,trial_ativo:plano.trial_ativo,dias_trial:plano.dias_trial} });
@@ -66,7 +67,7 @@ router.post('/redefinir-senha', async (req,res) => {
 });
 
 router.get('/me', autenticar, async (req,res) => {
-  const r = await pool.query(`SELECT u.id,u.nome,u.email,u.papel,u.barbeiro_id,b.id AS barbearia_id,b.nome AS barbearia_nome,b.slug FROM usuarios u JOIN barbearias b ON b.id=u.barbearia_id WHERE u.id=$1`, [req.usuario.id]);
+  const r = await pool.query(`SELECT u.id,u.nome,u.email,u.telefone,u.papel,u.barbeiro_id,b.id AS barbearia_id,b.nome AS barbearia_nome,b.slug FROM usuarios u JOIN barbearias b ON b.id=u.barbearia_id WHERE u.id=$1`, [req.usuario.id]);
   if (!r.rowCount) return res.status(404).json({erro:'Usuário não encontrado'});
   res.json(r.rows[0]);
 });

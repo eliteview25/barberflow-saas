@@ -65,7 +65,22 @@ router.post('/mercadopago', async (req,res) => {
   try {
     const type = req.query.type || req.body?.type || req.query.topic;
     if (type === 'subscription_preapproval' && dataId) {await sincronizarPreapproval(dataId);return;}
-    if (type === 'subscription_authorized_payment' && dataId) {const pagamento=await obterPagamentoAutorizado(dataId);if(pagamento?.preapproval_id)await sincronizarPreapproval(pagamento.preapproval_id);return;}
+    if (type === 'subscription_authorized_payment' && dataId) {
+      const pagamento=await obterPagamentoAutorizado(dataId);
+      if(pagamento?.preapproval_id) await sincronizarPreapproval(pagamento.preapproval_id);
+      try{
+        const preId=pagamento?.preapproval_id||null;
+        const ar=preId?await pool.query(`SELECT id,barbearia_id,plano FROM assinaturas WHERE referencia_externa=$1 ORDER BY id DESC LIMIT 1`,[preId]):{rowCount:0,rows:[]};
+        if(ar.rowCount){
+          const a=ar.rows[0];
+          const valor=Number(pagamento.transaction_amount??pagamento.amount??pagamento.transaction_details?.total_paid_amount??0);
+          const pagoEm=pagamento.date_approved||pagamento.date_created||new Date().toISOString();
+          const status=String(pagamento.status||'').toLowerCase()==='approved'?'pago':String(pagamento.status||'pendente');
+          await pool.query(`INSERT INTO assinaturas_cobrancas(barbearia_id,assinatura_id,competencia,valor,status,vencimento,pago_em,provedor,referencia_externa) VALUES($1,$2,date_trunc('month',$3::timestamptz)::date,$4,$5,$3::timestamptz::date,CASE WHEN $5='pago' THEN $3::timestamptz ELSE NULL END,'mercadopago',$6) ON CONFLICT (provedor,referencia_externa) WHERE referencia_externa IS NOT NULL DO UPDATE SET valor=EXCLUDED.valor,status=EXCLUDED.status,pago_em=EXCLUDED.pago_em,atualizado_em=NOW()`,[a.barbearia_id,a.id,pagoEm,valor,status,String(pagamento.id||dataId)]);
+        }
+      }catch(logErr){console.error('Erro registrando cobrança SaaS:',logErr.message)}
+      return;
+    }
     if ((type === 'payment' || type === 'payments') && dataId) {
       const barbeariaId=Number(req.query.barbearia_id||0);
       const reservaId=Number(req.query.reserva_id||0);

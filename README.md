@@ -365,3 +365,7 @@ npm run maintenance
 ```
 
 Veja `QA-PILOTO.md` para o checklist de validação ponta a ponta.
+
+## Supermaster avançado
+
+O painel `/master.html` inclui gestão global das barbearias, alteração de planos, exclusão segura/restauração, financeiro SaaS com histórico registrado e projeções futuras, além de edição do próprio nome, e-mail, telefone e senha. `MASTER_ADMIN_EMAIL` e `MASTER_ADMIN_PASSWORD` passam a funcionar somente como bootstrap inicial; depois da criação, alterações do Supermaster feitas no painel são preservadas em novas migrações.

@@ -1,4 +1,5 @@
 const express=require('express');
+const bcrypt=require('bcryptjs');
 const pool=require('../config/db');
 const {autenticar,exigirPapel}=require('../middlewares/auth');
 const router=express.Router();
@@ -10,6 +11,8 @@ const PLANOS={
   premium:Number(process.env.PLAN_PREMIUM_PRICE||119.90)
 };
 function mensalidade(plano){return PLANOS[plano]||0}
+function validarPlano(p){return ['starter','pro','premium'].includes(p)}
+function validarStatus(s){return ['trial','ativa','inadimplente','atrasada','cancelada'].includes(s)}
 
 router.get('/dashboard',async(req,res)=>{
   try{
@@ -19,16 +22,16 @@ router.get('/dashboard',async(req,res)=>{
         FROM assinaturas ORDER BY barbearia_id,id DESC
       )
       SELECT
-        (SELECT COUNT(*) FROM barbearias)::int AS barbearias_total,
-        (SELECT COUNT(*) FROM barbearias WHERE ativo=true)::int AS barbearias_ativas,
-        (SELECT COUNT(*) FROM ult WHERE status='trial')::int AS trials,
-        (SELECT COUNT(*) FROM ult WHERE status='ativa')::int AS assinaturas_ativas,
-        (SELECT COUNT(*) FROM ult WHERE status IN ('inadimplente','atrasada'))::int AS inadimplentes,
-        (SELECT COUNT(*) FROM ult WHERE status='cancelada')::int AS canceladas,
-        (SELECT COUNT(*) FROM agendamentos WHERE date_trunc('month',data)=date_trunc('month',CURRENT_DATE))::int AS agendamentos_mes,
-        (SELECT COUNT(*) FROM clientes)::int AS clientes_total
+        (SELECT COUNT(*) FROM barbearias WHERE excluido_em IS NULL)::int AS barbearias_total,
+        (SELECT COUNT(*) FROM barbearias WHERE ativo=true AND excluido_em IS NULL)::int AS barbearias_ativas,
+        (SELECT COUNT(*) FROM ult u JOIN barbearias b ON b.id=u.barbearia_id WHERE u.status='trial' AND b.excluido_em IS NULL)::int AS trials,
+        (SELECT COUNT(*) FROM ult u JOIN barbearias b ON b.id=u.barbearia_id WHERE u.status='ativa' AND b.excluido_em IS NULL)::int AS assinaturas_ativas,
+        (SELECT COUNT(*) FROM ult u JOIN barbearias b ON b.id=u.barbearia_id WHERE u.status IN ('inadimplente','atrasada') AND b.excluido_em IS NULL)::int AS inadimplentes,
+        (SELECT COUNT(*) FROM ult u JOIN barbearias b ON b.id=u.barbearia_id WHERE u.status='cancelada' AND b.excluido_em IS NULL)::int AS canceladas,
+        (SELECT COUNT(*) FROM agendamentos a JOIN barbearias b ON b.id=a.barbearia_id WHERE date_trunc('month',a.data)=date_trunc('month',CURRENT_DATE) AND b.excluido_em IS NULL)::int AS agendamentos_mes,
+        (SELECT COUNT(*) FROM clientes c JOIN barbearias b ON b.id=c.barbearia_id WHERE b.excluido_em IS NULL)::int AS clientes_total
     `);
-    const planos=await pool.query(`SELECT plano,COUNT(*)::int quantidade FROM (SELECT DISTINCT ON (barbearia_id) barbearia_id,plano,status FROM assinaturas ORDER BY barbearia_id,id DESC) x WHERE status='ativa' GROUP BY plano`);
+    const planos=await pool.query(`SELECT plano,COUNT(*)::int quantidade FROM (SELECT DISTINCT ON (a.barbearia_id) a.barbearia_id,a.plano,a.status FROM assinaturas a JOIN barbearias b ON b.id=a.barbearia_id WHERE b.excluido_em IS NULL ORDER BY a.barbearia_id,a.id DESC) x WHERE status='ativa' GROUP BY plano`);
     const mrr=planos.rows.reduce((s,x)=>s+mensalidade(x.plano)*Number(x.quantidade),0);
     const recentes=await pool.query(`
       SELECT b.id,b.nome,b.slug,b.ativo,b.criado_em,u.nome dono,u.email,
@@ -37,10 +40,66 @@ router.get('/dashboard',async(req,res)=>{
       FROM barbearias b
       LEFT JOIN LATERAL (SELECT nome,email FROM usuarios WHERE barbearia_id=b.id AND papel='dono' ORDER BY id LIMIT 1) u ON true
       LEFT JOIN LATERAL (SELECT plano,status,fim_trial,proxima_cobranca FROM assinaturas WHERE barbearia_id=b.id ORDER BY id DESC LIMIT 1) a ON true
+      WHERE b.excluido_em IS NULL
       ORDER BY b.criado_em DESC LIMIT 8
     `);
     res.json({resumo:{...resumo.rows[0],mrr},planos:planos.rows,recentes:recentes.rows});
   }catch(e){console.error(e);res.status(500).json({erro:'Erro ao carregar Dashboard Master'});}
+});
+
+router.get('/financeiro',async(req,res)=>{
+  try{
+    const mesesPassados=Math.min(Math.max(Number(req.query.passados||12),1),36);
+    const mesesFuturos=Math.min(Math.max(Number(req.query.futuros||12),1),36);
+    const cobrancas=await pool.query(`
+      SELECT date_trunc('month',COALESCE(pago_em,vencimento,competencia))::date mes,
+             COALESCE(SUM(valor) FILTER (WHERE status='pago'),0)::numeric realizado,
+             COALESCE(SUM(valor) FILTER (WHERE status IN ('pendente','atrasado')),0)::numeric em_aberto
+      FROM assinaturas_cobrancas
+      WHERE COALESCE(pago_em,vencimento,competencia)>=date_trunc('month',CURRENT_DATE)-(($1::int-1)||' months')::interval
+      GROUP BY 1 ORDER BY 1
+    `,[mesesPassados]);
+    const atuais=await pool.query(`
+      SELECT a.barbearia_id,a.plano,a.status,a.fim_trial,a.proxima_cobranca,b.nome
+      FROM assinaturas a
+      JOIN barbearias b ON b.id=a.barbearia_id
+      WHERE a.id=(SELECT id FROM assinaturas x WHERE x.barbearia_id=a.barbearia_id ORDER BY id DESC LIMIT 1)
+        AND b.excluido_em IS NULL AND b.ativo=true
+        AND a.status IN ('ativa','trial')
+    `);
+    const historico=[];
+    for(let i=mesesPassados-1;i>=0;i--){
+      const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);
+      const key=d.toISOString().slice(0,7);
+      const r=cobrancas.rows.find(x=>String(x.mes).slice(0,7)===key);
+      historico.push({periodo:key,realizado:Number(r?.realizado||0),em_aberto:Number(r?.em_aberto||0)});
+    }
+    const futuro=[];
+    for(let i=0;i<mesesFuturos;i++){
+      const d=new Date();d.setDate(1);d.setMonth(d.getMonth()+i);
+      let projetado=0;let assinaturas=0;
+      for(const a of atuais.rows){
+        const valor=mensalidade(a.plano);
+        if(!valor)continue;
+        if(a.status==='ativa'){projetado+=valor;assinaturas++;continue;}
+        if(a.status==='trial'){
+          const fim=a.fim_trial?new Date(a.fim_trial):null;
+          const fimMes=new Date(d.getFullYear(),d.getMonth()+1,0,23,59,59);
+          if(!fim || fim<=fimMes){projetado+=valor;assinaturas++;}
+        }
+      }
+      futuro.push({periodo:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,projetado,assinaturas});
+    }
+    const mesAtual=historico[historico.length-1]||{realizado:0,em_aberto:0};
+    const mrr=atuais.rows.filter(x=>x.status==='ativa').reduce((s,x)=>s+mensalidade(x.plano),0);
+    const projetado12=futuro.slice(0,12).reduce((s,x)=>s+x.projetado,0);
+    const realizado12=historico.slice(-12).reduce((s,x)=>s+x.realizado,0);
+    res.json({
+      resumo:{mrr,arr:mrr*12,realizado_mes:mesAtual.realizado,em_aberto:mesAtual.em_aberto,realizado_12m:realizado12,projetado_12m:projetado12},
+      historico,futuro,
+      aviso_historico:'O realizado considera cobranças registradas pelo BarberFlow a partir desta atualização; períodos anteriores sem registro permanecem zerados.'
+    });
+  }catch(e){console.error(e);res.status(500).json({erro:'Erro ao carregar financeiro do SaaS'});}
 });
 
 router.get('/barbearias',async(req,res)=>{
@@ -49,9 +108,9 @@ router.get('/barbearias',async(req,res)=>{
     const status=String(req.query.status||'').trim();
     const vals=[];const where=[];
     if(busca){vals.push(`%${busca}%`);where.push(`(b.nome ILIKE $${vals.length} OR b.slug ILIKE $${vals.length} OR u.email ILIKE $${vals.length})`)}
-    if(status){vals.push(status);where.push(`a.status=$${vals.length}`)}
+    if(status==='excluida')where.push(`b.excluido_em IS NOT NULL`);else{where.push(`b.excluido_em IS NULL`);if(status){vals.push(status);where.push(`a.status=$${vals.length}`)}}
     const r=await pool.query(`
-      SELECT b.id,b.nome,b.slug,b.telefone,b.email,b.cidade,b.estado,b.ativo,b.criado_em,
+      SELECT b.id,b.nome,b.slug,b.telefone,b.email,b.cidade,b.estado,b.ativo,b.criado_em,b.excluido_em,
              u.nome dono,u.email dono_email,a.plano,a.status,a.fim_trial,a.proxima_cobranca,
              (SELECT COUNT(*) FROM usuarios x WHERE x.barbearia_id=b.id AND x.ativo=true)::int usuarios,
              (SELECT COUNT(*) FROM barbeiros x WHERE x.barbearia_id=b.id AND x.ativo=true)::int barbeiros,
@@ -88,18 +147,65 @@ router.get('/barbearias/:id',async(req,res)=>{
 });
 
 router.patch('/barbearias/:id/status',async(req,res)=>{
-  try{const r=await pool.query(`UPDATE barbearias SET ativo=$1 WHERE id=$2 RETURNING id,nome,ativo`,[!!req.body.ativo,req.params.id]);if(!r.rowCount)return res.status(404).json({erro:'Barbearia não encontrada'});res.json(r.rows[0]);}
+  try{const r=await pool.query(`UPDATE barbearias SET ativo=$1 WHERE id=$2 AND excluido_em IS NULL RETURNING id,nome,ativo`,[!!req.body.ativo,req.params.id]);if(!r.rowCount)return res.status(404).json({erro:'Barbearia não encontrada'});res.json(r.rows[0]);}
   catch(e){res.status(500).json({erro:'Erro ao alterar barbearia'});}
+});
+
+router.delete('/barbearias/:id',async(req,res)=>{
+  const id=Number(req.params.id); const confirmacao=String(req.body?.confirmacao||'').trim();
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    const b=await client.query(`SELECT id,nome,excluido_em FROM barbearias WHERE id=$1 FOR UPDATE`,[id]);
+    if(!b.rowCount){await client.query('ROLLBACK');return res.status(404).json({erro:'Barbearia não encontrada'});}
+    if(b.rows[0].excluido_em){await client.query('ROLLBACK');return res.status(409).json({erro:'Barbearia já excluída'});}
+    if(confirmacao!==b.rows[0].nome){await client.query('ROLLBACK');return res.status(400).json({erro:'Digite exatamente o nome da barbearia para confirmar a exclusão'});}
+    await client.query(`UPDATE barbearias SET ativo=false,excluido_em=NOW() WHERE id=$1`,[id]);
+    await client.query(`UPDATE usuarios SET ativo=false WHERE barbearia_id=$1 AND papel<>'super_admin'`,[id]);
+    await client.query(`UPDATE assinaturas SET status='cancelada',atualizado_em=NOW() WHERE id=(SELECT id FROM assinaturas WHERE barbearia_id=$1 ORDER BY id DESC LIMIT 1)`,[id]);
+    await client.query('COMMIT');res.json({mensagem:'Barbearia excluída com segurança. Os dados foram preservados para auditoria/restauração.'});
+  }catch(e){await client.query('ROLLBACK');console.error(e);res.status(500).json({erro:'Erro ao excluir barbearia'});}finally{client.release();}
+});
+
+router.post('/barbearias/:id/restaurar',async(req,res)=>{
+  try{const r=await pool.query(`UPDATE barbearias SET ativo=true,excluido_em=NULL WHERE id=$1 RETURNING id,nome,ativo`,[req.params.id]);if(!r.rowCount)return res.status(404).json({erro:'Barbearia não encontrada'});res.json(r.rows[0]);}
+  catch(e){res.status(500).json({erro:'Erro ao restaurar barbearia'});}
 });
 
 router.patch('/barbearias/:id/assinatura',async(req,res)=>{
   try{
     const {plano,status,fim_trial,proxima_cobranca}=req.body;
+    if(plano && !validarPlano(plano))return res.status(400).json({erro:'Plano inválido'});
+    if(status && !validarStatus(status))return res.status(400).json({erro:'Status inválido'});
     const ultima=await pool.query(`SELECT id FROM assinaturas WHERE barbearia_id=$1 ORDER BY id DESC LIMIT 1`,[req.params.id]);
     if(!ultima.rowCount)return res.status(404).json({erro:'Assinatura não encontrada'});
     const r=await pool.query(`UPDATE assinaturas SET plano=COALESCE($1,plano),status=COALESCE($2,status),fim_trial=COALESCE($3::date,fim_trial),proxima_cobranca=$4::date,atualizado_em=NOW() WHERE id=$5 RETURNING *`,[plano||null,status||null,fim_trial||null,proxima_cobranca||null,ultima.rows[0].id]);
     res.json(r.rows[0]);
   }catch(e){console.error(e);res.status(500).json({erro:'Erro ao atualizar assinatura'});}
+});
+
+router.get('/perfil',async(req,res)=>{
+  try{const r=await pool.query(`SELECT id,nome,email,telefone,papel,ativo,criado_em,atualizado_em FROM usuarios WHERE id=$1 AND papel='super_admin'`,[req.usuario.id]);if(!r.rowCount)return res.status(404).json({erro:'Supermaster não encontrado'});res.json(r.rows[0]);}
+  catch(e){res.status(500).json({erro:'Erro ao carregar perfil'});}
+});
+
+router.patch('/perfil',async(req,res)=>{
+  try{
+    const nome=String(req.body.nome||'').trim();const email=String(req.body.email||'').trim().toLowerCase();const telefone=String(req.body.telefone||'').trim()||null;
+    if(!nome||!email)return res.status(400).json({erro:'Nome e e-mail são obrigatórios'});
+    const dup=await pool.query(`SELECT 1 FROM usuarios WHERE LOWER(email)=LOWER($1) AND id<>$2`,[email,req.usuario.id]);if(dup.rowCount)return res.status(409).json({erro:'E-mail já utilizado por outro usuário'});
+    const r=await pool.query(`UPDATE usuarios SET nome=$1,email=$2,telefone=$3,atualizado_em=NOW() WHERE id=$4 AND papel='super_admin' RETURNING id,nome,email,telefone,papel`,[nome,email,telefone,req.usuario.id]);res.json(r.rows[0]);
+  }catch(e){console.error(e);res.status(500).json({erro:'Erro ao atualizar perfil'});}
+});
+
+router.patch('/perfil/senha',async(req,res)=>{
+  try{
+    const atual=String(req.body.senha_atual||'');const nova=String(req.body.nova_senha||'');
+    if(nova.length<12)return res.status(400).json({erro:'A nova senha deve ter pelo menos 12 caracteres'});
+    const r=await pool.query(`SELECT senha_hash FROM usuarios WHERE id=$1 AND papel='super_admin'`,[req.usuario.id]);if(!r.rowCount)return res.status(404).json({erro:'Supermaster não encontrado'});
+    if(!(await bcrypt.compare(atual,r.rows[0].senha_hash)))return res.status(401).json({erro:'Senha atual incorreta'});
+    const hash=await bcrypt.hash(nova,12);await pool.query(`UPDATE usuarios SET senha_hash=$1,atualizado_em=NOW() WHERE id=$2`,[hash,req.usuario.id]);res.json({mensagem:'Senha atualizada com sucesso'});
+  }catch(e){res.status(500).json({erro:'Erro ao alterar senha'});}
 });
 
 module.exports=router;
