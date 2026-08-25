@@ -12,7 +12,7 @@ async function mpFetch(path, options = {}) {
   const resposta = await fetch(`${BASE}${path}`, {
     ...options,
     headers: {
-      Authorization: `Bearer ${accessToken()}`,
+      Authorization: `Bearer ${options.accessToken || accessToken()}`,
       'Content-Type': 'application/json',
       ...(options.headers || {})
     }
@@ -23,6 +23,7 @@ async function mpFetch(path, options = {}) {
     const erro = new Error(data.message || data.error || `Mercado Pago respondeu ${resposta.status}`);
     erro.status = resposta.status;
     erro.data = data;
+    erro.retryAfter = resposta.headers.get('retry-after');
     throw erro;
   }
   return data;
@@ -59,6 +60,35 @@ async function criarAssinatura({ barbeariaId, plano, email }) {
   return mpFetch('/preapproval', { method: 'POST', body: JSON.stringify(body) });
 }
 
+async function criarPreferenciaAgendamento({ reservaId, slug, servicoId, servicoNome, valor, nome, email }) {
+  const appUrl = (process.env.APP_URL || 'http://localhost:3001').replace(/\/$/, '');
+  const retorno = `${appUrl}/agendar/${encodeURIComponent(slug)}?reserva=${reservaId}`;
+  const body = {
+    items: [{
+      id: `servico-${servicoId}`,
+      title: `${servicoNome} - agendamento`,
+      description: 'Reserva de horário pelo BarberFlow',
+      quantity: 1,
+      currency_id: 'BRL',
+      unit_price: Number(Number(valor).toFixed(2))
+    }],
+    external_reference: `barberflow-booking:${reservaId}`,
+    back_urls: {
+      success: `${retorno}&retorno=success`,
+      pending: `${retorno}&retorno=pending`,
+      failure: `${retorno}&retorno=failure`
+    },
+    auto_return: 'approved',
+    notification_url: `${appUrl}/api/webhooks/mercadopago`,
+    payment_methods: {
+      excluded_payment_types: [{ id: 'ticket' }],
+      installments: 1
+    }
+  };
+  if (nome || email) body.payer = { ...(nome ? { name: nome } : {}), ...(email ? { email } : {}) };
+  return mpFetch('/checkout/preferences', { method: 'POST', body: JSON.stringify(body) });
+}
+
 async function obterAssinatura(id) {
   return mpFetch(`/preapproval/${encodeURIComponent(id)}`);
 }
@@ -72,6 +102,10 @@ async function atualizarStatusAssinatura(id, status) {
 
 async function obterPagamentoAutorizado(id) {
   return mpFetch(`/authorized_payments/${encodeURIComponent(id)}`);
+}
+
+async function obterPagamento(id) {
+  return mpFetch(`/v1/payments/${encodeURIComponent(id)}`);
 }
 
 function validarWebhook({ xSignature, xRequestId, dataId, secret }) {
@@ -88,9 +122,11 @@ function validarWebhook({ xSignature, xRequestId, dataId, secret }) {
 
 module.exports = {
   criarAssinatura,
+  criarPreferenciaAgendamento,
   obterAssinatura,
   atualizarStatusAssinatura,
   obterPagamentoAutorizado,
+  obterPagamento,
   validarWebhook,
   precoPlano
 };
