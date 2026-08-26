@@ -1,1 +1,44 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Confirmar e-mail - BarberFlow</title><link rel="stylesheet" href="/style.css"></head><body class="auth-body"><main class="auth-card"><div class="logo">Barber<span>Flow</span></div><h1>Confirmando e-mail</h1><div id="msg" class="notice">Aguarde...</div><p class="muted" style="margin-top:16px"><a href="/login.html">Ir para o login</a></p></main><script src="/js/verificar-email.js" defer></script></body></html>
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Confirmar e-mail - BarberFlow</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+
+<body class="auth-body">
+
+    <main class="auth-card">
+
+        <div class="logo">
+            Barber<span>Flow</span>
+        </div>
+
+        <h1>Confirmar e-mail</h1>
+
+        <div id="msg" class="notice">
+            Verificando link...
+        </div>
+
+        <button
+            id="confirmarEmail"
+            type="button"
+            hidden
+            style="margin-top:16px;width:100%;padding:12px;cursor:pointer;"
+        >
+            Confirmar meu e-mail
+        </button>
+
+        <p class="muted" style="margin-top:16px">
+            <a href="/login.html">Ir para o login</a>
+        </p>
+
+    </main>
+
+    <script src="/js/verificar-email.js" defer></script>
+
+</body>
+
+</html>
