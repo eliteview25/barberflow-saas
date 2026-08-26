@@ -1,5 +1,5 @@
 (() => {
-    const token = new URLSearchParams(location.search).get('token');
+    const token = new URLSearchParams(window.location.search).get('token');
     const msg = document.getElementById('msg');
     const btn = document.getElementById('confirmarEmail');
 
@@ -31,20 +31,33 @@
                 body: JSON.stringify({ token })
             });
 
-            const d = await r.json();
+            let d = {};
 
-            msg.textContent =
-                d.mensagem ||
-                d.erro ||
-                'Não foi possível confirmar o e-mail';
-
-            msg.className = 'notice ' + (r.ok ? 'success' : 'error');
+            try {
+                d = await r.json();
+            } catch {}
 
             if (r.ok) {
+                msg.textContent =
+                    d.mensagem ||
+                    'E-mail confirmado com sucesso.';
+
+                msg.className = 'notice success';
                 btn.hidden = true;
-            } else {
-                btn.disabled = false;
+
+                setTimeout(() => {
+                    window.location.href = '/login.html';
+                }, 2000);
+
+                return;
             }
+
+            msg.textContent =
+                d.erro ||
+                `Não foi possível confirmar o e-mail. Código ${r.status}`;
+
+            msg.className = 'notice error';
+            btn.disabled = false;
 
         } catch {
             msg.textContent = 'Não foi possível confirmar o e-mail';
