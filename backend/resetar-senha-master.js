@@ -31,7 +31,7 @@ const { strongPassword } = require('./src/utils/security');
 
         if (master.rowCount !== 1) {
             throw new Error(
-                \`Esperado exatamente 1 Supermaster ativo; encontrados \${master.rowCount}.\`
+                'Esperado exatamente 1 Supermaster ativo; encontrados ' + master.rowCount + '.'
             );
         }
 
