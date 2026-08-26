@@ -1,1 +1,69 @@
-const token=new URLSearchParams(location.search).get('token');btn.onclick=async()=>{const r=await fetch('/api/auth/redefinir-senha',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,senha:senha.value})});const d=await r.json();msg.className='notice '+(r.ok?'success':'error');msg.textContent=d.mensagem||d.erro;if(r.ok)setTimeout(()=>location.href='/login.html',1200)}
+const token = new URLSearchParams(location.search).get('token') || '';
+const btn = document.getElementById('btn');
+const senha = document.getElementById('senha');
+const msg = document.getElementById('msg');
+
+function aviso(texto, tipo = 'error') {
+  msg.className = 'notice ' + tipo;
+  msg.textContent = texto;
+}
+
+async function validarLink() {
+  if (!/^[a-f0-9]{64}$/i.test(token)) {
+    aviso('Link inv?lido ou expirado. Solicite uma nova recupera??o.');
+    btn.disabled = true;
+    return false;
+  }
+
+  try {
+    const r = await fetch('/api/auth/validar-reset', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({token})
+    });
+
+    if (!r.ok) {
+      aviso('Link inv?lido ou expirado. Solicite uma nova recupera??o.');
+      btn.disabled = true;
+      return false;
+    }
+
+    return true;
+  } catch {
+    aviso('N?o foi poss?vel validar o link agora. Tente novamente.');
+    btn.disabled = true;
+    return false;
+  }
+}
+
+btn.addEventListener('click', async () => {
+  btn.disabled = true;
+
+  try {
+    const r = await fetch('/api/auth/redefinir-senha', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        token,
+        senha: senha.value
+      })
+    });
+
+    const d = await r.json().catch(() => ({}));
+
+    aviso(
+      d.mensagem || d.erro || 'N?o foi poss?vel atualizar a senha.',
+      r.ok ? 'success' : 'error'
+    );
+
+    if (r.ok) {
+      setTimeout(() => location.replace('/login.html'), 1200);
+    }
+  } finally {
+    if (!msg.classList.contains('success')) {
+      btn.disabled = false;
+    }
+  }
+});
+
+validarLink();
