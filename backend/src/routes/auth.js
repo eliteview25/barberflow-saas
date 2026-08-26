@@ -1,74 +1,49 @@
-const express = require('express');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
-const pool = require('../config/db');
-const { autenticar } = require('../middlewares/auth');
-const {contextoPlano}=require('../services/planos');
-const router = express.Router();
-
-function slugify(texto) {
-  return String(texto).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+const express=require('express');const {externalSignal}=require('../utils/http');const bcrypt=require('bcryptjs');const jwt=require('jsonwebtoken');const crypto=require('crypto');const pool=require('../config/db');
+const {autenticar}=require('../middlewares/auth');const {contextoPlano}=require('../services/planos');const {encrypt,decrypt}=require('../services/secrets');
+const {sessionCookie,csrfCookie,clearSession,randomToken,sha256,strongPassword,validEmail,verifyTurnstile,normalizePhone}=require('../utils/security');const {generateSecret,verifyTotp,otpauthUri}=require('../utils/totp');
+const {cleanText}=require('../utils/validation');
+const router=express.Router();
+function slugify(t){return String(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')}
+router.get('/security-config',(req,res)=>res.json({turnstile_site_key:process.env.TURNSTILE_SITE_KEY||null}));
+function signSession(u){return jwt.sign({purpose:'session',id:u.id,barbearia_id:u.barbearia_id,papel:u.papel,nome:u.nome,sv:Number(u.token_version||0)},process.env.JWT_SECRET,{expiresIn:'12h',algorithm:'HS256'})}
+function setSession(res,u){const token=signSession(u),csrf=randomToken(24);sessionCookie(res,token);csrfCookie(res,csrf);return csrf}
+async function sendVerification(email,raw){
+  const base=(process.env.APP_URL||'http://localhost:3001').replace(/\/$/,'');const link=`${base}/verificar-email.html?token=${encodeURIComponent(raw)}`;
+  if(process.env.RESEND_API_KEY&&process.env.EMAIL_FROM){const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${process.env.RESEND_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({from:process.env.EMAIL_FROM,to:[email],subject:'Confirme seu e-mail no BarberFlow',html:`<p>Confirme seu e-mail:</p><p><a href="${link}">Confirmar e-mail</a></p>`}),signal:externalSignal()});if(!r.ok)throw new Error('Falha ao enviar verificação de e-mail');return;}
+  if(process.env.NODE_ENV==='production')throw new Error('Serviço de e-mail não configurado');console.log('Link de verificação (DEV):',link);
 }
-
-router.post('/registrar', async (req,res) => {
-  const { barbearia, nome, email, senha, telefone } = req.body;
-  if (!barbearia || !nome || !email || !senha) return res.status(400).json({ erro: 'Barbearia, nome, e-mail e senha são obrigatórios' });
-  if (senha.length < 8) return res.status(400).json({ erro: 'A senha deve ter pelo menos 8 caracteres' });
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const existe = await client.query('SELECT 1 FROM usuarios WHERE LOWER(email)=LOWER($1)', [email]);
-    if (existe.rowCount) { await client.query('ROLLBACK'); return res.status(409).json({ erro: 'E-mail já cadastrado' }); }
-    let slugBase = slugify(barbearia) || 'barbearia'; let slug = slugBase; let i = 1;
-    while ((await client.query('SELECT 1 FROM barbearias WHERE slug=$1',[slug])).rowCount) slug = `${slugBase}-${++i}`;
-    const tenant = await client.query(`INSERT INTO barbearias (nome,slug,telefone,ativo) VALUES ($1,$2,$3,true) RETURNING *`, [barbearia,slug,telefone||null]);
-    const hash = await bcrypt.hash(senha, 12);
-    const user = await client.query(`INSERT INTO usuarios (barbearia_id,nome,email,senha_hash,papel,ativo) VALUES ($1,$2,$3,$4,'dono',true) RETURNING id,nome,email,papel`, [tenant.rows[0].id,nome,email.toLowerCase(),hash]);
-    await client.query(`INSERT INTO assinaturas (barbearia_id,plano,status,inicio,fim_trial) VALUES ($1,'premium','trial',CURRENT_DATE,CURRENT_DATE + INTERVAL '7 days')`, [tenant.rows[0].id]);
-    await client.query('COMMIT');
-    const token = jwt.sign({ id:user.rows[0].id, barbearia_id:tenant.rows[0].id, papel:user.rows[0].papel, nome:user.rows[0].nome }, process.env.JWT_SECRET, { expiresIn:'12h' });
-    const plano=await contextoPlano(tenant.rows[0].id);
-    res.status(201).json({ token, usuario:user.rows[0], barbearia:tenant.rows[0], assinatura:{...plano.assinatura,plano_efetivo:plano.plano_efetivo,recursos:plano.recursos,trial_ativo:plano.trial_ativo,dias_trial:plano.dias_trial} });
-  } catch (e) { await client.query('ROLLBACK'); console.error(e); res.status(500).json({ erro:'Erro ao criar conta' }); }
-  finally { client.release(); }
+router.post('/registrar',async(req,res)=>{
+  if(process.env.ALLOW_PUBLIC_REGISTRATION==='false')return res.status(403).json({erro:'Cadastro público temporariamente desativado'});
+  const barbearia=cleanText(req.body?.barbearia,120,{required:true}),nome=cleanText(req.body?.nome,120,{required:true});
+  const email=String(req.body?.email||'').trim().toLowerCase(),senha=String(req.body?.senha||''),telefone=normalizePhone(req.body?.telefone)||null,turnstile_token=req.body?.turnstile_token;
+  if(!barbearia||!nome||!email||!senha)return res.status(400).json({erro:'Barbearia, nome, e-mail e senha são obrigatórios'});
+  if(!validEmail(email)||email.length>160)return res.status(400).json({erro:'E-mail inválido'});
+  if(req.body?.telefone&&(!telefone||telefone.length<10))return res.status(400).json({erro:'Telefone inválido'});
+  if(!strongPassword(senha))return res.status(400).json({erro:'Use senha com 12+ caracteres, maiúscula, minúscula, número e símbolo'});
+  if(!(await verifyTurnstile(turnstile_token,req.ip,{action:'signup'})))return res.status(400).json({erro:'Verificação anti-robô inválida'});
+  const c=await pool.connect();try{
+    await c.query('BEGIN');
+    if((await c.query('SELECT 1 FROM usuarios WHERE LOWER(email)=LOWER($1)',[email])).rowCount){await c.query('ROLLBACK');return res.status(409).json({erro:'E-mail já cadastrado'})}
+    let base=slugify(barbearia).slice(0,100)||'barbearia';await c.query(`SELECT pg_advisory_xact_lock(hashtext($1))`,[`signup-slug:${base}`]);let slug=base,i=1;while((await c.query('SELECT 1 FROM barbearias WHERE slug=$1',[slug])).rowCount)slug=`${base.slice(0,94)}-${++i}`;
+    const t=await c.query(`INSERT INTO barbearias(nome,slug,telefone,ativo,email_verificado,is_system) VALUES($1,$2,$3,true,false,false) RETURNING *`,[barbearia,slug,telefone]);
+    const h=await bcrypt.hash(senha,12);const u=await c.query(`INSERT INTO usuarios(barbearia_id,nome,email,senha_hash,papel,ativo,token_version,telefone) VALUES($1,$2,$3,$4,'dono',true,0,$5) RETURNING id,barbearia_id,nome,email,papel,token_version`,[t.rows[0].id,nome,email,h,telefone]);
+    await c.query(`INSERT INTO assinaturas(barbearia_id,plano,status,inicio,fim_trial) VALUES($1,'premium','trial_pendente',CURRENT_DATE,CURRENT_DATE+INTERVAL '7 days')`,[t.rows[0].id]);
+    const raw=randomToken(32);await c.query(`INSERT INTO email_verification_tokens(usuario_id,token_hash,expira_em) VALUES($1,$2,NOW()+INTERVAL '24 hours')`,[u.rows[0].id,sha256(raw)]);await c.query('COMMIT');
+    try{await sendVerification(email,raw)}catch(e){console.error('verification_email_failed',e.message)}
+    res.status(201).json({mensagem:'Conta criada. Confirme seu e-mail para ativar o trial Premium.',email_verification_required:true});
+  }catch(e){await c.query('ROLLBACK').catch(()=>{});if(e?.code==='23505')return res.status(409).json({erro:'E-mail ou identificador já utilizado'});console.error(e);res.status(500).json({erro:'Erro ao criar conta'})}finally{c.release()}
 });
-
-router.post('/login', async (req,res) => {
-  const { email, senha } = req.body;
-  const r = await pool.query(`SELECT u.*, b.nome AS barbearia_nome, b.slug FROM usuarios u JOIN barbearias b ON b.id=u.barbearia_id WHERE LOWER(u.email)=LOWER($1) AND u.ativo=true AND (u.papel='super_admin' OR (b.ativo=true AND b.excluido_em IS NULL))`, [email||'']);
-  if (!r.rowCount || !(await bcrypt.compare(senha||'', r.rows[0].senha_hash))) return res.status(401).json({ erro:'E-mail ou senha inválidos' });
-  const u = r.rows[0];
-  await pool.query(`UPDATE usuarios SET atualizado_em=NOW() WHERE id=$1`,[u.id]);
-  const token = jwt.sign({ id:u.id, barbearia_id:u.barbearia_id, papel:u.papel, nome:u.nome }, process.env.JWT_SECRET, { expiresIn:'12h' });
-  const plano=await contextoPlano(u.barbearia_id);
-  res.json({ token, usuario:{id:u.id,nome:u.nome,email:u.email,papel:u.papel,barbeiro_id:u.barbeiro_id}, barbearia:{id:u.barbearia_id,nome:u.barbearia_nome,slug:u.slug}, assinatura:{...plano.assinatura,plano_efetivo:plano.plano_efetivo,recursos:plano.recursos,trial_ativo:plano.trial_ativo,dias_trial:plano.dias_trial} });
-});
-
-
-router.post('/solicitar-reset', async (req,res) => {
-  const r=await pool.query(`SELECT id FROM usuarios WHERE LOWER(email)=LOWER($1) AND ativo=true`,[req.body.email||'']);
-  if(!r.rowCount) return res.json({mensagem:'Se o e-mail existir, as instruções serão enviadas.'});
-  const raw=crypto.randomBytes(32).toString('hex'); const hash=crypto.createHash('sha256').update(raw).digest('hex');
-  await pool.query(`INSERT INTO password_resets(usuario_id,token_hash,expira_em) VALUES($1,$2,NOW()+INTERVAL '30 minutes')`,[r.rows[0].id,hash]);
-  const base=process.env.APP_URL||'http://localhost:3001'; const resposta={mensagem:'Se o e-mail existir, as instruções serão enviadas.'};
-  if(process.env.NODE_ENV!=='production') resposta.link_dev=`${base}/redefinir-senha.html?token=${raw}`;
-  res.json(resposta);
-});
-router.post('/redefinir-senha', async (req,res) => {
-  const {token,senha}=req.body; if(!token||!senha||senha.length<8)return res.status(400).json({erro:'Token e nova senha válida são obrigatórios'});
-  const hash=crypto.createHash('sha256').update(token).digest('hex'); const client=await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const r=await client.query(`SELECT * FROM password_resets WHERE token_hash=$1 AND usado=false AND expira_em>NOW() ORDER BY id DESC LIMIT 1 FOR UPDATE`,[hash]);
-    if(!r.rowCount){await client.query('ROLLBACK');return res.status(400).json({erro:'Link inválido ou expirado'});}
-    const senhaHash=await bcrypt.hash(senha,12); await client.query(`UPDATE usuarios SET senha_hash=$1 WHERE id=$2`,[senhaHash,r.rows[0].usuario_id]); await client.query(`UPDATE password_resets SET usado=true WHERE id=$1`,[r.rows[0].id]); await client.query('COMMIT'); res.json({mensagem:'Senha atualizada'});
-  } catch(e){await client.query('ROLLBACK');throw e;} finally{client.release();}
-});
-
-router.get('/me', autenticar, async (req,res) => {
-  const r = await pool.query(`SELECT u.id,u.nome,u.email,u.telefone,u.papel,u.barbeiro_id,b.id AS barbearia_id,b.nome AS barbearia_nome,b.slug FROM usuarios u JOIN barbearias b ON b.id=u.barbearia_id WHERE u.id=$1`, [req.usuario.id]);
-  if (!r.rowCount) return res.status(404).json({erro:'Usuário não encontrado'});
-  res.json(r.rows[0]);
-});
-module.exports = router;
+router.post('/verificar-email',async(req,res)=>{const rawToken=String(req.body?.token||'');if(rawToken.length<32||rawToken.length>200)return res.status(400).json({erro:'Link inválido ou expirado'});const hash=sha256(rawToken);const c=await pool.connect();try{await c.query('BEGIN');const r=await c.query(`SELECT evt.id,evt.usuario_id,u.barbearia_id FROM email_verification_tokens evt JOIN usuarios u ON u.id=evt.usuario_id WHERE evt.token_hash=$1 AND evt.usado=false AND evt.expira_em>NOW() FOR UPDATE`,[hash]);if(!r.rowCount){await c.query('ROLLBACK');return res.status(400).json({erro:'Link inválido ou expirado'})}await c.query(`UPDATE email_verification_tokens SET usado=true WHERE usuario_id=$1`,[r.rows[0].usuario_id]);await c.query(`UPDATE barbearias SET email_verificado=true WHERE id=$1`,[r.rows[0].barbearia_id]);await c.query(`UPDATE assinaturas SET status='trial',inicio=CURRENT_DATE,fim_trial=CURRENT_DATE+INTERVAL '7 days',atualizado_em=NOW() WHERE id=(SELECT id FROM assinaturas WHERE barbearia_id=$1 ORDER BY id DESC LIMIT 1)`,[r.rows[0].barbearia_id]);await c.query('COMMIT');res.json({mensagem:'E-mail confirmado. Seu trial Premium de 7 dias começou.'})}catch(e){await c.query('ROLLBACK');res.status(500).json({erro:'Erro ao confirmar e-mail'})}finally{c.release()}});
+router.post('/reenviar-verificacao',async(req,res)=>{const email=String(req.body.email||'').trim().toLowerCase();if(!validEmail(email))return res.json({mensagem:'Se a conta existir, enviaremos uma nova confirmação.'});const r=await pool.query(`SELECT u.id,u.email,b.email_verificado FROM usuarios u JOIN barbearias b ON b.id=u.barbearia_id WHERE LOWER(u.email)=LOWER($1) AND u.ativo=true LIMIT 1`,[email]);if(!r.rowCount||r.rows[0].email_verificado)return res.json({mensagem:'Se a conta existir, enviaremos uma nova confirmação.'});await pool.query(`UPDATE email_verification_tokens SET usado=true WHERE usuario_id=$1 AND usado=false`,[r.rows[0].id]);const raw=randomToken(32);await pool.query(`INSERT INTO email_verification_tokens(usuario_id,token_hash,expira_em) VALUES($1,$2,NOW()+INTERVAL '24 hours')`,[r.rows[0].id,sha256(raw)]);try{await sendVerification(r.rows[0].email,raw)}catch(e){console.error(e.message);if(process.env.NODE_ENV==='production')return res.status(503).json({erro:'Não foi possível enviar a confirmação agora'})}res.json({mensagem:'Se a conta existir, enviaremos uma nova confirmação.'})});
+router.post('/login',async(req,res)=>{const{email,senha,mfa_code}=req.body;const r=await pool.query(`SELECT u.*,b.nome barbearia_nome,b.slug,COALESCE(b.email_verificado,true) email_verificado FROM usuarios u JOIN barbearias b ON b.id=u.barbearia_id WHERE LOWER(u.email)=LOWER($1) AND u.ativo=true AND (u.papel='super_admin' OR (b.ativo=true AND b.excluido_em IS NULL))`,[email||'']);if(!r.rowCount||!(await bcrypt.compare(senha||'',r.rows[0].senha_hash)))return res.status(401).json({erro:'E-mail ou senha inválidos'});const u=r.rows[0];if(u.papel!=='super_admin'&&!u.email_verificado)return res.status(403).json({erro:'Confirme seu e-mail antes de entrar',email_verification_required:true});if(u.papel==='super_admin'){
+  if(!u.mfa_enabled){const setupToken=jwt.sign({purpose:'mfa_setup',id:u.id,sv:Number(u.token_version||0)},process.env.JWT_SECRET,{expiresIn:'10m',algorithm:'HS256'});return res.status(428).json({erro:'MFA obrigatório para o Supermaster',mfa_setup_required:true,setup_token:setupToken});}
+  let secret;try{secret=decrypt(u.mfa_secret_enc)}catch{return res.status(500).json({erro:'MFA indisponível'})}if(!verifyTotp(secret,mfa_code))return res.status(428).json({erro:'Código MFA obrigatório ou inválido',mfa_required:true});
+ }await pool.query(`UPDATE usuarios SET atualizado_em=NOW() WHERE id=$1`,[u.id]);const csrf=setSession(res,u);const plano=await contextoPlano(u.barbearia_id);res.json({csrf_token:csrf,usuario:{id:u.id,nome:u.nome,email:u.email,papel:u.papel,barbeiro_id:u.barbeiro_id},barbearia:{id:u.barbearia_id,nome:u.barbearia_nome,slug:u.slug},assinatura:{...plano.assinatura,plano_efetivo:plano.plano_efetivo,recursos:plano.recursos,trial_ativo:plano.trial_ativo,dias_trial:plano.dias_trial}})});
+router.post('/mfa/setup',async(req,res)=>{try{const p=jwt.verify(req.body.setup_token,process.env.JWT_SECRET,{algorithms:['HS256']});if(p.purpose!=='mfa_setup')throw 0;const u=(await pool.query(`SELECT id,email,papel,COALESCE(token_version,0)::int token_version FROM usuarios WHERE id=$1 AND ativo=true`,[p.id])).rows[0];if(!u||u.papel!=='super_admin'||Number(p.sv||-1)!==Number(u.token_version||0))throw 0;const secret=generateSecret();await pool.query(`UPDATE usuarios SET mfa_secret_enc=$1,mfa_enabled=false WHERE id=$2`,[encrypt(secret),u.id]);res.json({secret,otpauth_uri:otpauthUri({secret,email:u.email})})}catch{return res.status(401).json({erro:'Setup MFA inválido ou expirado'})}});
+router.post('/mfa/confirm',async(req,res)=>{try{const p=jwt.verify(req.body.setup_token,process.env.JWT_SECRET,{algorithms:['HS256']});if(p.purpose!=='mfa_setup')throw 0;const u=(await pool.query(`SELECT u.*,b.nome barbearia_nome,b.slug FROM usuarios u JOIN barbearias b ON b.id=u.barbearia_id WHERE u.id=$1 AND u.ativo=true`,[p.id])).rows[0];if(!u||u.papel!=='super_admin'||Number(p.sv||-1)!==Number(u.token_version||0))throw 0;const secret=decrypt(u.mfa_secret_enc);if(!verifyTotp(secret,req.body.code))return res.status(400).json({erro:'Código inválido'});await pool.query(`UPDATE usuarios SET mfa_enabled=true,token_version=COALESCE(token_version,0)+1 WHERE id=$1`,[u.id]);u.token_version=Number(u.token_version||0)+1;const csrf=setSession(res,u);res.json({csrf_token:csrf,usuario:{id:u.id,nome:u.nome,email:u.email,papel:u.papel},barbearia:{id:u.barbearia_id,nome:u.barbearia_nome,slug:u.slug}})}catch{return res.status(401).json({erro:'Setup MFA inválido ou expirado'})}});
+router.post('/step-up',autenticar,async(req,res)=>{const u=(await pool.query(`SELECT senha_hash,papel,mfa_enabled,mfa_secret_enc FROM usuarios WHERE id=$1`,[req.usuario.id])).rows[0];if(!u||!(await bcrypt.compare(String(req.body.senha||''),u.senha_hash)))return res.status(401).json({erro:'Senha atual incorreta'});if(u.papel==='super_admin'){if(!u.mfa_enabled)return res.status(403).json({erro:'MFA obrigatório'});if(!verifyTotp(decrypt(u.mfa_secret_enc),req.body.mfa_code))return res.status(401).json({erro:'Código MFA inválido'})}const t=jwt.sign({purpose:'stepup',id:req.usuario.id,sv:Number(req.usuario.token_version||0)},process.env.JWT_SECRET,{expiresIn:'10m',algorithm:'HS256'});res.cookie('bf_stepup',t,{httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax',path:'/',maxAge:10*60*1000});res.json({mensagem:'Confirmação de segurança válida por 10 minutos'})});
+router.post('/logout',autenticar,async(req,res)=>{await pool.query(`UPDATE usuarios SET token_version=COALESCE(token_version,0)+1 WHERE id=$1`,[req.usuario.id]);clearSession(res);res.clearCookie('bf_stepup',{path:'/'});res.json({mensagem:'Sessão encerrada e tokens anteriores revogados'})});
+router.post('/solicitar-reset',async(req,res)=>{const r=await pool.query(`SELECT id,email FROM usuarios WHERE LOWER(email)=LOWER($1) AND ativo=true`,[req.body.email||'']);if(!r.rowCount)return res.json({mensagem:'Se o e-mail existir, as instruções serão enviadas.'});await pool.query(`UPDATE password_resets SET usado=true WHERE usuario_id=$1 AND usado=false`,[r.rows[0].id]);const raw=randomToken(32);await pool.query(`INSERT INTO password_resets(usuario_id,token_hash,expira_em) VALUES($1,$2,NOW()+INTERVAL '30 minutes')`,[r.rows[0].id,sha256(raw)]);const base=process.env.APP_URL||'http://localhost:3001',link=`${base}/redefinir-senha.html?token=${raw}`;if(process.env.RESEND_API_KEY&&process.env.EMAIL_FROM){try{const er=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${process.env.RESEND_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({from:process.env.EMAIL_FROM,to:[r.rows[0].email],subject:'Redefinição de senha BarberFlow',html:`<p><a href="${link}">Redefinir senha</a></p>`}),signal:externalSignal()});if(!er.ok)throw new Error('Falha no provedor de e-mail')}catch(e){console.error('reset_email_failed',e.message)}}else if(process.env.NODE_ENV!=='production')console.log('Reset DEV:',link);res.json({mensagem:'Se o e-mail existir, as instruções serão enviadas.'})});
+router.post('/redefinir-senha',async(req,res)=>{const{token,senha}=req.body;const resetToken=String(token||'');if(resetToken.length<32||resetToken.length>200||!strongPassword(senha))return res.status(400).json({erro:'Use uma senha forte com 12+ caracteres'});const c=await pool.connect();try{await c.query('BEGIN');const r=await c.query(`SELECT * FROM password_resets WHERE token_hash=$1 AND usado=false AND expira_em>NOW() ORDER BY id DESC LIMIT 1 FOR UPDATE`,[sha256(resetToken)]);if(!r.rowCount){await c.query('ROLLBACK');return res.status(400).json({erro:'Link inválido ou expirado'})}const h=await bcrypt.hash(senha,12);await c.query(`UPDATE usuarios SET senha_hash=$1,token_version=COALESCE(token_version,0)+1 WHERE id=$2`,[h,r.rows[0].usuario_id]);await c.query(`UPDATE password_resets SET usado=true WHERE usuario_id=$1`,[r.rows[0].usuario_id]);await c.query('COMMIT');res.json({mensagem:'Senha atualizada. Todas as sessões anteriores foram revogadas.'})}catch(e){await c.query('ROLLBACK');throw e}finally{c.release()}});
+router.get('/me',autenticar,async(req,res)=>{const r=await pool.query(`SELECT u.id,u.nome,u.email,u.telefone,u.papel,u.barbeiro_id,u.mfa_enabled,b.id barbearia_id,b.nome barbearia_nome,b.slug FROM usuarios u JOIN barbearias b ON b.id=u.barbearia_id WHERE u.id=$1`,[req.usuario.id]);if(!r.rowCount)return res.status(404).json({erro:'Usuário não encontrado'});res.json(r.rows[0])});
+module.exports=router;

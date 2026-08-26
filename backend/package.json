@@ -11,9 +11,12 @@
     "check": "node check.js",
     "audit:config": "node auditar-config.js",
     "test": "node --test test/*.test.js",
-    "qa": "npm run check && npm test",
+    "qa": "npm run check && npm test && npm run audit:security",
     "audit:pilot": "node auditar-piloto.js",
-    "maintenance": "node manutencao.js"
+    "maintenance": "node manutencao.js",
+    "audit:deps": "npm audit --omit=dev --audit-level=high",
+    "audit:security": "node auditar-seguranca.js",
+    "smoke:security": "node security-smoke.js"
   },
   "license": "ISC",
   "type": "commonjs",
@@ -25,7 +28,6 @@
     "express-rate-limit": "^8.1.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
-    "pg": "^8.16.3",
-    "multer": "^2.0.2"
+    "pg": "^8.16.3"
   }
 }

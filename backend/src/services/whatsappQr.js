@@ -1,17 +1,19 @@
-const pool=require('../config/db');
+const pool=require('../config/db');const {externalSignal}=require('../utils/http');
 
 function base(){return String(process.env.EVOLUTION_API_URL||'').replace(/\/$/,'')}
 function key(){return process.env.EVOLUTION_API_KEY||''}
 function configured(){return !!(base()&&key())}
 function instanceName(barbeariaId){return `barberflow${Number(barbeariaId)}`}
-function digits(v){return String(v||'').replace(/\D/g,'')}
+function digits(v){return String(v||'').replace(/\D/g,'').slice(-15)}
+function validPhone(v){const d=digits(v);return d.length>=10&&d.length<=15}
 
 async function call(path,{method='GET',body,allow404=false}={}){
   if(!configured())throw new Error('Conector QR não configurado na infraestrutura do BarberFlow');
   const r=await fetch(`${base()}${path}`,{
     method,
     headers:{apikey:key(),...(body?{'Content-Type':'application/json'}:{})},
-    body:body?JSON.stringify(body):undefined
+    body:body?JSON.stringify(body):undefined,
+    signal:externalSignal()
   });
   let d={};try{d=await r.json()}catch{}
   if(r.status===404&&allow404)return null;
@@ -82,6 +84,7 @@ async function disconnect(barbeariaId){
   await save(barbeariaId,{status:'desconectado',conectado_em:null,numero:null});
 }
 async function sendTextByInstance(name,to,text){
+  if(!validPhone(to))throw new Error('Telefone inválido');
   return call(`/message/sendText/${encodeURIComponent(name)}`,{method:'POST',body:{number:digits(to),textMessage:{text:String(text).slice(0,4000)},delay:400,linkPreview:true}});
 }
 async function sendText(barbeariaId,to,text){
@@ -89,4 +92,4 @@ async function sendText(barbeariaId,to,text){
   const st=await stateByName(r.instance_name);if(st!=='open'){await save(barbeariaId,{status:'desconectado'});throw new Error('Sessão QR desconectada. Escaneie novamente.')}
   return sendTextByInstance(r.instance_name,to,text);
 }
-module.exports={configured,status,start,disconnect,sendText,sendTextByInstance,instanceName};
+module.exports={configured,status,start,disconnect,sendText,sendTextByInstance,instanceName,validPhone};

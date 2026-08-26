@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const pool = require('../config/db');
+const {externalSignal}=require('../utils/http');
 
 const BASE = 'https://api.mercadopago.com';
 
@@ -31,7 +32,8 @@ async function oauthToken(body) {
   const resposta = await fetch(`${BASE}/oauth/token`, {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
+    signal: externalSignal()
   });
   let data={}; try{data=await resposta.json()}catch{}
   if(!resposta.ok){
@@ -83,16 +85,20 @@ async function concluirConexao({code,state}){
   return st.rows[0].barbearia_id;
 }
 
-async function refreshIntegration(row){
-  const {clientId,clientSecret}=oauthConfig();
-  const refreshToken=decrypt(row.refresh_token_enc);
-  if(!refreshToken) throw new Error('Refresh token do Mercado Pago indisponível');
-  const token=await oauthToken({client_id:clientId,client_secret:clientSecret,grant_type:'refresh_token',refresh_token:refreshToken});
-  const expiresAt=token.expires_in?new Date(Date.now()+Number(token.expires_in)*1000):null;
-  const accessEnc=encrypt(token.access_token);
-  const refreshEnc=encrypt(token.refresh_token||refreshToken);
-  await pool.query(`UPDATE integracoes_pagamento SET access_token_enc=$1,refresh_token_enc=$2,public_key=COALESCE($3,public_key),scope=COALESCE($4,scope),expires_at=$5,status='conectado',atualizado_em=NOW() WHERE id=$6`,[accessEnc,refreshEnc,token.public_key||null,token.scope||null,expiresAt,row.id]);
-  return token.access_token;
+async function refreshIntegration(barbeariaId){
+  const db=await pool.connect();
+  try{
+    await db.query('BEGIN');
+    const q=await db.query(`SELECT * FROM integracoes_pagamento WHERE barbearia_id=$1 AND provedor='mercadopago' AND status='conectado' FOR UPDATE`,[barbeariaId]);
+    if(!q.rowCount){await db.query('ROLLBACK');throw new Error('Mercado Pago não conectado para esta barbearia')}
+    const row=q.rows[0],expires=row.expires_at?new Date(row.expires_at).getTime():0;
+    if(!expires||expires-Date.now()>=7*24*60*60*1000){const token=decrypt(row.access_token_enc);await db.query('COMMIT');return token}
+    const {clientId,clientSecret}=oauthConfig();const refreshToken=decrypt(row.refresh_token_enc);if(!refreshToken)throw new Error('Refresh token do Mercado Pago indisponível');
+    const token=await oauthToken({client_id:clientId,client_secret:clientSecret,grant_type:'refresh_token',refresh_token:refreshToken});
+    const expiresAt=token.expires_in?new Date(Date.now()+Number(token.expires_in)*1000):null;
+    await db.query(`UPDATE integracoes_pagamento SET access_token_enc=$1,refresh_token_enc=$2,public_key=COALESCE($3,public_key),scope=COALESCE($4,scope),expires_at=$5,status='conectado',atualizado_em=NOW() WHERE id=$6`,[encrypt(token.access_token),encrypt(token.refresh_token||refreshToken),token.public_key||null,token.scope||null,expiresAt,row.id]);
+    await db.query('COMMIT');return token.access_token;
+  }catch(e){try{await db.query('ROLLBACK')}catch{}throw e}finally{db.release()}
 }
 
 async function getSellerAccessToken(barbeariaId){
@@ -100,7 +106,7 @@ async function getSellerAccessToken(barbeariaId){
   if(!r.rowCount) throw new Error('Mercado Pago não conectado para esta barbearia');
   const row=r.rows[0];
   const expires=row.expires_at?new Date(row.expires_at).getTime():0;
-  if(expires && expires-Date.now()<7*24*60*60*1000) return refreshIntegration(row);
+  if(expires && expires-Date.now()<7*24*60*60*1000) return refreshIntegration(barbeariaId);
   return decrypt(row.access_token_enc);
 }
 

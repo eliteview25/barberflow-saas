@@ -176,7 +176,7 @@ function dados(){
   contentEl.querySelectorAll('[data-export]').forEach(btn=>btn.addEventListener('click',()=>downloadCsv(btn.dataset.export)));
 }
 async function downloadCsv(tipo){
-  const r=await fetch('/api/operacao/exportar/'+tipo,{headers:{Authorization:`Bearer ${token()}`}});
+  const r=await fetch('/api/operacao/exportar/'+tipo,{credentials:'same-origin',headers:authHeaders()});
   if(!r.ok)return alert('Falha na exportação');
   const blob=await r.blob(); const a=document.createElement('a');
   a.href=URL.createObjectURL(blob); a.download=`barberflow-${tipo}.csv`; a.click(); URL.revokeObjectURL(a.href);

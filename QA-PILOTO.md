@@ -1,6 +1,6 @@
-# BarberFlow — Checklist de piloto
+# BarberFlow — QA e segurança antes do piloto
 
-Antes de colocar uma barbearia real, rode no backend:
+Execute:
 
 ```bash
 npm run migrate
@@ -8,48 +8,35 @@ npm run verify
 npm run qa
 npm run audit:config
 npm run audit:pilot
+npm run audit:security
 ```
 
-## Testes manuais obrigatórios
+## Testes manuais prioritários
 
-1. Cadastro novo inicia em Premium Trial por 7 dias.
-2. Starter não acessa Equipe, Financeiro ou Gestão por menu nem por URL/API.
-3. Pro acessa Equipe, Financeiro básico e página pública simples.
-4. Premium acessa automações, personalização completa, PDV/estoque e relatórios.
-5. Duas barbearias nunca enxergam dados uma da outra.
-6. Página pública funciona sem autenticação.
-7. Dois clientes não conseguem reservar o mesmo barbeiro/horário simultaneamente.
-8. Cancelamento e reagendamento respeitam o tenant e a política da barbearia.
-9. Pix manual permanece aguardando até confirmação do estabelecimento.
-10. Venda no PDV reduz estoque e atualiza pagamento/agendamento quando vinculado.
-11. Comissão não mistura vendas/agendamentos de outra barbearia.
-12. Exportações CSV contêm somente dados do tenant autenticado.
-13. Usuário barbeiro vê somente a própria agenda.
-14. Super Admin acessa Master; usuários comuns recebem 403/redirecionamento.
-15. Mobile: agenda, formulários, modais, Gestão e página pública são utilizáveis em 360 px.
+1. Cadastro sem Turnstile válido é rejeitado em produção.
+2. Conta não verificada não consegue iniciar sessão normal; trial só começa após confirmação de e-mail.
+3. Troca/reset de senha invalida sessão aberta anteriormente.
+4. Supermaster exige TOTP no login e step-up antes de excluir tenant/alterar assinatura/perfil sensível.
+5. Starter/Pro não acessam APIs Premium por URL direta.
+6. Barbearia A não consegue referenciar IDs de cliente/barbeiro/serviço da Barbearia B.
+7. Cancelar/reagendar/avaliar público só funciona com token público aleatório.
+8. Agenda pública limita abuso por telefone e usa OTP nos fluxos não automatizados.
+9. Dois clientes concorrentes não ocupam o mesmo intervalo.
+10. Webhook Meta com HMAC inválido recebe 401.
+11. Webhook Mercado Pago inválido recebe 401 e evento duplicado não é processado duas vezes.
+12. PDV rejeita quantidade <= 0, desconto negativo/superior ao bruto e estoque insuficiente.
+13. Upload rejeita conteúdo que não seja PNG/JPEG real e imagens acima dos limites.
+14. Alterar preço de serviço não muda valores históricos de agendamentos concluídos.
+15. Restaurar tenant não reativa cobrança externa automaticamente.
+16. Assinatura Mercado Pago não aceita status manual divergente no Master.
+17. CSP impede script inline não autorizado.
+18. Cookies de sessão aparecem como HttpOnly/Secure em produção.
 
-## Rotas de monitoramento
+## Monitoramento
 
-- `/api/health/live`: processo HTTP está vivo.
-- `/api/health/ready`: processo + PostgreSQL estão prontos.
+- `/api/health/live`
+- `/api/health/ready`
 
-Configure o monitor externo para consultar `/api/health/ready` a cada 1–5 minutos.
+## Próxima fase
 
-## Manutenção
-
-Execute periodicamente:
-
-```bash
-npm run maintenance
-```
-
-A rotina expira reservas antigas e remove estados OAuth, resets e sessões conversacionais antigas.
-
-## Antes de cliente pagante
-
-- Trocar qualquer segredo que tenha aparecido em conversa/log.
-- HTTPS obrigatório.
-- Webhooks Mercado Pago validados por assinatura.
-- Backup do PostgreSQL habilitado e recuperação testada.
-- Monitor de uptime configurado.
-- Política de privacidade, termos e canal de suporte publicados.
+Executar pentest dinâmico autorizado em staging antes de abrir onboarding pago em escala.
