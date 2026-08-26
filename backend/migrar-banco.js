@@ -88,7 +88,7 @@ await client.query(`DO $$ BEGIN
  IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conname='ck_agendamento_pagamentos') THEN ALTER TABLE agendamentos ADD CONSTRAINT ck_agendamento_pagamentos CHECK(valor_cobrado>=0 AND valor_pago>=0 AND COALESCE(valor_servico,0)>=0 AND COALESCE(valor_final,0)>=0) NOT VALID; END IF;
 END $$`);
 await client.query(`CREATE INDEX IF NOT EXISTS ix_webhook_events_status ON webhook_events(provider,status,recebido_em)`);
-await client.query(`CREATE INDEX IF NOT EXISTS ix_webhook_events_retry ON webhook_events(status,proxima_tentativa,atualizado_em)`);await client.query(`CREATE INDEX IF NOT EXISTS ix_automacoes_retry ON automacoes_envios(status,proxima_tentativa,atualizado_em)`);
+
 await client.query(`CREATE INDEX IF NOT EXISTS ix_email_verify_expira ON email_verification_tokens(expira_em,usado)`);
 await client.query(`CREATE TABLE IF NOT EXISTS booking_otps(id BIGSERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,telefone VARCHAR(30) NOT NULL,email VARCHAR(200) NOT NULL,code_hash TEXT NOT NULL,expira_em TIMESTAMP NOT NULL,usado BOOLEAN NOT NULL DEFAULT false,tentativas INTEGER NOT NULL DEFAULT 0,criado_em TIMESTAMP NOT NULL DEFAULT NOW())`);
 await client.query(`CREATE INDEX IF NOT EXISTS ix_booking_otps_lookup ON booking_otps(barbearia_id,telefone,email,usado,expira_em DESC)`);
@@ -154,6 +154,8 @@ for(const [t,c,ty] of [
  ['automacoes_envios','proxima_tentativa','TIMESTAMP'],
  ['automacoes_envios','atualizado_em','TIMESTAMP NOT NULL DEFAULT NOW()']
 ]) await client.query(`ALTER TABLE ${t} ADD COLUMN IF NOT EXISTS ${c} ${ty}`);
+await client.query(`CREATE INDEX IF NOT EXISTS ix_webhook_events_retry ON webhook_events(status,proxima_tentativa,atualizado_em)`);
+await client.query(`CREATE INDEX IF NOT EXISTS ix_automacoes_retry ON automacoes_envios(status,proxima_tentativa,atualizado_em)`);
 await client.query(`CREATE TABLE IF NOT EXISTS audit_logs(
  id BIGSERIAL PRIMARY KEY,actor_user_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,barbearia_id INTEGER REFERENCES barbearias(id) ON DELETE SET NULL,
  acao VARCHAR(80) NOT NULL,alvo_tipo VARCHAR(80),alvo_id TEXT,ip INET,user_agent TEXT,detalhes JSONB NOT NULL DEFAULT '{}'::jsonb,criado_em TIMESTAMP NOT NULL DEFAULT NOW())`);
