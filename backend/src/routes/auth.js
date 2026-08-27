@@ -563,60 +563,61 @@ router.post('/login', async (req, res) => {
 
 
     /* =====================================================
-       MFA SUPERMASTER
+       MFA
+       - obrigatório para Supermaster
+       - opcional para os demais usuários
     ===================================================== */
 
     if (
         usuario.papel ===
-        'super_admin'
+        'super_admin' &&
+        !usuario.mfa_enabled
     ) {
 
-        if (
-            !usuario.mfa_enabled
-        ) {
+        const setupToken =
+            jwt.sign(
+                {
+                    purpose:
+                        'mfa_setup',
 
-            const setupToken =
-                jwt.sign(
-                    {
-                        purpose:
-                            'mfa_setup',
+                    id:
+                        usuario.id,
 
-                        id:
-                            usuario.id,
+                    sv:
+                        Number(
+                            usuario.token_version ||
+                            0
+                        )
+                },
 
-                        sv:
-                            Number(
-                                usuario.token_version ||
-                                0
-                            )
-                    },
+                process.env.JWT_SECRET,
 
-                    process.env.JWT_SECRET,
+                {
+                    expiresIn:
+                        '10m',
 
-                    {
-                        expiresIn:
-                            '10m',
-
-                        algorithm:
-                            'HS256'
-                    }
-                );
+                    algorithm:
+                        'HS256'
+                }
+            );
 
 
-            return res
-                .status(428)
-                .json({
-                    erro:
-                        'MFA obrigatório para o Supermaster',
+        return res
+            .status(428)
+            .json({
+                erro:
+                    'MFA obrigatório para o Supermaster',
 
-                    mfa_setup_required:
-                        true,
+                mfa_setup_required:
+                    true,
 
-                    setup_token:
-                        setupToken
-                });
-        }
+                setup_token:
+                    setupToken
+            });
+    }
 
+
+    if (usuario.mfa_enabled) {
 
         let secret;
 
@@ -1027,6 +1028,294 @@ router.post(
                         'Setup MFA inválido ou expirado'
                 });
         }
+    }
+);
+
+
+/* =========================================================
+   SEGURANÇA DA CONTA
+   Senha + MFA TOTP opcional para usuários da barbearia
+========================================================= */
+
+router.get(
+    '/security-status',
+    autenticar,
+    async (req, res) => {
+        const r = await pool.query(
+            `SELECT COALESCE(mfa_enabled,false) AS mfa_enabled
+             FROM usuarios
+             WHERE id=$1 AND ativo=true`,
+            [req.usuario.id]
+        );
+
+        if (!r.rowCount) {
+            return res.status(404).json({
+                erro: 'Usuário não encontrado'
+            });
+        }
+
+        return res.json({
+            mfa_enabled: !!r.rows[0].mfa_enabled,
+            totp: {
+                issuer: 'BarberFlow',
+                digits: 6,
+                period_seconds: 30,
+                compatible_apps: [
+                    'Google Authenticator',
+                    'Microsoft Authenticator',
+                    'Authy',
+                    '1Password',
+                    'Bitwarden'
+                ]
+            }
+        });
+    }
+);
+
+
+router.post(
+    '/change-password',
+    autenticar,
+    async (req, res) => {
+        const senhaAtual = String(req.body?.senha_atual || '');
+        const novaSenha = String(req.body?.nova_senha || '');
+        const mfaCode = String(req.body?.mfa_code || '');
+
+        if (!strongPassword(novaSenha)) {
+            return res.status(400).json({
+                erro: 'Use uma senha com 12+ caracteres, maiúscula, minúscula, número e símbolo'
+            });
+        }
+
+        const r = await pool.query(
+            `SELECT senha_hash,COALESCE(mfa_enabled,false) AS mfa_enabled,mfa_secret_enc
+             FROM usuarios
+             WHERE id=$1 AND ativo=true`,
+            [req.usuario.id]
+        );
+
+        const usuario = r.rows[0];
+
+        if (!usuario || !(await bcrypt.compare(senhaAtual, usuario.senha_hash))) {
+            return res.status(400).json({
+                erro: 'Senha atual incorreta'
+            });
+        }
+
+        if (await bcrypt.compare(novaSenha, usuario.senha_hash)) {
+            return res.status(400).json({
+                erro: 'A nova senha precisa ser diferente da senha atual'
+            });
+        }
+
+        if (usuario.mfa_enabled) {
+            let secret;
+            try {
+                secret = decrypt(usuario.mfa_secret_enc);
+            } catch {
+                return res.status(500).json({ erro: 'MFA indisponível' });
+            }
+
+            if (!verifyTotp(secret, mfaCode)) {
+                return res.status(400).json({
+                    erro: 'Código MFA inválido'
+                });
+            }
+        }
+
+        const senhaHash = await bcrypt.hash(novaSenha, 12);
+        const updated = await pool.query(
+            `UPDATE usuarios
+             SET senha_hash=$1,
+                 token_version=COALESCE(token_version,0)+1,
+                 atualizado_em=NOW()
+             WHERE id=$2
+             RETURNING COALESCE(token_version,0)::int AS token_version`,
+            [senhaHash, req.usuario.id]
+        );
+
+        const tokenVersion = Number(updated.rows[0]?.token_version || 0);
+        const csrf = setSession(res, {
+            ...req.usuario,
+            token_version: tokenVersion
+        });
+
+        res.clearCookie('bf_stepup', { path: '/' });
+
+        return res.json({
+            mensagem: 'Senha alterada. Outras sessões foram revogadas.',
+            csrf_token: csrf
+        });
+    }
+);
+
+
+router.post(
+    '/mfa/enroll',
+    autenticar,
+    async (req, res) => {
+        const senha = String(req.body?.senha || '');
+        const r = await pool.query(
+            `SELECT email,senha_hash,COALESCE(mfa_enabled,false) AS mfa_enabled
+             FROM usuarios
+             WHERE id=$1 AND ativo=true`,
+            [req.usuario.id]
+        );
+
+        const usuario = r.rows[0];
+
+        if (!usuario || !(await bcrypt.compare(senha, usuario.senha_hash))) {
+            return res.status(400).json({ erro: 'Senha atual incorreta' });
+        }
+
+        if (usuario.mfa_enabled) {
+            return res.status(409).json({ erro: 'A autenticação em dois fatores já está ativa' });
+        }
+
+        const secret = generateSecret();
+        await pool.query(
+            `UPDATE usuarios
+             SET mfa_secret_enc=$1,mfa_enabled=false,atualizado_em=NOW()
+             WHERE id=$2`,
+            [encrypt(secret), req.usuario.id]
+        );
+
+        return res.json({
+            secret,
+            otpauth_uri: otpauthUri({
+                secret,
+                email: usuario.email,
+                issuer: 'BarberFlow'
+            }),
+            mensagem: 'Chave criada. Adicione-a ao seu aplicativo e confirme com um código de 6 dígitos.'
+        });
+    }
+);
+
+
+router.post(
+    '/mfa/enable',
+    autenticar,
+    async (req, res) => {
+        const senha = String(req.body?.senha || '');
+        const code = String(req.body?.code || '');
+        const r = await pool.query(
+            `SELECT senha_hash,mfa_secret_enc,COALESCE(mfa_enabled,false) AS mfa_enabled
+             FROM usuarios
+             WHERE id=$1 AND ativo=true`,
+            [req.usuario.id]
+        );
+
+        const usuario = r.rows[0];
+
+        if (!usuario || !(await bcrypt.compare(senha, usuario.senha_hash))) {
+            return res.status(400).json({ erro: 'Senha atual incorreta' });
+        }
+
+        if (usuario.mfa_enabled) {
+            return res.status(409).json({ erro: 'A autenticação em dois fatores já está ativa' });
+        }
+
+        if (!usuario.mfa_secret_enc) {
+            return res.status(409).json({ erro: 'Inicie a configuração do 2FA antes de confirmar' });
+        }
+
+        let secret;
+        try {
+            secret = decrypt(usuario.mfa_secret_enc);
+        } catch {
+            return res.status(500).json({ erro: 'Não foi possível ler a configuração do MFA' });
+        }
+
+        if (!verifyTotp(secret, code)) {
+            return res.status(400).json({ erro: 'Código de 6 dígitos inválido' });
+        }
+
+        const updated = await pool.query(
+            `UPDATE usuarios
+             SET mfa_enabled=true,
+                 token_version=COALESCE(token_version,0)+1,
+                 atualizado_em=NOW()
+             WHERE id=$1
+             RETURNING COALESCE(token_version,0)::int AS token_version`,
+            [req.usuario.id]
+        );
+
+        const tokenVersion = Number(updated.rows[0]?.token_version || 0);
+        const csrf = setSession(res, {
+            ...req.usuario,
+            token_version: tokenVersion
+        });
+
+        res.clearCookie('bf_stepup', { path: '/' });
+
+        return res.json({
+            mensagem: 'Autenticação em dois fatores ativada.',
+            mfa_enabled: true,
+            csrf_token: csrf
+        });
+    }
+);
+
+
+router.post(
+    '/mfa/disable',
+    autenticar,
+    async (req, res) => {
+        const senha = String(req.body?.senha || '');
+        const code = String(req.body?.code || '');
+        const r = await pool.query(
+            `SELECT senha_hash,mfa_secret_enc,COALESCE(mfa_enabled,false) AS mfa_enabled
+             FROM usuarios
+             WHERE id=$1 AND ativo=true`,
+            [req.usuario.id]
+        );
+
+        const usuario = r.rows[0];
+
+        if (!usuario || !(await bcrypt.compare(senha, usuario.senha_hash))) {
+            return res.status(400).json({ erro: 'Senha atual incorreta' });
+        }
+
+        if (!usuario.mfa_enabled || !usuario.mfa_secret_enc) {
+            return res.status(409).json({ erro: 'A autenticação em dois fatores não está ativa' });
+        }
+
+        let secret;
+        try {
+            secret = decrypt(usuario.mfa_secret_enc);
+        } catch {
+            return res.status(500).json({ erro: 'MFA indisponível' });
+        }
+
+        if (!verifyTotp(secret, code)) {
+            return res.status(400).json({ erro: 'Código MFA inválido' });
+        }
+
+        const updated = await pool.query(
+            `UPDATE usuarios
+             SET mfa_enabled=false,
+                 mfa_secret_enc=NULL,
+                 token_version=COALESCE(token_version,0)+1,
+                 atualizado_em=NOW()
+             WHERE id=$1
+             RETURNING COALESCE(token_version,0)::int AS token_version`,
+            [req.usuario.id]
+        );
+
+        const tokenVersion = Number(updated.rows[0]?.token_version || 0);
+        const csrf = setSession(res, {
+            ...req.usuario,
+            token_version: tokenVersion
+        });
+
+        res.clearCookie('bf_stepup', { path: '/' });
+
+        return res.json({
+            mensagem: 'Autenticação em dois fatores desativada.',
+            mfa_enabled: false,
+            csrf_token: csrf
+        });
     }
 );
 

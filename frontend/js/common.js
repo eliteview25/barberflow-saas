@@ -70,13 +70,7 @@ function renderShell(active){
         <div class="sidebar-user master-user-v2"><div class="master-user-avatar-v2">${esc((u.nome||'MA').slice(0,2).toUpperCase())}</div><div><strong>${esc(u.nome||'Master')}</strong><span>Super Admin</span></div></div>
         <a href="#" data-click="logout()" class="master-logout-v2"><span class="menu-icon">↪</span><span>Sair</span></a>
       </div>
-    </aside>
-    <nav class="mobile-bottom-nav master-bottom master-bottom-v2">
-      <button class="master-tab active" data-section="visao"><span>⌂</span><small>Início</small></button>
-      <button class="master-tab" data-section="barbearias-sec"><span>▦</span><small>Clientes</small></button>
-      <button class="master-tab" data-section="financeiro-sec"><span>↗</span><small>Financeiro</small></button>
-      <button class="master-tab" data-section="perfil-sec"><span>◎</span><small>Perfil</small></button>
-    </nav>`}
+    </aside>`}
   const links=[
     ['dashboard','/','🏠','Dashboard',['dono','gerente','recepcao','barbeiro']],
     ['agendamentos','/pages/agendamentos.html','📅','Agenda',['dono','gerente','recepcao','barbeiro']],
@@ -92,9 +86,6 @@ function renderShell(active){
   ];
   const allowed=links.filter(x=>x[4].includes(role)&&(!x[5]||hasFeature(x[5])));
   const menu=allowed.map(x=>`<a class="${active===x[0]?'active':''}" href="${x[1]}"><span class="menu-icon">${x[2]}</span><span>${x[3]}</span></a>`).join('');
-  const quickKeys=['dashboard','agendamentos','clientes'];
-  const quick=allowed.filter(x=>quickKeys.includes(x[0])).slice(0,3);
-  const bottom=quick.map(x=>`<a class="${active===x[0]?'active':''}" href="${x[1]}"><span>${x[2]}</span><small>${x[3]}</small></a>`).join('');
   return `
     <div class="mobile-appbar">
       <button class="icon-btn" type="button" data-click="toggleMobileMenu()" aria-label="Abrir menu">☰</button>
@@ -110,8 +101,7 @@ function renderShell(active){
         <div class="sidebar-user"><strong>${esc(u.nome||'Usuário')}</strong><span>${esc(roleLabel(role))}</span></div>
         <a href="#" data-click="logout()"><span class="menu-icon">↪</span><span>Sair</span></a>
       </div>
-    </aside>
-    <nav class="mobile-bottom-nav">${bottom}<button type="button" data-click="toggleMobileMenu()"><span>☰</span><small>Mais</small></button></nav>`
+    </aside>`
 }
 
 

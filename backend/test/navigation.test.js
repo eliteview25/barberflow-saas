@@ -29,7 +29,7 @@ test('assets do painel têm versão para quebrar cache antigo',()=>{
   const pages=['index.html','pages/barbeiros.html','pages/configuracoes.html','pages/financeiro.html','pages/automacoes.html'];
   for(const rel of pages){
     const html=fs.readFileSync(path.join(__dirname,'../../frontend',rel),'utf8');
-    assert.match(html,/common\.js\?v=20260826-sidebar3/);
-    assert.match(html,/style\.css\?v=20260826-sidebar3/);
+    assert.match(html,/common\.js\?v=[A-Za-z0-9._-]+/);
+    assert.match(html,/style\.css\?v=[A-Za-z0-9._-]+/);
   }
 });

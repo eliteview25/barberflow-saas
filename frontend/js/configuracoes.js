@@ -3,6 +3,75 @@ if(requireAuth(['dono','gerente'])){
   const ids=['nome','telefone','email','endereco','cidade','estado','logo_url','banner_url','cor_primaria','cor_secundaria','cor_botao','cor_fundo','tema','descricao_publica','texto_boas_vindas','instagram','whatsapp_publico','mostrar_precos','mostrar_duracao','politica_cancelamento','pagamento_agendamento','percentual_sinal','aceitar_mercadopago','mp_aceitar_pix','mp_aceitar_cartao','aceitar_pix_manual','pix_chave','pix_nome','pix_banco','aceitar_dinheiro'];
   const el=Object.fromEntries(ids.map(id=>[id,document.getElementById(id)]));
   const user=currentUser();
+  const securityEls={
+    status:document.getElementById('mfaStatus'),
+    senhaAtual:document.getElementById('senhaAtual'),
+    novaSenha:document.getElementById('novaSenha'),
+    confirmarNovaSenha:document.getElementById('confirmarNovaSenha'),
+    mfaSenhaField:document.getElementById('mfaSenhaField'),
+    mfaSenhaCode:document.getElementById('mfaSenhaCode'),
+    alterarSenha:document.getElementById('alterarSenha'),
+    off:document.getElementById('mfaOffBox'),
+    setup:document.getElementById('mfaSetupBox'),
+    on:document.getElementById('mfaOnBox'),
+    setupPassword:document.getElementById('mfaSetupPassword'),
+    iniciar:document.getElementById('iniciarMfa'),
+    secret:document.getElementById('mfaSecret'),
+    copiar:document.getElementById('copiarMfaSecret'),
+    abrir:document.getElementById('abrirAuthenticator'),
+    confirmCode:document.getElementById('mfaConfirmCode'),
+    confirmar:document.getElementById('confirmarMfa'),
+    cancelar:document.getElementById('cancelarMfaSetup'),
+    disablePassword:document.getElementById('mfaDisablePassword'),
+    disableCode:document.getElementById('mfaDisableCode'),
+    desativar:document.getElementById('desativarMfa')
+  };
+  let mfaEnabled=false,mfaPendingPassword='',mfaRawSecret='';
+  function digits6(v){return String(v||'').replace(/\D/g,'').slice(0,6)}
+  function formatSecret(v){return String(v||'').replace(/\s/g,'').match(/.{1,4}/g)?.join(' ')||''}
+  function renderMfaState(enabled){
+    mfaEnabled=!!enabled;
+    securityEls.status.textContent=mfaEnabled?'2FA ativo':'2FA desativado';
+    securityEls.status.className=`badge ${mfaEnabled?'status-concluido':'status-cancelado'}`;
+    securityEls.mfaSenhaField.classList.toggle('hidden',!mfaEnabled);
+    securityEls.off.classList.toggle('hidden',mfaEnabled);
+    securityEls.on.classList.toggle('hidden',!mfaEnabled);
+    if(mfaEnabled)securityEls.setup.classList.add('hidden');
+  }
+  async function copyText(text){
+    if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(text);return}
+    const t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();document.execCommand('copy');t.remove();
+  }
+  async function loadSecurity(){
+    try{const d=await api('/auth/security-status');renderMfaState(d.mfa_enabled)}catch(e){securityEls.status.textContent='Indisponível';securityEls.status.className='badge status-cancelado';console.error(e)}
+  }
+  [securityEls.mfaSenhaCode,securityEls.confirmCode,securityEls.disableCode].forEach(input=>input?.addEventListener('input',()=>{input.value=digits6(input.value)}));
+  securityEls.alterarSenha.onclick=async()=>{
+    const atual=securityEls.senhaAtual.value,nova=securityEls.novaSenha.value,confirmacao=securityEls.confirmarNovaSenha.value,code=digits6(securityEls.mfaSenhaCode.value);
+    if(!atual)return flash(msg,'Informe sua senha atual','error');
+    if(nova!==confirmacao)return flash(msg,'A confirmação da nova senha não confere','error');
+    if(mfaEnabled&&code.length!==6)return flash(msg,'Informe o código de 6 dígitos do autenticador','error');
+    try{securityEls.alterarSenha.disabled=true;securityEls.alterarSenha.textContent='Alterando...';await api('/auth/change-password',{method:'POST',body:JSON.stringify({senha_atual:atual,nova_senha:nova,mfa_code:code})});securityEls.senhaAtual.value='';securityEls.novaSenha.value='';securityEls.confirmarNovaSenha.value='';securityEls.mfaSenhaCode.value='';flash(msg,'Senha alterada. As outras sessões da sua conta foram revogadas.')}catch(e){flash(msg,e.message,'error')}finally{securityEls.alterarSenha.disabled=false;securityEls.alterarSenha.textContent='Alterar senha'}
+  };
+  securityEls.iniciar.onclick=async()=>{
+    const senha=securityEls.setupPassword.value;
+    if(!senha)return flash(msg,'Confirme sua senha atual para configurar o 2FA','error');
+    try{securityEls.iniciar.disabled=true;securityEls.iniciar.textContent='Preparando...';const d=await api('/auth/mfa/enroll',{method:'POST',body:JSON.stringify({senha})});mfaPendingPassword=senha;mfaRawSecret=d.secret;securityEls.secret.textContent=formatSecret(d.secret);securityEls.abrir.href=d.otpauth_uri;securityEls.off.classList.add('hidden');securityEls.setup.classList.remove('hidden');securityEls.confirmCode.focus();flash(msg,'Chave 2FA criada. Adicione ao seu aplicativo e confirme o código.')}catch(e){flash(msg,e.message,'error')}finally{securityEls.iniciar.disabled=false;securityEls.iniciar.textContent='Configurar 2FA'}
+  };
+  securityEls.copiar.onclick=async()=>{try{await copyText(mfaRawSecret);securityEls.copiar.textContent='Copiado';setTimeout(()=>securityEls.copiar.textContent='Copiar chave',1400)}catch{flash(msg,'Não foi possível copiar automaticamente. Selecione a chave manualmente.','error')}};
+  securityEls.cancelar.onclick=()=>{mfaPendingPassword='';mfaRawSecret='';securityEls.secret.textContent='—';securityEls.confirmCode.value='';securityEls.abrir.href='#';securityEls.setup.classList.add('hidden');securityEls.off.classList.remove('hidden')};
+  securityEls.confirmar.onclick=async()=>{
+    const code=digits6(securityEls.confirmCode.value);
+    if(!mfaPendingPassword)return flash(msg,'Reinicie a configuração e confirme sua senha','error');
+    if(code.length!==6)return flash(msg,'Digite o código de 6 dígitos do aplicativo','error');
+    try{securityEls.confirmar.disabled=true;securityEls.confirmar.textContent='Ativando...';await api('/auth/mfa/enable',{method:'POST',body:JSON.stringify({senha:mfaPendingPassword,code})});mfaPendingPassword='';mfaRawSecret='';securityEls.setupPassword.value='';securityEls.confirmCode.value='';securityEls.secret.textContent='—';securityEls.abrir.href='#';renderMfaState(true);flash(msg,'Autenticação em dois fatores ativada com sucesso.')}catch(e){flash(msg,e.message,'error')}finally{securityEls.confirmar.disabled=false;securityEls.confirmar.textContent='Ativar 2FA'}
+  };
+  securityEls.desativar.onclick=async()=>{
+    const senha=securityEls.disablePassword.value,code=digits6(securityEls.disableCode.value);
+    if(!senha||code.length!==6)return flash(msg,'Informe sua senha e o código atual do autenticador','error');
+    if(!confirm('Desativar a autenticação em dois fatores desta conta?'))return;
+    try{securityEls.desativar.disabled=true;securityEls.desativar.textContent='Desativando...';await api('/auth/mfa/disable',{method:'POST',body:JSON.stringify({senha,code})});securityEls.disablePassword.value='';securityEls.disableCode.value='';securityEls.setupPassword.value='';renderMfaState(false);flash(msg,'Autenticação em dois fatores desativada.')}catch(e){flash(msg,e.message,'error')}finally{securityEls.desativar.disabled=false;securityEls.desativar.textContent='Desativar 2FA'}
+  };
   async function uploadImagem(file,target){if(!file)return;if(!['image/png','image/jpeg'].includes(file.type))throw new Error('Use uma imagem JPG ou PNG');if(file.size>5*1024*1024)throw new Error('A imagem deve ter no máximo 5MB');const r=await fetch('/api/uploads/imagem',{method:'POST',credentials:'same-origin',headers:{'Content-Type':file.type,'X-CSRF-Token':csrfToken()},body:file});const d=await r.json();if(!r.ok)throw new Error(d.erro||'Erro no upload');el[target].value=d.url;preview();return d.url}
   if(document.getElementById('uploadLogo')){uploadLogo.onclick=()=>logo_file.click();logo_file.onchange=async()=>{try{uploadLogo.disabled=true;uploadLogo.textContent='Enviando...';await uploadImagem(logo_file.files[0],'logo_url');flash(msg,'Logo enviada. Clique em Salvar configurações.')}catch(e){flash(msg,e.message,'error')}finally{uploadLogo.disabled=false;uploadLogo.textContent='Enviar logo'}}}
   if(document.getElementById('uploadBanner')){uploadBanner.onclick=()=>banner_file.click();banner_file.onchange=async()=>{try{uploadBanner.disabled=true;uploadBanner.textContent='Enviando...';await uploadImagem(banner_file.files[0],'banner_url');flash(msg,'Banner enviado. Clique em Salvar configurações.')}catch(e){flash(msg,e.message,'error')}finally{uploadBanner.disabled=false;uploadBanner.textContent='Enviar banner'}}}
@@ -19,4 +88,5 @@ if(requireAuth(['dono','gerente'])){
   async function load(){try{const c=await api('/configuracoes');const b=c.barbearia;const recursos=c.assinatura?.recursos||[];const podePublico=recursos.includes('pagina_publica_simples');const podePremium=recursos.includes('personalizacao_publica');const podePagamentos=recursos.includes('pagamentos_online');for(const id of ids){if(!el[id])continue;if(el[id].type==='checkbox')el[id].checked=!!b[id];else if(b[id]!==null&&b[id]!==undefined)el[id].value=b[id]}el.cor_primaria.value=b.cor_primaria||'#f59e0b';el.cor_secundaria.value=b.cor_secundaria||'#111827';el.cor_botao.value=b.cor_botao||'#f59e0b';el.cor_fundo.value=b.cor_fundo||'#f7f7f8';el.tema.value=b.tema||'claro';el.pagamento_agendamento.value=b.pagamento_agendamento||'nenhum';el.percentual_sinal.value=Number(b.percentual_sinal||50);el.mp_aceitar_pix.checked=b.mp_aceitar_pix!==false;el.mp_aceitar_cartao.checked=b.mp_aceitar_cartao!==false;el.aceitar_dinheiro.checked=b.aceitar_dinheiro!==false;toggleSinal();togglePixManual();preview();linkPublico.href=`/agendar/${b.slug}`;linkPublico.classList.toggle('hidden',!podePublico);const publicIds=['descricao_publica','whatsapp_publico'];const premiumIds=['logo_url','banner_url','cor_primaria','cor_secundaria','cor_botao','cor_fundo','tema','texto_boas_vindas','instagram','mostrar_precos','mostrar_duracao','politica_cancelamento'];const paymentIds=['pagamento_agendamento','percentual_sinal','aceitar_mercadopago','mp_aceitar_pix','mp_aceitar_cartao','aceitar_pix_manual','pix_chave','pix_nome','pix_banco','aceitar_dinheiro'];if(!podePublico){[...publicIds,...premiumIds,...paymentIds].forEach(id=>{if(el[id])el[id].disabled=true});document.querySelector('.public-config-grid')?.insertAdjacentHTML('beforebegin','<div class="upgrade-card"><strong>🔒 Página pública</strong><p>Disponível a partir do plano Pro.</p><a class="btn btn-primary" href="/pages/assinatura.html">Ver planos</a></div>')}else if(!podePremium){premiumIds.forEach(id=>{if(el[id])el[id].disabled=true});document.querySelector('.public-config-grid')?.insertAdjacentHTML('beforebegin','<div class="upgrade-card"><strong>🔒 Personalização Premium</strong><p>No Pro sua página pública usa o visual padrão. Logo, banner, cores, tema e opções avançadas ficam disponíveis no Premium.</p><a class="btn btn-primary" href="/pages/assinatura.html">Conhecer Premium</a></div>')}if(!podePagamentos)paymentIds.forEach(id=>{if(el[id])el[id].disabled=true});if(podePagamentos)await Promise.all([loadMP(),carregarPixPendentes()]);else{mpStatus.textContent='Plano Pro necessário';pixPendentes.innerHTML='<p class="muted">Pagamentos no agendamento ficam disponíveis a partir do Pro.</p>';}const q=new URLSearchParams(location.search);if(q.get('mp')==='conectado')flash(msg,'Mercado Pago conectado com sucesso');if(q.get('mp')==='erro')flash(msg,`Falha ao conectar Mercado Pago: ${q.get('motivo')||''}`,'error')}catch(e){flash(msg,e.message,'error')}}
   salvar.onclick=async()=>{try{const body={};for(const id of ids)body[id]=el[id].type==='checkbox'?el[id].checked:el[id].value;body.estado=body.estado.toUpperCase();body.percentual_sinal=Number(body.percentual_sinal||50);if(body.aceitar_pix_manual&&!String(body.pix_chave||'').trim())throw new Error('Informe a chave Pix manual');await api('/configuracoes',{method:'PUT',body:JSON.stringify(body)});flash(msg,'Configurações, pagamentos e página pública salvos')}catch(e){flash(msg,e.message,'error')}};
   load();
+  loadSecurity();
 }

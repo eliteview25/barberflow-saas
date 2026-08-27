@@ -48,6 +48,8 @@ check(/bf_session/.test(mw) && /httpOnly\s*:\s*true/.test(sec) && /validateCsrf/
 check(/token_version/.test(auth) && /token_version/.test(mw), 'Versão de sessão revoga JWTs antigos');
 check(/algorithm\s*:\s*['\"]HS256['\"]/.test(auth) && /algorithms\s*:\s*\[\s*['\"]HS256['\"]\s*\]/.test(auth) && /algorithms\s*:\s*\[\s*['\"]HS256['\"]\s*\]/.test(mw), 'JWT fixa explicitamente HS256 em emissão e verificação');
 check(/exigirStepUp/.test(master) && /mfa_enabled/.test(auth), 'Supermaster usa MFA + step-up');
+check(/if \(usuario\.mfa_enabled\)/.test(auth) && /\/mfa\/enroll/.test(auth) && /\/mfa\/enable/.test(auth) && /encrypt\(secret\)/.test(auth), 'Usuários podem ativar MFA TOTP opcional com segredo criptografado');
+check(/\/change-password/.test(auth) && /strongPassword\(novaSenha\)/.test(auth) && /token_version=COALESCE\(token_version,0\)\+1/.test(auth), 'Troca de senha exige senha forte e revoga sessões antigas');
 check(/is_system/.test(mig) && /bf_enforce_user_tenant_kind/.test(mig) && /barberflow-system/.test(mig), 'Supermaster está isolado em tenant interno');
 check(/audit\(req/.test(master) && /master\.barbearia\.excluida/.test(master) && /master\.senha\.alterada/.test(master) && /safeDetails/.test(audit), 'Ações críticas do Supermaster geram trilha de auditoria sanitizada');
 check(/public_token/.test(pub) && !/agendamentos\/:id\/(cancelar|reagendar|avaliar)/.test(pub), 'Self-service público usa token aleatório, não ID sequencial');
