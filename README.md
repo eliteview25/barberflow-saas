@@ -38,3 +38,12 @@ Novos tenants entram como `trial_pendente`; após verificar e-mail, começam Pre
 ## Importante
 
 Nenhuma revisão estática garante ausência total de vulnerabilidades. Antes de clientes pagantes em escala, use um ambiente staging e faça testes dinâmicos autorizados de isolamento de tenant, permissões, webhooks, sessões, uploads, pagamentos e concorrência de agenda.
+
+
+## Planos comerciais atuais
+- Starter — R$ 49,90/mês — até 2 profissionais, agenda, clientes, serviços e página pública.
+- Pro — R$ 89,90/mês — até 5 profissionais, equipe, financeiro, produtos/estoque, PDV, comissões, fila, avaliações e Mercado Pago.
+- Premium — R$ 169,90/mês — profissionais ilimitados, automações, WhatsApp, personalização, CRM, fidelidade, relatórios avançados e base preparada para IA.
+
+### Próxima etapa: IA no WhatsApp
+A versão atual **não envia respostas por IA ainda**. Ela já contém configuração multi-tenant, política de ferramentas permitidas e contadores de uso sem dar acesso direto ao banco. A integração futura deve chamar somente ferramentas controladas do BarberFlow (consultar horários, criar/reagendar/cancelar agendamento, listar serviços/preços e gerar link de pagamento).

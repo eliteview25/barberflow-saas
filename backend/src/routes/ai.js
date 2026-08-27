@@ -1,0 +1,11 @@
+const express=require('express');
+const {autenticar,exigirPapel,exigirAssinatura}=require('../middlewares/auth');
+const {contextoPlano,exigirRecurso}=require('../services/planos');
+const {getAiConfig,updateAiConfig,getAiUsage}=require('../services/aiConfig');
+const {allowedAiTools}=require('../services/aiPolicy');
+const {audit}=require('../services/audit');
+const router=express.Router();
+router.use(autenticar,exigirPapel('dono','gerente'),exigirAssinatura);
+router.get('/status',async(req,res)=>{try{const ctx=await contextoPlano(req.usuario.barbearia_id),config=await getAiConfig(req.usuario.barbearia_id),uso=await getAiUsage(req.usuario.barbearia_id);const premium=ctx.recursos.includes('ia_config');res.json({fase:'preparada',motor_ativo:false,recurso_disponivel:premium,plano_efetivo:ctx.plano_efetivo,addon_elegivel:ctx.recursos.includes('ia_addon_elegivel'),incluido_no_premium:ctx.recursos.includes('ia_whatsapp'),franquia_planejada:500,config:{...config,ativo:false},ferramentas_permitidas:premium?allowedAiTools(config):[],uso});}catch(e){console.error(e);res.status(500).json({erro:'Erro ao carregar preparação da IA'})}});
+router.put('/config',exigirRecurso('ia_config'),async(req,res)=>{try{const config=await updateAiConfig(req.usuario.barbearia_id,req.body||{});await audit(req,{acao:'ia.config.atualizada',barbeariaId:req.usuario.barbearia_id,alvoTipo:'ai_config',alvoId:req.usuario.barbearia_id,detalhes:{tom:config.tom,nome_assistente:config.nome_assistente}});res.json({mensagem:'Preferências da IA salvas. O atendimento automático será ativado na próxima etapa da integração.',config:{...config,ativo:false},motor_ativo:false,ferramentas_permitidas:allowedAiTools(config)});}catch(e){console.error(e);res.status(500).json({erro:'Erro ao salvar preparação da IA'})}});
+module.exports=router;

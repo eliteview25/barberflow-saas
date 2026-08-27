@@ -37,6 +37,9 @@ const clientes = read('src/routes/clientes.js');
 const mig = read('migrar-banco.js');
 const upload = read('src/routes/uploads.js');
 const operacao = read('src/routes/operacao.js');
+const aiRoute = read('src/routes/ai.js');
+const aiConfig = read('src/services/aiConfig.js');
+const aiPolicy = read('src/services/aiPolicy.js');
 const pkg = JSON.parse(read('package.json'));
 const frontFiles = filesRecursive(path.resolve(root, '../frontend'));
 const front = frontFiles.map(p => fs.readFileSync(p, 'utf8')).join('\n');
@@ -81,6 +84,9 @@ check(!Object.prototype.hasOwnProperty.call(pkg.dependencies || {}, 'multer'), '
 check(/feePct>30/.test(mp), 'Taxa marketplace tem teto defensivo de 30% também no runtime');
 check(/return `mp:\$\{String\(type\|\|'unknown'\).*:\$\{own\}`/.test(mpRoute), 'Webhook Mercado Pago prioriza ID lógico da notificação para idempotência');
 check(!/eval\s*\(|new Function\s*\(/.test(runtime), 'Runtime não usa eval/new Function');
+check(/barbearia_id INTEGER PRIMARY KEY REFERENCES barbearias/.test(aiConfig) && /req\.usuario\.barbearia_id/.test(aiRoute), 'Preparação da IA mantém configuração isolada por tenant');
+check(/allowedAiTools/.test(aiRoute) && /TOOL_MAP/.test(aiPolicy) && !/SELECT|INSERT|UPDATE|DELETE/i.test(aiPolicy), 'IA futura usa allowlist de ferramentas sem SQL gerado pelo modelo');
+check(/motor_ativo:false/.test(aiRoute) && !/router\.post\(['"]\/(?:chat|mensagem|responder)/.test(aiRoute), 'Motor de IA ainda não é exposto antes da integração real');
 
 const runtimeExternal = ['src/services/mercadoPago.js', 'src/services/mercadoPagoOAuth.js', 'src/services/whatsapp.js', 'src/services/whatsappQr.js', 'src/services/notifications.js', 'src/routes/publico.js', 'src/routes/uploads.js'];
 for (const file of runtimeExternal) { const s = read(file); if (/fetch\s*\(/.test(s)) check(/signal\s*:/.test(s), `${file} usa timeout/cancelamento em fetch externo`) }

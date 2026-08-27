@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const {CATALOGO}=require('./planCatalog');
 
 const BASE = 'https://api.mercadopago.com';
 
@@ -41,8 +42,11 @@ async function mpFetch(path, options = {}) {
 }
 
 function precoPlano(plano) {
-  const raw={starter:process.env.PLAN_STARTER_PRICE??39.90,pro:process.env.PLAN_PRO_PRICE??69.90,premium:process.env.PLAN_PREMIUM_PRICE??119.90};
-  const key=['starter','pro','premium'].includes(plano)?plano:'pro',value=Number(raw[key]);
+  const key=['starter','pro','premium'].includes(plano)?plano:'pro';
+  const defaults={starter:CATALOGO.starter.preco_mensal,pro:CATALOGO.pro.preco_mensal,premium:CATALOGO.premium.preco_mensal};
+  const envKey={starter:'PLAN_STARTER_PRICE',pro:'PLAN_PRO_PRICE',premium:'PLAN_PREMIUM_PRICE'}[key];
+  const allowOverride=process.env.ALLOW_PLAN_PRICE_OVERRIDE==='true';
+  const value=Number(allowOverride&&process.env[envKey]!=null?process.env[envKey]:defaults[key]);
   if(!Number.isFinite(value)||value<=0||value>100000)throw new Error(`Preço inválido para o plano ${key}`);
   return Math.round(value*100)/100;
 }

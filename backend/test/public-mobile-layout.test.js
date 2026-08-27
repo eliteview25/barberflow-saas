@@ -9,7 +9,7 @@ const js=fs.readFileSync(path.join(root,'frontend/js/publico.js'),'utf8');
 
 test('página pública usa viewport seguro e assets versionados',()=>{
   assert.match(html,/viewport-fit=cover/);
-  assert.match(html,/publicmobile5/);
+  assert.match(html,/\?v=20260826-[A-Za-z0-9_-]+/);
 });
 
 test('formulário público mobile usa campos grandes e sem zoom de input',()=>{

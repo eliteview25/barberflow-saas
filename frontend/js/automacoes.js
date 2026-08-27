@@ -1,6 +1,6 @@
 if(requireAuth(['dono','gerente'])){
   document.getElementById('shell').innerHTML=renderShell('automacoes');
-  if(!hasFeature('automacoes'))document.querySelector('main.main').innerHTML='<header class="topbar"><div><h1>Automações</h1></div></header><div class="upgrade-card"><strong>🔒 Premium</strong><p>WhatsApp e automações estão disponíveis no Premium.</p><a class="btn btn-primary" href="/pages/assinatura.html">Ver Premium</a></div>';
+  if(!hasFeature('automacoes'))document.querySelector('main.main').innerHTML='<header class="topbar"><div><h1>Automações</h1></div></header><div class="upgrade-card"><strong>🔒 Premium</strong><p>WhatsApp, automações e a futura IA ficam no Premium.</p><a class="btn btn-primary" href="/pages/assinatura.html">Ver Premium</a></div>';
   else{
     let qrTimer=null;
     webhookUrl.textContent=`${location.origin}/api/whatsapp/webhook`;
