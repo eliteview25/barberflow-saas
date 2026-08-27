@@ -55,7 +55,7 @@ function tituloPlano(plano) {
   return ({starter:'BarberFlow Starter', pro:'BarberFlow Pro', premium:'BarberFlow Premium'})[plano] || 'BarberFlow Pro';
 }
 
-async function criarAssinatura({ barbeariaId, plano, email, idempotencyKey }) {
+async function criarAssinatura({ barbeariaId, plano, email, idempotencyKey, cardTokenId=null }) {
   const appUrl = process.env.APP_URL || 'http://localhost:3001';
   const body = {
     reason: tituloPlano(plano),
@@ -68,7 +68,8 @@ async function criarAssinatura({ barbeariaId, plano, email, idempotencyKey }) {
       currency_id: 'BRL'
     },
     back_url: `${appUrl}/pages/assinatura.html?retorno=mercadopago`,
-    status: 'pending'
+    status: cardTokenId ? 'authorized' : 'pending',
+    ...(cardTokenId ? { card_token_id: cardTokenId } : {})
   };
   return mpFetch('/preapproval', { method: 'POST', body: JSON.stringify(body), idempotencyKey:idempotencyKey||`subscription-${barbeariaId}-${plano}` });
 }
@@ -115,6 +116,15 @@ async function obterAssinatura(id) {
 
 async function atualizarStatusAssinatura(id, status) { return mpFetch(`/preapproval/${encodeURIComponent(id)}`, {method:'PUT',body:JSON.stringify({status})}); }
 async function atualizarValorAssinatura(id, valor) { return mpFetch(`/preapproval/${encodeURIComponent(id)}`, {method:'PUT',body:JSON.stringify({auto_recurring:{transaction_amount:Number(valor),currency_id:'BRL'}})}); }
+async function atualizarPlanoAssinatura(id,{plano,barbeariaId}){return mpFetch(`/preapproval/${encodeURIComponent(id)}`,{method:'PUT',body:JSON.stringify({reason:tituloPlano(plano),external_reference:`barberflow:${barbeariaId}:${plano}`,auto_recurring:{transaction_amount:precoPlano(plano),currency_id:'BRL'}})});}
+async function criarPagamentoPixAssinatura({barbeariaId,plano,paymentRowId,email,identificationType='CPF',identificationNumber,idempotencyKey}){
+  const appUrl=(process.env.APP_URL||'http://localhost:3001').replace(/\/$/,'');
+  const digits=String(identificationNumber||'').replace(/\D/g,'');
+  if(!/^\d{11,14}$/.test(digits))throw new Error('CPF/CNPJ inválido para o Pix');
+  const external_reference=`barberflow-subscription-pix:${barbeariaId}:${plano}:${paymentRowId}`;
+  const body={transaction_amount:precoPlano(plano),description:tituloPlano(plano),payment_method_id:'pix',external_reference,payer:{email,identification:{type:identificationType==='CNPJ'?'CNPJ':'CPF',number:digits}},notification_url:`${appUrl}/api/webhooks/mercadopago?scope=subscription&barbearia_id=${encodeURIComponent(barbeariaId)}&tenant_sig=${encodeURIComponent(mpTenantSignature(barbeariaId))}`,date_of_expiration:new Date(Date.now()+30*60*1000).toISOString()};
+  return mpFetch('/v1/payments',{method:'POST',body:JSON.stringify(body),idempotencyKey});
+}
 
 async function obterPagamentoAutorizado(id) {
   return mpFetch(`/authorized_payments/${encodeURIComponent(id)}`);
@@ -152,6 +162,8 @@ module.exports = {
   obterAssinatura,
   atualizarStatusAssinatura,
   atualizarValorAssinatura,
+  atualizarPlanoAssinatura,
+  criarPagamentoPixAssinatura,
   obterPagamentoAutorizado,
   obterPagamento,
   validarWebhook,

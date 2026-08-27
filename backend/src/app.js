@@ -9,7 +9,7 @@ if(process.env.NODE_ENV==='production'){
 }
 const app=express();app.set('trust proxy',1);app.disable('x-powered-by');
 app.use(helmet({
-  contentSecurityPolicy:{directives:{defaultSrc:["'self'"],scriptSrc:["'self'",'https://challenges.cloudflare.com'],styleSrc:["'self'","'unsafe-inline'"],imgSrc:["'self'",'data:','https:'],fontSrc:["'self'",'data:'],connectSrc:["'self'",'https://challenges.cloudflare.com'],frameSrc:['https://challenges.cloudflare.com'],objectSrc:["'none'"],baseUri:["'self'"],formAction:["'self'"],frameAncestors:["'none'"],upgradeInsecureRequests:process.env.NODE_ENV==='production'?[]:null}},
+  contentSecurityPolicy:{directives:{defaultSrc:["'self'"],scriptSrc:["'self'",'https://challenges.cloudflare.com','https://sdk.mercadopago.com','https://www.mercadopago.com','https://www.mercadopago.com.br'],styleSrc:["'self'","'unsafe-inline'"],imgSrc:["'self'",'data:','https:'],fontSrc:["'self'",'data:'],connectSrc:["'self'",'https://challenges.cloudflare.com','https://api.mercadopago.com','https://www.mercadopago.com','https://www.mercadopago.com.br'],frameSrc:['https://challenges.cloudflare.com','https://www.mercadopago.com','https://www.mercadopago.com.br'],objectSrc:["'none'"],baseUri:["'self'"],formAction:["'self'"],frameAncestors:["'none'"],upgradeInsecureRequests:process.env.NODE_ENV==='production'?[]:null}},
   referrerPolicy:{policy:'strict-origin-when-cross-origin'},crossOriginEmbedderPolicy:false
 }));
 const allowedOrigins=new Set();if(process.env.APP_URL){try{allowedOrigins.add(new URL(process.env.APP_URL).origin)}catch{}}if(process.env.NODE_ENV!=='production')['http://localhost:3001','http://127.0.0.1:3001','http://localhost:5500','http://127.0.0.1:5500'].forEach(x=>allowedOrigins.add(x));

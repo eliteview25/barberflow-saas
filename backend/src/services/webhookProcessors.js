@@ -3,6 +3,7 @@ const {obterAssinatura,obterPagamentoAutorizado,obterPagamento}=require('./merca
 const {getSellerAccessToken}=require('./mercadoPagoOAuth');
 const {finalizePaidReservation}=require('./reservations');
 const {integrationByPhoneId,processIncoming}=require('./whatsapp');
+const {aplicarPagamentoPix}=require('./subscriptionPayments');
 
 function mpLocalStatus(providerStatus,currentStatus){
   if(providerStatus==='authorized')return 'ativa';
@@ -30,6 +31,9 @@ async function processMercado(payload){
   }
   if(type==='payment'||type==='payments'){
     const tenantId=Number(payload?.barbeariaId||0);if(!Number.isSafeInteger(tenantId)||tenantId<1)throw new Error('Webhook de pagamento sem tenant válido');
+    if(payload?.paymentScope==='subscription'){
+      const payment=await obterPagamento(dataId);const db=await pool.connect();try{await db.query('BEGIN');await aplicarPagamentoPix(payment,{expectedTenantId:tenantId,db});await db.query('COMMIT');}catch(e){await db.query('ROLLBACK').catch(()=>{});throw e;}finally{db.release();}return;
+    }
     const seller=await getSellerAccessToken(tenantId),payment=await obterPagamento(dataId,seller);
     const m=String(payment.external_reference||'').match(/^barberflow-booking:(\d+)$/);if(!m)throw new Error('Pagamento sem referência BarberFlow válida');
     const rid=Number(m[1]);const rr=await pool.query(`SELECT id,barbearia_id FROM reservas_pagamento WHERE id=$1 AND barbearia_id=$2`,[rid,tenantId]);if(!rr.rowCount)throw new Error('Reserva do pagamento não pertence ao tenant informado');

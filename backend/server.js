@@ -3,6 +3,7 @@ if(!process.env.JWT_SECRET){console.error('JWT_SECRET não configurado');process
 const app=require('./src/app');
 const pool=require('./src/config/db');
 const {ensureAiSchema}=require('./src/services/aiConfig');
+const {ensureSubscriptionPaymentSchema}=require('./src/services/subscriptionPayments');
 const PORT=Number(process.env.PORT||3001);
 let server;
 let encerrando=false;
@@ -37,7 +38,9 @@ async function iniciar(){
     await pool.query('SELECT NOW()');
     await corrigirCompatibilidadeLegada();
     await ensureAiSchema();
+    await ensureSubscriptionPaymentSchema();
     console.log('Base de IA preparada.');
+    console.log('Checkout de assinatura preparado.');
     console.log('PostgreSQL conectado!');
     server=app.listen(PORT,()=>{
       console.log(`BarberFlow SaaS: http://localhost:${PORT}`);

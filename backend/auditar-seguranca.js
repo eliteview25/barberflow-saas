@@ -40,6 +40,7 @@ const operacao = read('src/routes/operacao.js');
 const aiRoute = read('src/routes/ai.js');
 const aiConfig = read('src/services/aiConfig.js');
 const aiPolicy = read('src/services/aiPolicy.js');
+const subPayments = read('src/services/subscriptionPayments.js');
 const pkg = JSON.parse(read('package.json'));
 const frontFiles = filesRecursive(path.resolve(root, '../frontend'));
 const front = frontFiles.map(p => fs.readFileSync(p, 'utf8')).join('\n');
@@ -87,6 +88,10 @@ check(!/eval\s*\(|new Function\s*\(/.test(runtime), 'Runtime não usa eval/new F
 check(/barbearia_id INTEGER PRIMARY KEY REFERENCES barbearias/.test(aiConfig) && /req\.usuario\.barbearia_id/.test(aiRoute), 'Preparação da IA mantém configuração isolada por tenant');
 check(/allowedAiTools/.test(aiRoute) && /TOOL_MAP/.test(aiPolicy) && !/SELECT|INSERT|UPDATE|DELETE/i.test(aiPolicy), 'IA futura usa allowlist de ferramentas sem SQL gerado pelo modelo');
 check(/motor_ativo:false/.test(aiRoute) && !/router\.post\(['"]\/(?:chat|mensagem|responder)/.test(aiRoute), 'Motor de IA ainda não é exposto antes da integração real');
+check(/MP_PUBLIC_KEY/.test(tenant) && /card_token_id/.test(mp) && /sdk\.mercadopago\.com/.test(app), 'Checkout de cartão embutido usa tokenização oficial do Mercado Pago');
+check(/qr_code_base64/.test(tenant) && /payment_method_id:'pix'/.test(mp) && /X-Idempotency-Key/.test(mp), 'Checkout Pix da assinatura usa QR interno e idempotência');
+check(/barberflow-subscription-pix/.test(subPayments) && /expectedTenantId/.test(subPayments) && /Math\.abs\(amount-Number\(row\.valor\)\)>0\.01/.test(subPayments), 'Pagamento Pix do SaaS reconcilia tenant e valor antes de ativar plano');
+check(/atualizarPlanoAssinatura/.test(tenant) && /auto_recurring/.test(mp), 'Migração de plano atualiza assinatura recorrente existente sem duplicar contrato');
 
 const runtimeExternal = ['src/services/mercadoPago.js', 'src/services/mercadoPagoOAuth.js', 'src/services/whatsapp.js', 'src/services/whatsappQr.js', 'src/services/notifications.js', 'src/routes/publico.js', 'src/routes/uploads.js'];
 for (const file of runtimeExternal) { const s = read(file); if (/fetch\s*\(/.test(s)) check(/signal\s*:/.test(s), `${file} usa timeout/cancelamento em fetch externo`) }
