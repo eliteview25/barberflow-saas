@@ -60,32 +60,100 @@ async function openTab(tab){
   }catch(error){ showError(error); }
 }
 
-async function estoque(){
-  const produtos=await api('/operacao/produtos');
+const estoqueState={produtos:[],busca:'',status:'todos',nivel:'todos'};
+function productNumbers(p){return{preco:Number(p.preco||0),custo:Number(p.custo||0),estoque:Number(p.estoque||0),minimo:Number(p.estoque_minimo||0)}}
+function productStockBadge(p){const n=productNumbers(p);if(n.estoque<=0)return '<span class="badge product-stock-out">Sem estoque</span>';if(n.estoque<=n.minimo)return '<span class="badge product-stock-low">Estoque baixo</span>';return '<span class="badge product-stock-ok">Estoque OK</span>'}
+function productMargin(p){const n=productNumbers(p);if(n.preco<=0)return 0;return Math.max(0,((n.preco-n.custo)/n.preco)*100)}
+function filteredProducts(){
+  const q=estoqueState.busca.trim().toLowerCase();
+  return estoqueState.produtos.filter(p=>{
+    const n=productNumbers(p);
+    const text=`${p.nome||''} ${p.sku||''}`.toLowerCase();
+    if(q&&!text.includes(q))return false;
+    if(estoqueState.status==='ativos'&&!p.ativo)return false;
+    if(estoqueState.status==='inativos'&&p.ativo)return false;
+    if(estoqueState.nivel==='baixo'&&!(p.ativo&&n.estoque<=n.minimo))return false;
+    if(estoqueState.nivel==='zerado'&&n.estoque>0)return false;
+    return true;
+  });
+}
+function renderEstoque(){
+  const produtos=filteredProducts();
+  const ativos=estoqueState.produtos.filter(p=>p.ativo);
+  const baixos=ativos.filter(p=>{const n=productNumbers(p);return n.estoque<=n.minimo});
+  const unidades=ativos.reduce((t,p)=>t+productNumbers(p).estoque,0);
+  const valor=ativos.reduce((t,p)=>{const n=productNumbers(p);return t+n.custo*n.estoque},0);
+  const canManage=hasRole('dono','gerente');
   contentEl.innerHTML=`
-    <div class="section-head"><div><h2>Produtos e estoque</h2><p>Cadastre itens para venda e acompanhe níveis de estoque.</p></div><button class="btn btn-primary" id="novoProduto">+ Produto</button></div>
-    <div class="cards compact-cards">
-      <div class="card"><div class="label">Produtos ativos</div><div class="value">${produtos.filter(p=>p.ativo).length}</div></div>
-      <div class="card"><div class="label">Estoque baixo</div><div class="value">${produtos.filter(p=>Number(p.estoque)<=Number(p.estoque_minimo)).length}</div></div>
+    <div class="section-head product-head"><div><h2>Produtos e estoque</h2><p>Controle catálogo, preços, margem e quantidade disponível para venda.</p></div>${canManage?'<button class="btn btn-primary" id="novoProduto">+ Novo produto</button>':''}</div>
+    ${!canManage?'<div class="notice">Você pode consultar o estoque. Alterações são permitidas para Dono e Gerente.</div>':''}
+    <div class="cards compact-cards product-kpis">
+      <div class="card"><div class="label">Produtos ativos</div><div class="value">${ativos.length}</div><small>${estoqueState.produtos.length} cadastrados</small></div>
+      <div class="card"><div class="label">Estoque baixo</div><div class="value">${baixos.length}</div><small>inclui itens zerados</small></div>
+      <div class="card"><div class="label">Unidades em estoque</div><div class="value">${unidades.toLocaleString('pt-BR')}</div><small>somente produtos ativos</small></div>
+      <div class="card"><div class="label">Valor em estoque</div><div class="value">${money(valor)}</div><small>calculado pelo custo</small></div>
     </div>
-    <div class="table-wrap"><table class="table"><thead><tr><th>Produto</th><th>SKU</th><th>Preço</th><th>Custo</th><th>Estoque</th><th>Mínimo</th><th>Status</th></tr></thead><tbody>
-      ${produtos.map(p=>`<tr><td>${esc(p.nome)}</td><td>${esc(p.sku||'-')}</td><td>${money(p.preco)}</td><td>${money(p.custo)}</td><td>${p.estoque}</td><td>${p.estoque_minimo}</td><td>${Number(p.estoque)<=Number(p.estoque_minimo)?'⚠️ Baixo':'✅ OK'}</td></tr>`).join('')||'<tr><td colspan="7">Nenhum produto cadastrado.</td></tr>'}
+    <div class="product-toolbar">
+      <div class="product-search"><span>⌕</span><input id="produtoBusca" type="search" placeholder="Buscar por produto ou SKU" value="${esc(estoqueState.busca)}"></div>
+      <select id="produtoStatus" aria-label="Filtrar por status"><option value="todos" ${estoqueState.status==='todos'?'selected':''}>Todos os status</option><option value="ativos" ${estoqueState.status==='ativos'?'selected':''}>Ativos</option><option value="inativos" ${estoqueState.status==='inativos'?'selected':''}>Inativos</option></select>
+      <select id="produtoNivel" aria-label="Filtrar por estoque"><option value="todos" ${estoqueState.nivel==='todos'?'selected':''}>Todo o estoque</option><option value="baixo" ${estoqueState.nivel==='baixo'?'selected':''}>Estoque baixo</option><option value="zerado" ${estoqueState.nivel==='zerado'?'selected':''}>Sem estoque</option></select>
+    </div>
+    <div class="table-wrap product-table-wrap"><table class="table product-table"><thead><tr><th>Produto</th><th>Venda</th><th>Custo / margem</th><th>Estoque</th><th>Status</th>${canManage?'<th>Ações</th>':''}</tr></thead><tbody>
+      ${produtos.map(p=>{const n=productNumbers(p);return `<tr class="${p.ativo?'':'product-inactive-row'}"><td><div class="product-name"><strong>${esc(p.nome)}</strong><small>SKU: ${esc(p.sku||'sem SKU')}</small></div></td><td><strong>${money(n.preco)}</strong></td><td>${money(n.custo)}<small class="product-margin">Margem ${productMargin(p).toFixed(0)}%</small></td><td><div class="product-stock"><strong>${n.estoque.toLocaleString('pt-BR')}</strong><small>Mín. ${n.minimo.toLocaleString('pt-BR')}</small>${productStockBadge(p)}</div></td><td><span class="badge ${p.ativo?'product-active':'product-inactive'}">${p.ativo?'Ativo':'Inativo'}</span></td>${canManage?`<td><div class="product-actions"><button type="button" class="btn btn-secondary" data-prod-edit="${p.id}">Editar</button><button type="button" class="btn btn-secondary" data-prod-stock="${p.id}">Estoque</button><button type="button" class="btn ${p.ativo?'btn-danger':'btn-success'}" data-prod-toggle="${p.id}">${p.ativo?'Desativar':'Ativar'}</button></div></td>`:''}</tr>`}).join('')||`<tr><td colspan="${canManage?6:5}"><div class="product-empty"><strong>Nenhum produto encontrado</strong><span>${estoqueState.produtos.length?'Ajuste os filtros para ver outros itens.':'Cadastre o primeiro produto para começar a controlar o estoque.'}</span></div></td></tr>`}
     </tbody></table></div>`;
 
-  byId('novoProduto').addEventListener('click',async()=>{
-    const nome=prompt('Nome do produto:'); if(!nome)return;
-    const sku=prompt('SKU (opcional):','')||'';
-    const preco=prompt('Preço de venda:','0');
-    const custo=prompt('Custo:','0');
-    const qtd=prompt('Estoque inicial:','0');
-    const minimo=prompt('Estoque mínimo:','5');
-    try{
-      await api('/operacao/produtos',{method:'POST',body:JSON.stringify({nome,sku,preco,custo,estoque:qtd,estoque_minimo:minimo})});
-      await estoque();
-    }catch(e){ alert(e.message); }
-  });
+  byId('produtoBusca').addEventListener('input',e=>{estoqueState.busca=e.target.value;renderEstoque();byId('produtoBusca')?.focus()});
+  byId('produtoStatus').addEventListener('change',e=>{estoqueState.status=e.target.value;renderEstoque()});
+  byId('produtoNivel').addEventListener('change',e=>{estoqueState.nivel=e.target.value;renderEstoque()});
+  if(canManage){
+    byId('novoProduto')?.addEventListener('click',()=>openProductModal());
+    contentEl.querySelectorAll('[data-prod-edit]').forEach(b=>b.addEventListener('click',()=>openProductModal(findProduct(b.dataset.prodEdit))));
+    contentEl.querySelectorAll('[data-prod-stock]').forEach(b=>b.addEventListener('click',()=>openStockModal(findProduct(b.dataset.prodStock))));
+    contentEl.querySelectorAll('[data-prod-toggle]').forEach(b=>b.addEventListener('click',()=>toggleProduct(findProduct(b.dataset.prodToggle))));
+  }
   initResponsiveTables();
 }
+function findProduct(id){return estoqueState.produtos.find(p=>String(p.id)===String(id))}
+async function estoque(){
+  estoqueState.produtos=await api('/operacao/produtos');
+  renderEstoque();
+}
+function closeProductModal(){document.getElementById('productModal')?.remove()}
+function productPayload(p,override={}){const n=productNumbers(p||{});return{nome:p?.nome||'',sku:p?.sku||'',preco:n.preco,custo:n.custo,estoque:n.estoque,estoque_minimo:n.minimo,ativo:p?.ativo!==false,...override}}
+function openProductModal(produto=null){
+  closeProductModal();
+  const editing=Boolean(produto);
+  const p=productPayload(produto||{});
+  const modal=document.createElement('div');modal.id='productModal';modal.className='modal';
+  modal.innerHTML=`<div class="modal-box product-modal-box"><div class="modal-head"><div><h2>${editing?'Editar produto':'Novo produto'}</h2><p class="muted">${editing?'Atualize os dados do item e salve.':'Cadastre um item para venda no caixa.'}</p></div><button type="button" class="close" id="fecharProduto" aria-label="Fechar">×</button></div>
+    <form id="produtoForm">
+      <div class="form-grid">
+        <div class="field product-field-wide"><label>Nome do produto</label><input id="produtoNome" maxlength="160" required value="${esc(p.nome)}" placeholder="Ex.: Pomada modeladora"></div>
+        <div class="field"><label>SKU</label><input id="produtoSku" maxlength="80" value="${esc(p.sku)}" placeholder="Ex.: POM-001"></div>
+        <div class="field"><label>Preço de venda</label><input id="produtoPreco" type="number" min="0" step="0.01" required value="${p.preco}"></div>
+        <div class="field"><label>Custo</label><input id="produtoCusto" type="number" min="0" step="0.01" required value="${p.custo}"></div>
+        <div class="field"><label>Estoque atual</label><input id="produtoEstoque" type="number" min="0" step="1" required value="${p.estoque}"></div>
+        <div class="field"><label>Estoque mínimo</label><input id="produtoMinimo" type="number" min="0" step="1" required value="${p.estoque_minimo}"></div>
+      </div>
+      <div class="product-form-footer"><label class="check-row"><input id="produtoAtivo" type="checkbox" ${p.ativo?'checked':''}> Produto ativo para venda</label><div id="produtoResumo" class="product-profit-preview"></div></div>
+      <div id="produtoModalMsg" class="notice error hidden"></div>
+      <div class="actions product-modal-actions"><button type="button" class="btn btn-secondary" id="cancelarProduto">Cancelar</button><button type="submit" class="btn btn-primary" id="salvarProduto">${editing?'Salvar alterações':'Cadastrar produto'}</button></div>
+    </form></div>`;
+  document.body.appendChild(modal);
+  const refreshPreview=()=>{const preco=Number(byId('produtoPreco').value||0),custo=Number(byId('produtoCusto').value||0),lucro=preco-custo,margem=preco>0?(lucro/preco)*100:0;byId('produtoResumo').innerHTML=`<span>Lucro unitário <strong>${money(lucro)}</strong></span><span>Margem <strong>${Math.max(0,margem).toFixed(1)}%</strong></span>`};
+  ['produtoPreco','produtoCusto'].forEach(id=>byId(id).addEventListener('input',refreshPreview));refreshPreview();
+  byId('fecharProduto').addEventListener('click',closeProductModal);byId('cancelarProduto').addEventListener('click',closeProductModal);modal.addEventListener('click',e=>{if(e.target===modal)closeProductModal()});
+  byId('produtoForm').addEventListener('submit',async e=>{e.preventDefault();const btn=byId('salvarProduto'),err=byId('produtoModalMsg');btn.disabled=true;err.classList.add('hidden');try{
+    const body={nome:byId('produtoNome').value.trim(),sku:byId('produtoSku').value.trim(),preco:byId('produtoPreco').value,custo:byId('produtoCusto').value,estoque:byId('produtoEstoque').value,estoque_minimo:byId('produtoMinimo').value,ativo:byId('produtoAtivo').checked};
+    if(!body.nome)throw new Error('Informe o nome do produto.');
+    await api(editing?`/operacao/produtos/${produto.id}`:'/operacao/produtos',{method:editing?'PUT':'POST',body:JSON.stringify(body)});closeProductModal();await estoque();flash(msgEl,editing?'Produto atualizado.':'Produto cadastrado.');
+  }catch(error){err.textContent=error.message;err.classList.remove('hidden');btn.disabled=false}});
+  byId('produtoNome').focus();
+}
+function openStockModal(produto){if(!produto)return;closeProductModal();const n=productNumbers(produto),modal=document.createElement('div');modal.id='productModal';modal.className='modal';modal.innerHTML=`<div class="modal-box stock-modal-box"><div class="modal-head"><div><h2>Ajustar estoque</h2><p class="muted">${esc(produto.nome)}</p></div><button type="button" class="close" id="fecharProduto">×</button></div><div class="stock-adjust-current"><span>Estoque atual</span><strong id="stockPreview">${n.estoque}</strong></div><div class="stock-quick-actions"><button class="btn btn-secondary" type="button" data-stock-delta="-5">−5</button><button class="btn btn-secondary" type="button" data-stock-delta="-1">−1</button><button class="btn btn-secondary" type="button" data-stock-delta="1">+1</button><button class="btn btn-secondary" type="button" data-stock-delta="5">+5</button></div><div class="field"><label>Nova quantidade</label><input id="stockValue" type="number" min="0" step="1" value="${n.estoque}"></div><div id="produtoModalMsg" class="notice error hidden"></div><div class="actions product-modal-actions"><button class="btn btn-secondary" type="button" id="cancelarProduto">Cancelar</button><button class="btn btn-primary" type="button" id="salvarEstoque">Salvar estoque</button></div></div>`;document.body.appendChild(modal);
+  const input=byId('stockValue'),preview=byId('stockPreview'),sync=()=>preview.textContent=Math.max(0,Number(input.value||0)).toLocaleString('pt-BR');input.addEventListener('input',sync);modal.querySelectorAll('[data-stock-delta]').forEach(b=>b.addEventListener('click',()=>{input.value=Math.max(0,Number(input.value||0)+Number(b.dataset.stockDelta));sync()}));byId('fecharProduto').addEventListener('click',closeProductModal);byId('cancelarProduto').addEventListener('click',closeProductModal);modal.addEventListener('click',e=>{if(e.target===modal)closeProductModal()});byId('salvarEstoque').addEventListener('click',async()=>{const err=byId('produtoModalMsg');try{await api(`/operacao/produtos/${produto.id}`,{method:'PUT',body:JSON.stringify(productPayload(produto,{estoque:input.value}))});closeProductModal();await estoque();flash(msgEl,'Estoque atualizado.')}catch(error){err.textContent=error.message;err.classList.remove('hidden')}});input.focus();input.select();
+}
+async function toggleProduct(produto){if(!produto)return;const action=produto.ativo?'desativar':'ativar';if(!confirm(`Deseja ${action} "${produto.nome}"?`))return;try{await api(`/operacao/produtos/${produto.id}`,{method:'PUT',body:JSON.stringify(productPayload(produto,{ativo:!produto.ativo}))});await estoque();flash(msgEl,`Produto ${produto.ativo?'desativado':'ativado'}.`)}catch(error){flash(msgEl,error.message,'error')}}
 
 async function pdv(){
   const [{cs,bs,ss},produtos]=await Promise.all([base(),api('/operacao/produtos')]);
