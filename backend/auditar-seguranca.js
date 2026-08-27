@@ -46,7 +46,7 @@ console.log('=== Auditoria estática de regressão de segurança V2 ===');
 check(/contentSecurityPolicy\s*:\s*\{/.test(app) && !/contentSecurityPolicy\s*:\s*false/.test(app), 'CSP está habilitada');
 check(/bf_session/.test(mw) && /httpOnly\s*:\s*true/.test(sec) && /validateCsrf/.test(mw), 'Sessão usa cookie HttpOnly e CSRF');
 check(/token_version/.test(auth) && /token_version/.test(mw), 'Versão de sessão revoga JWTs antigos');
-check(!/jwt\.(?:sign|verify)\([^\n]+?(?!HS256)/.test('') && /algorithm:'HS256'/.test(auth) && /algorithms:\['HS256'\]/.test(auth) && /algorithms:\['HS256'\]/.test(mw), 'JWT fixa explicitamente HS256 em emissão e verificação');
+check(/algorithm\s*:\s*['\"]HS256['\"]/.test(auth) && /algorithms\s*:\s*\[\s*['\"]HS256['\"]\s*\]/.test(auth) && /algorithms\s*:\s*\[\s*['\"]HS256['\"]\s*\]/.test(mw), 'JWT fixa explicitamente HS256 em emissão e verificação');
 check(/exigirStepUp/.test(master) && /mfa_enabled/.test(auth), 'Supermaster usa MFA + step-up');
 check(/is_system/.test(mig) && /bf_enforce_user_tenant_kind/.test(mig) && /barberflow-system/.test(mig), 'Supermaster está isolado em tenant interno');
 check(/audit\(req/.test(master) && /master\.barbearia\.excluida/.test(master) && /master\.senha\.alterada/.test(master) && /safeDetails/.test(audit), 'Ações críticas do Supermaster geram trilha de auditoria sanitizada');
