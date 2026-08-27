@@ -6,9 +6,35 @@ const PORT=Number(process.env.PORT||3001);
 let server;
 let encerrando=false;
 
+async function corrigirCompatibilidadeLegada(){
+  // A verificação obrigatória de e-mail foi removida. Esta correção de boot é
+  // intencionalmente pequena e idempotente para instalações que já migraram
+  // antes dessa regra mudar, mas ficaram com contas em trial_pendente.
+  await pool.query(`UPDATE barbearias
+    SET email_verificado=true
+    WHERE COALESCE(is_system,false)=false
+      AND COALESCE(email_verificado,false)=false`);
+
+  const trial=await pool.query(`UPDATE assinaturas
+    SET status='trial',
+        inicio=COALESCE(inicio,CURRENT_DATE),
+        fim_trial=CASE
+          WHEN status='trial_pendente' OR fim_trial IS NULL
+            THEN CURRENT_DATE+INTERVAL '7 days'
+          ELSE fim_trial
+        END,
+        atualizado_em=NOW()
+    WHERE status='trial_pendente'
+       OR (status='trial' AND fim_trial IS NULL)
+    RETURNING id`);
+
+  if(trial.rowCount>0)console.log(`Compatibilidade legada: ${trial.rowCount} trial(s) liberado(s).`);
+}
+
 async function iniciar(){
   try{
     await pool.query('SELECT NOW()');
+    await corrigirCompatibilidadeLegada();
     console.log('PostgreSQL conectado!');
     server=app.listen(PORT,()=>{
       console.log(`BarberFlow SaaS: http://localhost:${PORT}`);
