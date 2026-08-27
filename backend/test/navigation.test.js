@@ -15,3 +15,21 @@ test('menu principal continua usando href reais para páginas',()=>{
     assert.ok(common.includes(href),`href ausente: ${href}`);
   }
 });
+
+
+test('menu lateral usa links nativos sem data-click',()=>{
+  const common=fs.readFileSync(path.join(__dirname,'../../frontend/js/common.js'),'utf8');
+  assert.match(common,/const menu=allowed\.map\(x=>`<a class=/);
+  const line=common.split('\n').find(x=>x.includes('const menu=allowed.map'))||'';
+  assert.ok(!line.includes('data-click='),'links de navegação não podem depender do dispatcher data-click');
+  assert.match(common,/closest\('\.sidebar \.menu a\[href\]'\)/);
+});
+
+test('assets do painel têm versão para quebrar cache antigo',()=>{
+  const pages=['index.html','pages/barbeiros.html','pages/configuracoes.html','pages/financeiro.html','pages/automacoes.html'];
+  for(const rel of pages){
+    const html=fs.readFileSync(path.join(__dirname,'../../frontend',rel),'utf8');
+    assert.match(html,/common\.js\?v=20260826-sidebar3/);
+    assert.match(html,/style\.css\?v=20260826-sidebar3/);
+  }
+});

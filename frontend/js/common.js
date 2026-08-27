@@ -91,7 +91,7 @@ function renderShell(active){
     ['assinatura','/pages/assinatura.html','💳','Assinatura',['dono']]
   ];
   const allowed=links.filter(x=>x[4].includes(role)&&(!x[5]||hasFeature(x[5])));
-  const menu=allowed.map(x=>`<a class="${active===x[0]?'active':''}" href="${x[1]}" data-click="closeMobileMenu()"><span class="menu-icon">${x[2]}</span><span>${x[3]}</span></a>`).join('');
+  const menu=allowed.map(x=>`<a class="${active===x[0]?'active':''}" href="${x[1]}"><span class="menu-icon">${x[2]}</span><span>${x[3]}</span></a>`).join('');
   const quickKeys=['dashboard','agendamentos','clientes'];
   const quick=allowed.filter(x=>quickKeys.includes(x[0])).slice(0,3);
   const bottom=quick.map(x=>`<a class="${active===x[0]?'active':''}" href="${x[1]}"><span>${x[2]}</span><small>${x[3]}</small></a>`).join('');
@@ -114,5 +114,7 @@ function renderShell(active){
     <nav class="mobile-bottom-nav">${bottom}<button type="button" data-click="toggleMobileMenu()"><span>☰</span><small>Mais</small></button></nav>`
 }
 
+
+document.addEventListener('click',e=>{const link=e.target.closest('.sidebar .menu a[href]');if(link)closeMobileMenu()});
 
 document.addEventListener('click',e=>{const el=e.target.closest('[data-click]');if(!el)return;const expr=el.getAttribute('data-click')||'';const m=expr.match(/^([A-Za-z_$][\w$]*)\((.*)\)$/);if(!m)return;const fn=window[m[1]]||globalThis[m[1]];if(typeof fn!=='function')return;const href=el.tagName==='A'?String(el.getAttribute('href')||''):'';const navigates=el.tagName==='A'&&href&&href!=='#'&&!href.toLowerCase().startsWith('javascript:');if(!navigates)e.preventDefault();let args=[];const raw=m[2].trim();if(raw){args=raw.split(',').map(x=>{x=x.trim();if(x==='true')return true;if(x==='false')return false;if(x==='null')return null;if(/^[-+]?\d+(\.\d+)?$/.test(x))return Number(x);return x.replace(/^['\"]|['\"]$/g,'')})}fn(...args)});
