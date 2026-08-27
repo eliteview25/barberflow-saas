@@ -221,4 +221,24 @@ router.patch('/perfil/senha',exigirStepUp,async(req,res)=>{
   }catch(e){res.status(500).json({erro:'Erro ao alterar senha'});}
 });
 
+
+router.get('/system/health',async(req,res)=>{
+  try{
+    const started=Date.now();await pool.query('SELECT 1');const dbLatency=Date.now()-started;
+    const [errors,support,webhooks,autos,payments,backup]=await Promise.all([
+      pool.query(`SELECT COUNT(*)::int n FROM system_events WHERE nivel='error' AND criado_em>=NOW()-INTERVAL '24 hours'`),
+      pool.query(`SELECT COUNT(*)::int n FROM support_tickets WHERE status IN ('aberto','em_atendimento')`),
+      pool.query(`SELECT COUNT(*)::int n FROM webhook_events WHERE status IN ('erro','falha_permanente')`),
+      pool.query(`SELECT COUNT(*)::int n FROM automacoes_envios WHERE status='erro'`),
+      pool.query(`SELECT COUNT(*)::int n FROM assinaturas_pagamentos WHERE status IN ('criando','pendente') AND criado_em<NOW()-INTERVAL '1 hour'`),
+      pool.query(`SELECT status,destino,criado_em FROM backup_runs ORDER BY id DESC LIMIT 1`)
+    ]);
+    const mem=process.memoryUsage();
+    res.json({ok:true,db_latency_ms:dbLatency,uptime_seconds:Math.round(process.uptime()),memory_mb:Math.round(mem.rss/1024/1024),errors_24h:errors.rows[0].n,support_open:support.rows[0].n,webhook_errors:webhooks.rows[0].n,automation_errors:autos.rows[0].n,stale_payments:payments.rows[0].n,backup:backup.rows[0]||null,backup_remote_configured:!!(process.env.BACKUP_UPLOAD_URL&&process.env.BACKUP_ENCRYPTION_KEY),release:process.env.RELEASE_VERSION||'2.1.0'});
+  }catch(e){res.status(503).json({ok:false,erro:'Diagnóstico indisponível'})}
+});
+
+router.get('/support/tickets',async(req,res)=>{try{const status=String(req.query.status||'').trim();const vals=[];let where='';if(status&&['aberto','em_atendimento','resolvido','fechado'].includes(status)){vals.push(status);where='WHERE s.status=$1'}const r=await pool.query(`SELECT s.id,s.barbearia_id,b.nome barbearia,u.nome usuario,u.email,s.categoria,s.assunto,s.mensagem,s.status,s.prioridade,s.resposta,s.criado_em,s.atualizado_em FROM support_tickets s JOIN barbearias b ON b.id=s.barbearia_id LEFT JOIN usuarios u ON u.id=s.usuario_id ${where} ORDER BY CASE s.status WHEN 'aberto' THEN 1 WHEN 'em_atendimento' THEN 2 WHEN 'resolvido' THEN 3 ELSE 4 END,s.criado_em DESC LIMIT 100`,vals);res.json(r.rows)}catch(e){console.error(e);res.status(500).json({erro:'Erro ao carregar suporte'})}});
+router.patch('/support/tickets/:id',exigirStepUp,async(req,res)=>{try{const id=intId(req.params.id);if(!id)return res.status(400).json({erro:'Chamado inválido'});const status=['aberto','em_atendimento','resolvido','fechado'].includes(String(req.body?.status))?String(req.body.status):null;const resposta=cleanText(req.body?.resposta,4000)||null;if(!status)return res.status(400).json({erro:'Status inválido'});const r=await pool.query(`UPDATE support_tickets SET status=$1,resposta=COALESCE($2,resposta),respondido_em=CASE WHEN $2 IS NOT NULL THEN NOW() ELSE respondido_em END,atualizado_em=NOW() WHERE id=$3 RETURNING *`,[status,resposta,id]);if(!r.rowCount)return res.status(404).json({erro:'Chamado não encontrado'});await audit(req,{acao:'master.suporte.atualizado',barbeariaId:r.rows[0].barbearia_id,alvoTipo:'support_ticket',alvoId:id,detalhes:{status}});res.json(r.rows[0])}catch(e){console.error(e);res.status(500).json({erro:'Erro ao atualizar chamado'})}});
+
 module.exports=router;

@@ -13,7 +13,15 @@ function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&l
 function roleLabel(p){return ({super_admin:'Master',dono:'Dono',gerente:'Gerente',recepcao:'Recepção',barbeiro:'Barbeiro'})[p]||p||''}
 function hasRole(...roles){return roles.includes(currentUser().papel)}
 async function requestStepUp(){const senha=prompt('Confirme sua senha do Supermaster:');if(!senha)throw new Error('Confirmação cancelada');const mfa_code=prompt('Código de 6 dígitos do autenticador:');if(!mfa_code)throw new Error('Código MFA obrigatório');const r=await fetch('/api/auth/step-up',{method:'POST',credentials:'same-origin',headers:authHeaders(),body:JSON.stringify({senha,mfa_code})});const d=await r.json();if(!r.ok)throw new Error(d.erro||'Falha na confirmação de segurança');return true}
-async function api(path,opts={},retried=false){const r=await fetch(`${API}${path}`,{...opts,credentials:'same-origin',headers:authHeaders(opts.headers||{})});let d={};try{d=await r.json()}catch{}if(r.status===401){await logout(false);throw new Error('Sessão expirada')}if(r.status===428&&d.step_up_required&&!retried){await requestStepUp();return api(path,opts,true)}if(r.status===402&&['ASSINATURA_INATIVA','SEM_ASSINATURA'].includes(d.codigo)){localStorage.setItem('bf_subscription_blocked','1');if(!location.pathname.endsWith('/assinatura.html'))location.replace('/pages/assinatura.html?bloqueada=1');throw new Error(d.erro||'Assinatura inativa')}if(!r.ok)throw new Error(d.erro||'Erro na operação');mostrarPaginaProtegida();return d}
+async function api(path,opts={},retried=false){
+  let r;try{r=await fetch(`${API}${path}`,{...opts,credentials:'same-origin',headers:authHeaders(opts.headers||{})})}catch{throw new Error('Não foi possível conectar ao BarberFlow. Verifique sua internet e tente novamente.')}
+  let d={};try{d=await r.json()}catch{}
+  if(r.status===401){await logout(false);throw new Error('Sessão expirada')}
+  if(r.status===428&&d.step_up_required&&!retried){await requestStepUp();return api(path,opts,true)}
+  if(r.status===402&&['ASSINATURA_INATIVA','SEM_ASSINATURA'].includes(d.codigo)){localStorage.setItem('bf_subscription_blocked','1');if(!location.pathname.endsWith('/assinatura.html')&&!location.pathname.endsWith('/suporte.html'))location.replace('/pages/assinatura.html?bloqueada=1');throw new Error(d.erro||'Assinatura inativa')}
+  if(!r.ok){const code=d.request_id?` (código ${d.request_id})`:'';throw new Error((d.erro||'Erro na operação')+code)}
+  mostrarPaginaProtegida();return d
+}
 async function syncSubscription(){if(!currentUser().id||currentUser().papel==='super_admin')return;try{const r=await fetch('/api/assinatura/recursos',{credentials:'same-origin',headers:authHeaders()});if(r.ok){const a=await r.json();localStorage.setItem('bf_assinatura',JSON.stringify(a));}}catch{}}
 async function logout(redirect=true){try{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin',headers:authHeaders()})}catch{}localStorage.removeItem('bf_user');localStorage.removeItem('bf_barbearia');localStorage.removeItem('bf_assinatura');sessionStorage.clear();if(redirect)location.replace('/login.html')}
 function mostrarPaginaProtegida(){document.body.classList.remove('auth-checking');document.body.classList.add('auth-ready')}
@@ -62,6 +70,7 @@ function renderShell(active){
         <button type="button" class="master-side-link master-tab active" data-section="visao" data-click="closeMobileMenu()"><span class="master-side-icon">⌂</span><span>Visão geral</span></button>
         <button type="button" class="master-side-link master-tab" data-section="barbearias-sec" data-click="closeMobileMenu()"><span class="master-side-icon">▦</span><span>Barbearias</span></button>
         <button type="button" class="master-side-link master-tab" data-section="financeiro-sec" data-click="closeMobileMenu()"><span class="master-side-icon">↗</span><span>Financeiro SaaS</span></button>
+        <button type="button" class="master-side-link master-tab" data-section="suporte-sec" data-click="closeMobileMenu()"><span class="master-side-icon">🛟</span><span>Suporte</span></button>
         <button type="button" class="master-side-link master-tab" data-section="perfil-sec" data-click="closeMobileMenu()"><span class="master-side-icon">◎</span><span>Meu perfil</span></button>
       </nav>
       <div class="master-sidebar-label master-sidebar-system-label">SISTEMA</div>
@@ -82,6 +91,7 @@ function renderShell(active){
     ['gestao','/pages/gestao.html','🧰','Gestão',['dono','gerente','recepcao'],'pdv_estoque'],
     ['automacoes','/pages/automacoes.html','🤖','Automações',['dono','gerente'],'automacoes'],
     ['config','/pages/configuracoes.html','⚙️','Configurações',['dono','gerente']],
+    ['suporte','/pages/suporte.html','🛟','Suporte',['dono','gerente','recepcao','barbeiro']],
     ['assinatura','/pages/assinatura.html','💳','Assinatura',['dono']]
   ];
   const allowed=links.filter(x=>x[4].includes(role)&&(!x[5]||hasFeature(x[5])));

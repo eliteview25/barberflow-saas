@@ -47,3 +47,13 @@ Nenhuma revisão estática garante ausência total de vulnerabilidades. Antes de
 
 ### Próxima etapa: IA no WhatsApp
 A versão atual **não envia respostas por IA ainda**. Ela já contém configuração multi-tenant, política de ferramentas permitidas e contadores de uso sem dar acesso direto ao banco. A integração futura deve chamar somente ferramentas controladas do BarberFlow (consultar horários, criar/reagendar/cancelar agendamento, listar serviços/preços e gerar link de pagamento).
+
+## Pré-lançamento 2.1
+- Onboarding guiado no Dashboard com progresso real.
+- Central de Suporte acessível mesmo com assinatura inativa; gestão no Supermaster.
+- Termos, Privacidade, LGPD e Cancelamento + registro de aceite no cadastro.
+- Saúde operacional no Supermaster e alertas webhook opcionais para falhas 5xx.
+- Backup lógico criptografado (`npm run backup`) com upload remoto opcional.
+- Checkout interno Pix/cartão, migração de planos, 2FA e preparação para IA mantidos.
+
+Consulte `LANCAMENTO.md`, `BACKUP-PRODUCAO.md` e `LEGAL-README.md` antes de abrir o SaaS ao público.

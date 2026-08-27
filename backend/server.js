@@ -4,6 +4,8 @@ const app=require('./src/app');
 const pool=require('./src/config/db');
 const {ensureAiSchema}=require('./src/services/aiConfig');
 const {ensureSubscriptionPaymentSchema}=require('./src/services/subscriptionPayments');
+const {ensureLaunchSchema,recordSystemEvent}=require('./src/services/launchReadiness');
+const {notifyOps}=require('./src/services/opsAlerts');
 const PORT=Number(process.env.PORT||3001);
 let server;
 let encerrando=false;
@@ -39,6 +41,8 @@ async function iniciar(){
     await corrigirCompatibilidadeLegada();
     await ensureAiSchema();
     await ensureSubscriptionPaymentSchema();
+    await ensureLaunchSchema();
+    console.log('Base de pré-lançamento preparada.');
     console.log('Base de IA preparada.');
     console.log('Checkout de assinatura preparado.');
     console.log('PostgreSQL conectado!');
@@ -48,6 +52,7 @@ async function iniciar(){
     });
   }catch(e){
     console.error('Falha ao iniciar: PostgreSQL indisponível:',e.message);
+    await notifyOps({nivel:'error',evento:'startup_failed',mensagem:e.message});
     process.exit(1);
   }
 }
@@ -67,6 +72,6 @@ async function encerrar(sinal){
 
 process.on('SIGTERM',()=>encerrar('SIGTERM'));
 process.on('SIGINT',()=>encerrar('SIGINT'));
-process.on('unhandledRejection',(e)=>console.error('Unhandled rejection:',e));
-process.on('uncaughtException',(e)=>{console.error('Uncaught exception:',e);encerrar('uncaughtException')});
+process.on('unhandledRejection',(e)=>{console.error('Unhandled rejection:',e);recordSystemEvent({nivel:'error',evento:'unhandled_rejection',mensagem:e?.message||String(e)});notifyOps({nivel:'error',evento:'unhandled_rejection',mensagem:e?.message||String(e)});});
+process.on('uncaughtException',(e)=>{console.error('Uncaught exception:',e);recordSystemEvent({nivel:'error',evento:'uncaught_exception',mensagem:e?.message||String(e)});notifyOps({nivel:'error',evento:'uncaught_exception',mensagem:e?.message||String(e)});encerrar('uncaughtException')});
 iniciar();

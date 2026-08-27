@@ -28,6 +28,7 @@ const {
 } = require('../utils/totp');
 
 const { cleanText } = require('../utils/validation');
+const {LEGAL_VERSION}=require('../services/launchReadiness');
 
 const router = express.Router();
 
@@ -156,6 +157,11 @@ router.post('/registrar', async (req, res) => {
             erro:
                 'Barbearia, nome, e-mail e senha são obrigatórios'
         });
+    }
+
+
+    if (req.body?.aceite_termos !== true || req.body?.aceite_privacidade !== true) {
+        return res.status(400).json({erro:'Você precisa aceitar os Termos de Uso e a Política de Privacidade'});
     }
 
 
@@ -370,6 +376,13 @@ router.post('/registrar', async (req, res) => {
                     telefone
                 ]
             );
+
+
+        await c.query(`INSERT INTO legal_acceptances(usuario_id,barbearia_id,documento,versao,ip,user_agent)
+            VALUES($1,$2,'termos',$3,$4,$5),($1,$2,'privacidade',$3,$4,$5)
+            ON CONFLICT(usuario_id,documento,versao) DO NOTHING`,[
+            usuario.rows[0].id,tenant.rows[0].id,LEGAL_VERSION,req.ip||null,String(req.headers['user-agent']||'').slice(0,1000)||null
+        ]);
 
 
         /*

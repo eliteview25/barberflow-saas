@@ -19,6 +19,12 @@ if(prod&&(process.env.MP_CLIENT_ID||process.env.MP_CLIENT_SECRET||process.env.MP
 if(prod&&process.env.APP_URL){try{const u=new URL(process.env.APP_URL);if(u.protocol!=='https:')erro('APP_URL deve usar HTTPS em produção');if(u.username||u.password)erro('APP_URL não pode conter credenciais')}catch{erro('APP_URL inválida')}}
 if(prod&&process.env.MP_OAUTH_REDIRECT_URI){try{const r=new URL(process.env.MP_OAUTH_REDIRECT_URI),a=new URL(process.env.APP_URL);if(r.protocol!=='https:')erro('MP_OAUTH_REDIRECT_URI deve usar HTTPS');if(r.origin!==a.origin)erro('MP_OAUTH_REDIRECT_URI deve usar a mesma origem de APP_URL')}catch{erro('MP_OAUTH_REDIRECT_URI inválida')}}
 if(prod&&process.env.AUTOMATION_WEBHOOK_URL){try{if(new URL(process.env.AUTOMATION_WEBHOOK_URL).protocol!=='https:')erro('AUTOMATION_WEBHOOK_URL deve usar HTTPS em produção')}catch{erro('AUTOMATION_WEBHOOK_URL inválida')}}
+
+if(prod&&process.env.MP_ACCESS_TOKEN&&!process.env.MP_PUBLIC_KEY)aviso('MP_PUBLIC_KEY ausente: cartão embutido usará fallback externo');
+if(prod&&process.env.ALERT_WEBHOOK_URL){try{if(new URL(process.env.ALERT_WEBHOOK_URL).protocol!=='https:')erro('ALERT_WEBHOOK_URL deve usar HTTPS em produção')}catch{erro('ALERT_WEBHOOK_URL inválida')}}
+if(prod&&process.env.BACKUP_UPLOAD_URL){try{if(new URL(process.env.BACKUP_UPLOAD_URL).protocol!=='https:')erro('BACKUP_UPLOAD_URL deve usar HTTPS em produção')}catch{erro('BACKUP_UPLOAD_URL inválida')}if(!process.env.BACKUP_ENCRYPTION_KEY||process.env.BACKUP_ENCRYPTION_KEY.length<32)erro('BACKUP_ENCRYPTION_KEY deve ter pelo menos 32 caracteres quando backup remoto estiver ativo')}else if(prod)aviso('BACKUP_UPLOAD_URL ausente: backup lógico remoto ainda não está configurado');
+if(prod&&!process.env.SUPPORT_EMAIL&&!process.env.SUPPORT_WHATSAPP)aviso('SUPPORT_EMAIL/SUPPORT_WHATSAPP ausentes: suporte funcionará apenas por chamados internos');
+
 for(const k of ['BOOTSTRAP_ADMIN_PASSWORD','MASTER_ADMIN_PASSWORD'])if(prod&&/^CHANGE_ME|TroqueEstaSenha|BarberMaster/i.test(process.env[k]||''))erro(`${k} ainda usa valor de exemplo/temporário`);
 if(process.env.ALLOW_PLAN_PRICE_OVERRIDE==='true')for(const [k,def] of [['PLAN_STARTER_PRICE',49.90],['PLAN_PRO_PRICE',89.90],['PLAN_PREMIUM_PRICE',169.90]]){const v=Number(process.env[k]??def);if(!Number.isFinite(v)||v<=0||v>100000)erro(`${k} inválido`)}
 if(!process.env.CLOUDINARY_CLOUD_NAME)aviso('Cloudinary não configurado: upload ficará indisponível');
