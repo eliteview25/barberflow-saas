@@ -68,3 +68,8 @@ Consulte `LANCAMENTO.md`, `BACKUP-PRODUCAO.md` e `LEGAL-README.md` antes de abri
 - Conexões são isoladas por `barbearia_id`; segredos não são enviados ao frontend após o cadastro.
 
 Consulte `PAGAMENTOS-GATEWAYS.md` para configuração e limites desta versão.
+
+
+## Pagamentos 2.3
+
+Gateways e checkout agora ficam totalmente centralizados em **Pagamentos**. A aba Configurações não possui mais recebimentos. Mercado Pago, PagBank, Asaas, Pagar.me e Stripe ficam prontos para receber as credenciais do dono da barbearia; apenas o driver Mercado Pago está ativo no checkout nesta etapa. Veja `PAGAMENTOS-GATEWAYS.md`.

@@ -94,7 +94,7 @@ check(/MP_PUBLIC_KEY/.test(tenant) && /card_token_id/.test(mp) && /sdk\.mercadop
 check(/qr_code_base64/.test(tenant) && /payment_method_id:'pix'/.test(mp) && /X-Idempotency-Key/.test(mp), 'Checkout Pix da assinatura usa QR interno e idempotência');
 check(/barberflow-subscription-pix/.test(subPayments) && /expectedTenantId/.test(subPayments) && /Math\.abs\(amount-Number\(row\.valor\)\)>0\.01/.test(subPayments), 'Pagamento Pix do SaaS reconcilia tenant e valor antes de ativar plano');
 check(/atualizarPlanoAssinatura/.test(tenant) && /auto_recurring/.test(mp), 'Migração de plano atualiza assinatura recorrente existente sem duplicar contrato');
-check(/secret_enc/.test(paymentGateways) && /encrypt\(secret\)/.test(paymentGateways), 'Credenciais de gateways manuais são criptografadas no servidor');
+check(/secret_enc/.test(paymentGateways) && /encrypt\(JSON\.stringify\(c\.secret\)\)/.test(paymentGateways) && /encrypt\(c\.accessToken\)/.test(paymentGateways), 'Credenciais de gateways manuais são criptografadas no servidor');
 check(/exigirPapel\('dono'\)/.test(paymentsRoute) && /exigirRecurso\('pagamentos_online'\)/.test(paymentsRoute), 'Conexão e desconexão de gateways exigem dono e plano compatível');
 check(/mercadopago/.test(paymentGateways) && /pagbank/.test(paymentGateways) && /asaas/.test(paymentGateways) && /pagarme/.test(paymentGateways) && /stripe/.test(paymentGateways), 'Catálogo contém os cinco gateways previstos');
 check(!paymentsRoute.includes('res.json({secret_enc') && !paymentsRoute.includes('res.json({access_token_enc') && !paymentsRoute.includes('res.json({refresh_token_enc'), 'API de pagamentos não devolve segredos armazenados ao frontend');

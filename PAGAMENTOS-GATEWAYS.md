@@ -1,88 +1,92 @@
-# BarberFlow 2.2 — Pagamentos e gateways
+# BarberFlow 2.3 — Pagamentos centralizados
 
-## O que está pronto
+## Estrutura da tela
 
-A navegação do BarberFlow possui uma área dedicada **Pagamentos** para Dono e Gerente.
+A área **Pagamentos** concentra tudo relacionado ao recebimento dos clientes da barbearia.
 
-A tela separa duas responsabilidades:
+Ela possui três blocos:
 
-1. **Como cobrar no agendamento** — cobrança antecipada, sinal, Pix, cartão, dinheiro e Pix manual.
-2. **Contas de pagamento conectadas** — status e conexão de gateways por barbearia.
+1. **Gateways** — o dono informa as credenciais da própria conta em cada provedor.
+2. **Checkout** — define cobrança antecipada, sinal, Pix, cartão, dinheiro e Pix manual.
+3. **Pix manual** — confirma pagamentos que não passam por um gateway automático.
 
-## Gateways
+A aba **Configurações** não contém mais nenhuma opção de gateway, Pix, dinheiro ou checkout.
 
-### Mercado Pago — processamento ativo
+## Gateways preparados para credenciais
 
-É o gateway que já possui driver de pagamento completo no BarberFlow.
+### Mercado Pago
 
-- Conexão da conta da própria barbearia por OAuth.
-- Pix e cartão no agendamento.
-- Confirmação automática por webhook.
-- Tokens da conta conectada armazenados criptografados no servidor.
-- O dono pode conectar, desconectar e reconectar sua conta.
+Campos solicitados ao dono:
 
-Variáveis da plataforma BarberFlow:
+- Access Token
+- Public Key
 
-```env
-MP_CLIENT_ID=
-MP_CLIENT_SECRET=
-MP_OAUTH_REDIRECT_URI=https://SEU_DOMINIO/api/mercadopago/callback
-```
+O Access Token fica criptografado. A Public Key é armazenada separadamente para uso futuro no frontend seguro do checkout.
 
-A criptografia usa `APP_SECRETS_ENCRYPTION_KEY`; `MP_TOKEN_ENCRYPTION_KEY` continua aceito pela integração legada.
+O driver Mercado Pago já existente continua sendo o único processador online ativo nesta versão.
 
-### PagBank — conexão preparada
+### PagBank
 
-O fluxo PagBank Connect está preparado para autorizar a conta do vendedor e guardar access/refresh token criptografados. O driver que cria cobranças PagBank ainda não é selecionável no agendamento nesta versão.
+Campos solicitados:
 
-```env
-PAGBANK_ENV=production
-PAGBANK_CLIENT_ID=
-PAGBANK_CLIENT_SECRET=
-PAGBANK_PLATFORM_TOKEN=
-PAGBANK_OAUTH_REDIRECT_URI=https://SEU_DOMINIO/api/pagamentos/oauth/pagbank/callback
-```
+- Token de autenticação
+- Chave pública opcional nesta etapa
 
-### Asaas — conexão preparada
+As credenciais ficam armazenadas para a implementação posterior do driver PagBank.
 
-O dono informa a API Key da própria conta na tela Pagamentos. O BarberFlow valida a credencial em uma chamada somente de leitura e armazena a chave criptografada. O driver de cobrança Asaas entra em uma etapa posterior.
+### Asaas
 
-Nenhuma API Key Asaas deve ser colocada no `.env` global do BarberFlow para representar uma barbearia.
+Campos solicitados:
 
-### Pagar.me — conexão preparada
+- API Key
+- Ambiente: produção ou sandbox
 
-O dono informa Secret Key e, opcionalmente, Public Key da própria conta. A Secret Key é validada em uma chamada somente de leitura e armazenada criptografada. O driver de cobrança Pagar.me entra em uma etapa posterior.
+A chave fica criptografada.
 
-### Stripe — conexão preparada
+### Pagar.me
 
-Existe scaffold de Stripe Connect para conexão de conta Standard. Como a Stripe recomenda Connect Onboarding para novas plataformas, o fluxo deve ser revisto/migrado para o modelo recomendado antes de ativar o driver de pagamentos Stripe em produção.
+Campos solicitados:
 
-```env
-STRIPE_SECRET_KEY=
-STRIPE_CONNECT_CLIENT_ID=
-STRIPE_OAUTH_REDIRECT_URI=https://SEU_DOMINIO/api/pagamentos/oauth/stripe/callback
-```
+- Secret Key
+- Public Key
+
+A Secret Key fica criptografada.
+
+### Stripe
+
+Campos solicitados:
+
+- Secret Key
+- Publishable Key
+
+A Secret Key fica criptografada.
 
 ## Segurança
 
-- Conectar/desconectar gateway: somente `dono`.
-- Configuração de cobrança: `dono` ou `gerente`, respeitando o recurso `pagamentos_online`.
-- Starter vê a área como upsell, mas o backend bloqueia conexão.
-- Segredos nunca são devolvidos pela API de status.
-- Segredos de gateways manuais e tokens OAuth são criptografados no banco.
-- OAuth usa `state` de uso único, expira em 10 minutos e é separado por provedor.
-- Toda consulta de integração é filtrada por `barbearia_id`.
+- Apenas o papel `dono` pode salvar, trocar ou remover credenciais de gateways.
+- Dono e gerente podem visualizar a configuração do checkout.
+- Segredos nunca retornam pela API após serem salvos.
+- A API retorna apenas se as credenciais estão salvas.
+- Todas as integrações são isoladas por `barbearia_id`.
+- Credenciais privadas usam `APP_SECRETS_ENCRYPTION_KEY`.
+- Trocar uma credencial substitui o valor anterior; o valor antigo não é mostrado no navegador.
+
+## Checkout
+
+A tela permite configurar:
+
+- sem cobrança antecipada;
+- cobrança do valor total;
+- cobrança de sinal percentual;
+- Pix online via Mercado Pago;
+- cartão online via Mercado Pago;
+- Pix manual;
+- dinheiro no atendimento.
+
+PagBank, Asaas, Pagar.me e Stripe aparecem como gateways preparados para credenciais, mas ainda não podem ser selecionados como processador do checkout até seus drivers serem implementados.
 
 ## Importante
 
-**Conectado** não significa **driver de cobrança ativo**.
+As credenciais Mercado Pago da **barbearia** são diferentes das credenciais globais usadas pelo BarberFlow para cobrar a assinatura do SaaS.
 
-Nesta versão:
-
-- Mercado Pago: conexão + processamento de cobranças.
-- PagBank: conexão preparada; processamento será implementado em driver próprio.
-- Asaas: conexão/validação preparada; processamento será implementado em driver próprio.
-- Pagar.me: conexão/validação preparada; processamento será implementado em driver próprio.
-- Stripe: conexão em preparação; onboarding e driver serão finalizados antes de produção.
-
-Essa separação evita prometer ao cliente uma forma de pagamento que ainda não está processando transações no BarberFlow.
+As variáveis `MP_ACCESS_TOKEN` e `MP_PUBLIC_KEY` do ambiente do servidor continuam sendo as credenciais da operação de assinatura do BarberFlow. As credenciais que o dono informa em **Pagamentos** ficam armazenadas por barbearia no banco, isoladas por tenant.
