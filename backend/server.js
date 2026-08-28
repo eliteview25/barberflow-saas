@@ -6,6 +6,9 @@ const {ensureAiSchema}=require('./src/services/aiConfig');
 const {ensureSubscriptionPaymentSchema}=require('./src/services/subscriptionPayments');
 const {ensureLaunchSchema,recordSystemEvent}=require('./src/services/launchReadiness');
 const {ensurePaymentGatewaySchema}=require('./src/services/paymentGateways');
+const {ensureFinanceAnalyticsSchema}=require('./src/services/financeAnalytics');
+const {ensurePlatformPaymentGatewaySchema}=require('./src/services/platformPaymentGateways');
+const {ensureProductSchema}=require('./src/services/productCatalog');
 const {notifyOps}=require('./src/services/opsAlerts');
 const PORT=Number(process.env.PORT||3001);
 let server;
@@ -44,10 +47,16 @@ async function iniciar(){
     await ensureSubscriptionPaymentSchema();
     await ensureLaunchSchema();
     await ensurePaymentGatewaySchema();
+    await ensurePlatformPaymentGatewaySchema();
+    await ensureProductSchema();
+    await ensureFinanceAnalyticsSchema();
     console.log('Base de pré-lançamento preparada.');
     console.log('Base de IA preparada.');
     console.log('Checkout de assinatura preparado.');
     console.log('Gateways de pagamento preparados.');
+    console.log('Gateways da plataforma preparados.');
+    console.log('Catálogo de produtos preparado.');
+    console.log('Metas e analytics financeiros preparados.');
     console.log('PostgreSQL conectado!');
     server=app.listen(PORT,()=>{
       console.log(`BarberFlow SaaS: http://localhost:${PORT}`);

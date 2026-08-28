@@ -62,3 +62,34 @@ CREATE INDEX IF NOT EXISTS ix_support_tickets_tenant ON support_tickets(barbeari
 CREATE INDEX IF NOT EXISTS ix_support_tickets_status ON support_tickets(status,criado_em DESC);
 CREATE INDEX IF NOT EXISTS ix_system_events_level_data ON system_events(nivel,criado_em DESC);
 CREATE INDEX IF NOT EXISTS ix_backup_runs_data ON backup_runs(criado_em DESC);
+
+
+-- Metas financeiras por mês (barbearia e barbeiros)
+CREATE TABLE IF NOT EXISTS metas_financeiras(
+  id BIGSERIAL PRIMARY KEY,
+  barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,
+  barbeiro_id INTEGER REFERENCES barbeiros(id) ON DELETE CASCADE,
+  mes DATE NOT NULL,
+  valor NUMERIC(12,2) NOT NULL CHECK(valor>=0),
+  criado_em TIMESTAMP NOT NULL DEFAULT NOW(),
+  atualizado_em TIMESTAMP NOT NULL DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_meta_financeira_geral_mes ON metas_financeiras(barbearia_id,mes) WHERE barbeiro_id IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_meta_financeira_barbeiro_mes ON metas_financeiras(barbearia_id,barbeiro_id,mes) WHERE barbeiro_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS ix_metas_financeiras_tenant_mes ON metas_financeiras(barbearia_id,mes DESC);
+
+
+-- BarberFlow 2.5 — catálogo de produtos e gateways da plataforma
+ALTER TABLE produtos ADD COLUMN IF NOT EXISTS imagem_url TEXT;
+ALTER TABLE produtos ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMP DEFAULT NOW();
+CREATE TABLE IF NOT EXISTS platform_payment_gateways(
+  provedor VARCHAR(40) PRIMARY KEY,
+  secret_enc TEXT,
+  public_key TEXT,
+  environment VARCHAR(20) NOT NULL DEFAULT 'production',
+  status VARCHAR(30) NOT NULL DEFAULT 'sem_credenciais',
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  atualizado_por INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+  criado_em TIMESTAMP NOT NULL DEFAULT NOW(),
+  atualizado_em TIMESTAMP NOT NULL DEFAULT NOW()
+);

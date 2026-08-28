@@ -26,20 +26,14 @@ function inspectImage(buf) {
   return null;
 }
 
-router.use(autenticar, exigirPapel('dono', 'gerente'), exigirRecurso('personalizacao_publica'));
-
-router.post('/imagem', express.raw({ type: ['image/png', 'image/jpeg'], limit: '5mb' }), async (req, res) => {
+async function uploadImage(req,res,{folderSuffix='',transformation='c_limit,w_2400,h_1600/f_webp,q_88/fl_strip_profile'}={}){
   try {
-    if (!Buffer.isBuffer(req.body) || !req.body.length) {
-      return res.status(400).json({ erro: 'Selecione uma imagem JPG ou PNG de até 5MB' });
-    }
+    if (!Buffer.isBuffer(req.body) || !req.body.length) return res.status(400).json({ erro: 'Selecione uma imagem JPG ou PNG de até 5MB' });
     const meta = inspectImage(req.body);
     if (!meta) return res.status(400).json({ erro: 'Arquivo não é JPG/PNG válido' });
     const declaredType=String(req.headers['content-type']||'').split(';')[0].trim().toLowerCase();
     if (declaredType !== meta.mime) return res.status(400).json({ erro: 'Tipo declarado não corresponde ao conteúdo do arquivo' });
-    if (!meta.width || !meta.height || meta.width > 6000 || meta.height > 6000 || meta.width * meta.height > 20_000_000) {
-      return res.status(400).json({ erro: 'Dimensões da imagem excedem o limite' });
-    }
+    if (!meta.width || !meta.height || meta.width > 6000 || meta.height > 6000 || meta.width * meta.height > 20_000_000) return res.status(400).json({ erro: 'Dimensões da imagem excedem o limite' });
 
     const cloud = process.env.CLOUDINARY_CLOUD_NAME;
     const key = process.env.CLOUDINARY_API_KEY;
@@ -47,8 +41,7 @@ router.post('/imagem', express.raw({ type: ['image/png', 'image/jpeg'], limit: '
     if (!cloud || !key || !secret) return res.status(503).json({ erro: 'Upload ainda não configurado' });
 
     const timestamp = Math.floor(Date.now() / 1000);
-    const folder = `barberflow/${req.usuario.barbearia_id}`;
-    const transformation = 'c_limit,w_2400,h_1600/f_webp,q_88/fl_strip_profile';
+    const folder = `barberflow/${req.usuario.barbearia_id}${folderSuffix?`/${folderSuffix}`:''}`;
     const signBase = `folder=${folder}&timestamp=${timestamp}&transformation=${transformation}${secret}`;
     const signature = crypto.createHash('sha1').update(signBase).digest('hex');
     const fd = new FormData();
@@ -67,6 +60,10 @@ router.post('/imagem', express.raw({ type: ['image/png', 'image/jpeg'], limit: '
     console.error('upload_image_failed',{request_id:req.requestId,message:e.message});
     return res.status(500).json({ erro: 'Erro ao enviar imagem', request_id:req.requestId });
   }
-});
+}
+
+const rawImage=express.raw({ type: ['image/png', 'image/jpeg'], limit: '5mb' });
+router.post('/imagem',autenticar,exigirPapel('dono','gerente'),exigirRecurso('personalizacao_publica'),rawImage,(req,res)=>uploadImage(req,res));
+router.post('/produto-imagem',autenticar,exigirPapel('dono','gerente'),exigirRecurso('pdv_estoque'),rawImage,(req,res)=>uploadImage(req,res,{folderSuffix:'produtos',transformation:'c_fill,w_1000,h_1000,g_auto/f_webp,q_86/fl_strip_profile'}));
 
 module.exports = router;

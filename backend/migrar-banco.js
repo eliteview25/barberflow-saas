@@ -26,6 +26,19 @@ await client.query(`CREATE TABLE IF NOT EXISTS automacoes_config(id SERIAL PRIMA
 await client.query(`CREATE TABLE IF NOT EXISTS automacoes_envios(id SERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,agendamento_id INTEGER NOT NULL REFERENCES agendamentos(id) ON DELETE CASCADE,tipo VARCHAR(40) NOT NULL,status VARCHAR(30) NOT NULL,erro TEXT,enviado_em TIMESTAMP,atualizado_em TIMESTAMP NOT NULL DEFAULT NOW(),UNIQUE(agendamento_id,tipo))`);
 
 await client.query(`CREATE TABLE IF NOT EXISTS produtos(id SERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,nome VARCHAR(160) NOT NULL,sku VARCHAR(80),preco NUMERIC(10,2) DEFAULT 0,custo NUMERIC(10,2) DEFAULT 0,estoque NUMERIC(10,2) DEFAULT 0,estoque_minimo NUMERIC(10,2) DEFAULT 0,ativo BOOLEAN DEFAULT true,criado_em TIMESTAMP DEFAULT NOW())`);
+await client.query(`ALTER TABLE produtos ADD COLUMN IF NOT EXISTS imagem_url TEXT`);
+await client.query(`ALTER TABLE produtos ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMP DEFAULT NOW()`);
+await client.query(`CREATE TABLE IF NOT EXISTS platform_payment_gateways(
+  provedor VARCHAR(40) PRIMARY KEY,
+  secret_enc TEXT,
+  public_key TEXT,
+  environment VARCHAR(20) NOT NULL DEFAULT 'production',
+  status VARCHAR(30) NOT NULL DEFAULT 'sem_credenciais',
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  atualizado_por INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+  criado_em TIMESTAMP NOT NULL DEFAULT NOW(),
+  atualizado_em TIMESTAMP NOT NULL DEFAULT NOW()
+)`);
 await client.query(`CREATE TABLE IF NOT EXISTS vendas(id SERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,cliente_id INTEGER REFERENCES clientes(id),barbeiro_id INTEGER REFERENCES barbeiros(id),agendamento_id INTEGER REFERENCES agendamentos(id),forma_pagamento VARCHAR(30),status VARCHAR(30) DEFAULT 'finalizada',total NUMERIC(10,2) DEFAULT 0,desconto NUMERIC(10,2) DEFAULT 0,criado_em TIMESTAMP DEFAULT NOW())`);
 await client.query(`CREATE TABLE IF NOT EXISTS venda_itens(id SERIAL PRIMARY KEY,venda_id INTEGER NOT NULL REFERENCES vendas(id) ON DELETE CASCADE,tipo VARCHAR(20) NOT NULL,referencia_id INTEGER,descricao VARCHAR(200),quantidade NUMERIC(10,2) DEFAULT 1,valor_unitario NUMERIC(10,2) DEFAULT 0,subtotal NUMERIC(10,2) DEFAULT 0)`);
 await client.query(`CREATE TABLE IF NOT EXISTS fila_espera(id SERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,cliente_id INTEGER NOT NULL REFERENCES clientes(id),barbeiro_id INTEGER REFERENCES barbeiros(id),servico_id INTEGER NOT NULL REFERENCES servicos(id),status VARCHAR(30) DEFAULT 'aguardando',observacoes TEXT,criado_em TIMESTAMP DEFAULT NOW(),atualizado_em TIMESTAMP DEFAULT NOW())`);
@@ -227,5 +240,11 @@ await client.query(`CREATE INDEX IF NOT EXISTS ix_support_tickets_tenant ON supp
 await client.query(`CREATE INDEX IF NOT EXISTS ix_support_tickets_status ON support_tickets(status,criado_em DESC)`);
 await client.query(`CREATE INDEX IF NOT EXISTS ix_system_events_level_data ON system_events(nivel,criado_em DESC)`);
 await client.query(`CREATE INDEX IF NOT EXISTS ix_backup_runs_data ON backup_runs(criado_em DESC)`);
+
+await client.query(`CREATE TABLE IF NOT EXISTS metas_financeiras(
+ id BIGSERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,barbeiro_id INTEGER REFERENCES barbeiros(id) ON DELETE CASCADE,mes DATE NOT NULL,valor NUMERIC(12,2) NOT NULL CHECK(valor>=0),criado_em TIMESTAMP NOT NULL DEFAULT NOW(),atualizado_em TIMESTAMP NOT NULL DEFAULT NOW())`);
+await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS ux_meta_financeira_geral_mes ON metas_financeiras(barbearia_id,mes) WHERE barbeiro_id IS NULL`);
+await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS ux_meta_financeira_barbeiro_mes ON metas_financeiras(barbearia_id,barbeiro_id,mes) WHERE barbeiro_id IS NOT NULL`);
+await client.query(`CREATE INDEX IF NOT EXISTS ix_metas_financeiras_tenant_mes ON metas_financeiras(barbearia_id,mes DESC)`);
 
 await client.query('COMMIT');console.log('✅ Migração SaaS concluída. Banco pronto para dados antigos ou instalação nova.');}catch(e){await client.query('ROLLBACK');console.error(e);process.exitCode=1;}finally{client.release();await pool.end();}}main();

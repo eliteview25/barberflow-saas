@@ -19,9 +19,11 @@ test('menu principal continua usando href reais para páginas',()=>{
 
 test('menu lateral usa links nativos sem data-click',()=>{
   const common=fs.readFileSync(path.join(__dirname,'../../frontend/js/common.js'),'utf8');
-  assert.match(common,/const menu=allowed\.map\(x=>`<a class=/);
-  const line=common.split('\n').find(x=>x.includes('const menu=allowed.map'))||'';
+  assert.match(common,/const linkHtml=x=>x\?`<a class=/);
+  const line=common.split('\n').find(x=>x.includes('const linkHtml='))||'';
   assert.ok(!line.includes('data-click='),'links de navegação não podem depender do dispatcher data-click');
+  assert.match(common,/groupHtml\('barbearia'/);
+  assert.match(common,/groupHtml\('configuracoes'/);
   assert.match(common,/closest\('\.sidebar \.menu a\[href\]'\)/);
 });
 

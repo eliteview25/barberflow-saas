@@ -11,18 +11,20 @@ function tenantWebhookKey(){
 function mpTenantSignature(barbeariaId){const key=tenantWebhookKey();if(!key)throw new Error('Segredo de roteamento do webhook Mercado Pago não configurado');return crypto.createHmac('sha256',key).update(String(barbeariaId)).digest('hex');}
 function validarMpTenantSignature(barbeariaId,signature){const key=tenantWebhookKey();if(!key||!barbeariaId||!/^[a-fA-F0-9]{64}$/.test(String(signature||'')))return false;const expected=crypto.createHmac('sha256',key).update(String(barbeariaId)).digest();const got=Buffer.from(String(signature),'hex');return got.length===expected.length&&crypto.timingSafeEqual(got,expected);}
 
-function accessToken() {
-  const token = process.env.MP_ACCESS_TOKEN;
-  if (!token) throw new Error('MP_ACCESS_TOKEN não configurado');
-  return token;
+async function platformAccessToken() {
+  const {getPlatformMercadoPagoCredentials}=require('./platformPaymentGateways');
+  const c=await getPlatformMercadoPagoCredentials();
+  if(!c.accessToken)throw new Error('Mercado Pago da plataforma não configurado');
+  return c.accessToken;
 }
 
 async function mpFetch(path, options = {}) {
   const timeout=Math.max(1000,Math.min(30000,Number(process.env.EXTERNAL_HTTP_TIMEOUT_MS||10000)||10000));
+  const token=options.accessToken || await platformAccessToken();
   const resposta = await fetch(`${BASE}${path}`, {
     ...options,
     headers: {
-      Authorization: `Bearer ${options.accessToken || accessToken()}`,
+      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
       ...(options.idempotencyKey ? {'X-Idempotency-Key': options.idempotencyKey} : {}),
       ...(options.headers || {})

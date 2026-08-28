@@ -6,6 +6,8 @@ const {atualizarValorAssinatura,atualizarStatusAssinatura,precoPlano}=require('.
 const {strongPassword,validEmail,normalizePhone}=require('../utils/security');
 const {intId,cleanText,isoDate}=require('../utils/validation');
 const {audit}=require('../services/audit');
+const {PROVIDERS}=require('../services/paymentGateways');
+const {listPlatformGateways,savePlatformGatewayCredentials,disconnectPlatformGateway}=require('../services/platformPaymentGateways');
 const router=express.Router();
 router.use(autenticar,exigirPapel('super_admin'));
 
@@ -67,6 +69,7 @@ router.get('/financeiro',async(req,res)=>{
         AND COALESCE(b.is_system,false)=false AND b.excluido_em IS NULL AND b.ativo=true
         AND a.status IN ('ativa','trial')
     `);
+    const cobrancasStatus=await pool.query(`SELECT status,COUNT(*)::int quantidade,COALESCE(SUM(valor),0)::numeric total FROM assinaturas_cobrancas ac JOIN barbearias bb ON bb.id=ac.barbearia_id WHERE COALESCE(bb.is_system,false)=false AND ac.competencia>=date_trunc('month',CURRENT_DATE)-INTERVAL '11 months' GROUP BY status ORDER BY status`);
     const historico=[];
     for(let i=mesesPassados-1;i>=0;i--){
       const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);
@@ -94,9 +97,10 @@ router.get('/financeiro',async(req,res)=>{
     const mrr=atuais.rows.filter(x=>x.status==='ativa').reduce((s,x)=>s+mensalidade(x.plano),0);
     const projetado12=futuro.slice(0,12).reduce((s,x)=>s+x.projetado,0);
     const realizado12=historico.slice(-12).reduce((s,x)=>s+x.realizado,0);
+    const planosMix=['starter','pro','premium'].map(plano=>{const rows=atuais.rows.filter(x=>x.status==='ativa'&&x.plano===plano);return {plano,quantidade:rows.length,mrr:rows.length*mensalidade(plano)};});
     res.json({
       resumo:{mrr,arr:mrr*12,realizado_mes:mesAtual.realizado,em_aberto:mesAtual.em_aberto,realizado_12m:realizado12,projetado_12m:projetado12},
-      historico,futuro,
+      historico,futuro,planos:planosMix,cobrancas_status:cobrancasStatus.rows.map(x=>({...x,total:Number(x.total||0)})),
       aviso_historico:'O realizado considera cobranças registradas pelo BarberFlow a partir desta atualização; períodos anteriores sem registro permanecem zerados.'
     });
   }catch(e){console.error(e);res.status(500).json({erro:'Erro ao carregar financeiro do SaaS'});}
@@ -196,6 +200,11 @@ router.patch('/barbearias/:id/assinatura',exigirStepUp,async(req,res)=>{
     res.json(r.rows[0]);
   }catch(e){if(locked)await pool.query(`UPDATE assinaturas SET billing_change_pending=false WHERE id=$1`,[locked]).catch(()=>{});console.error(e);res.status(500).json({erro:'Erro ao atualizar assinatura'});}
 });
+
+
+router.get('/payment-gateways',async(req,res)=>{try{res.json({gateways:await listPlatformGateways()})}catch(e){console.error(e);res.status(500).json({erro:'Erro ao carregar gateways da plataforma'})}});
+router.post('/payment-gateways/:provedor/credenciais',exigirStepUp,async(req,res)=>{try{const provedor=String(req.params.provedor||'').toLowerCase();if(!PROVIDERS[provedor])return res.status(404).json({erro:'Gateway inválido'});const r=await savePlatformGatewayCredentials(req.usuario.id,provedor,req.body||{});await audit(req,{acao:'master.gateway.salvo',barbeariaId:req.usuario.barbearia_id,alvoTipo:'gateway',alvoId:null,detalhes:{provedor,ambiente:r.ambiente}});res.json({...r,mensagem:`Credenciais ${PROVIDERS[provedor].nome} salvas`})}catch(e){console.error('master_gateway_save',{provedor:req.params.provedor,message:e.message});res.status(e.status||500).json({erro:String(e.message||'Erro ao salvar gateway').slice(0,220)})}});
+router.delete('/payment-gateways/:provedor',exigirStepUp,async(req,res)=>{try{const provedor=String(req.params.provedor||'').toLowerCase();if(!PROVIDERS[provedor])return res.status(404).json({erro:'Gateway inválido'});await disconnectPlatformGateway(provedor);await audit(req,{acao:'master.gateway.removido',barbeariaId:req.usuario.barbearia_id,alvoTipo:'gateway',alvoId:null,detalhes:{provedor}});res.json({mensagem:'Credenciais removidas'})}catch(e){res.status(e.status||500).json({erro:e.message||'Erro ao remover gateway'})}});
 
 router.get('/perfil',async(req,res)=>{
   try{const r=await pool.query(`SELECT id,nome,email,telefone,papel,ativo,criado_em,atualizado_em FROM usuarios WHERE id=$1 AND papel='super_admin'`,[req.usuario.id]);if(!r.rowCount)return res.status(404).json({erro:'Supermaster não encontrado'});res.json(r.rows[0]);}

@@ -3,6 +3,13 @@ const {lockSlot,upsertClient}=require('./booking');
 const {cleanText}=require('../utils/validation');
 const {notificar}=require('./notifications');
 
+function paymentForm(payment){
+  const method=String(payment?.payment_method_id||'').toLowerCase(),type=String(payment?.payment_type_id||'').toLowerCase();
+  if(method==='pix')return 'pix';
+  if(['credit_card','debit_card','prepaid_card'].includes(type))return 'cartao';
+  return 'mercado_pago';
+}
+
 function paymentMatchesReservation(payment,reservation){
   if(!payment||String(payment.external_reference||'')!==`barberflow-booking:${reservation.id}`)return {ok:false,error:'Pagamento não pertence a esta reserva'};
   const currency=String(payment.currency_id||payment.currency||'BRL').toUpperCase();if(currency&&currency!=='BRL')return {ok:false,error:'Moeda do pagamento inválida'};
@@ -31,7 +38,7 @@ async function finalizePaidReservation(reservaId,payment){
     await lockSlot(db,r.barbearia_id,r.barbeiro_id,r.data);const serv=await db.query(`SELECT id,nome,duracao FROM servicos WHERE id=$1 AND barbearia_id=$2`,[r.servico_id,r.barbearia_id]);if(!serv.rowCount)throw new Error('Serviço da reserva não existe mais');
     if(await hasConflict(db,r,Number(serv.rows[0].duracao))){await db.query(`UPDATE reservas_pagamento SET status='pagamento_aprovado_sem_vaga',atualizado_em=NOW() WHERE id=$1`,[r.id]);await db.query('COMMIT');notificar('pagamento_aprovado_sem_vaga',{barbearia_id:r.barbearia_id,reserva_id:r.id,payment_id:payment.id});return {ok:false,conflict:true,error:'Pagamento aprovado, mas o horário requer revisão manual'};}
     const client=await upsertClient(db,{barbeariaId:r.barbearia_id,nome:r.nome,telefone:r.telefone,email:r.email});const paid=Math.round(Number(check.amount)*100)/100,total=Number(r.valor_total||0);const payStatus=paid+0.009>=total?'pago':'parcial';
-    const ag=await db.query(`INSERT INTO agendamentos(barbearia_id,cliente_id,barbeiro_id,servico_id,data,horario,status,origem,observacoes,forma_pagamento,status_pagamento,valor_cobrado,valor_pago,valor_servico,valor_final) VALUES($1,$2,$3,$4,$5,$6,'confirmado','publico_pago',$7,'mercado_pago',$8,$9,$10,$11,$11) RETURNING id,public_token,data,horario,status,status_pagamento`,[r.barbearia_id,client.id,r.barbeiro_id,r.servico_id,r.data,r.horario,cleanText(`Pagamento Mercado Pago #${payment.id}`,1000),payStatus,Number(r.valor_cobrado),paid,total]);
+    const forma=paymentForm(payment);const ag=await db.query(`INSERT INTO agendamentos(barbearia_id,cliente_id,barbeiro_id,servico_id,data,horario,status,origem,observacoes,forma_pagamento,status_pagamento,valor_cobrado,valor_pago,valor_servico,valor_final) VALUES($1,$2,$3,$4,$5,$6,'confirmado','publico_pago',$7,$8,$9,$10,$11,$12,$12) RETURNING id,public_token,data,horario,status,status_pagamento,forma_pagamento`,[r.barbearia_id,client.id,r.barbeiro_id,r.servico_id,r.data,r.horario,cleanText(`Pagamento Mercado Pago #${payment.id}`,1000),forma,payStatus,Number(r.valor_cobrado),paid,total]);
     await db.query(`UPDATE reservas_pagamento SET status='confirmada',agendamento_id=$1,mp_payment_id=$2,mp_status=$3,atualizado_em=NOW() WHERE id=$4`,[ag.rows[0].id,String(payment.id),payment.status,r.id]);await db.query('COMMIT');notificar('agendamento_publico_pago',{barbearia_id:r.barbearia_id,agendamento_id:ag.rows[0].id,reserva_id:r.id,cliente:r.nome,telefone:r.telefone});return {ok:true,appointment_id:ag.rows[0].id,appointment:ag.rows[0]};
   }catch(e){try{await db.query('ROLLBACK')}catch{}throw e}finally{db.release()}}
 
@@ -41,4 +48,4 @@ async function confirmManualPix({barbeariaId,reservaId,confirmedBy}){
     await lockSlot(db,r.barbearia_id,r.barbeiro_id,r.data);const serv=await db.query(`SELECT duracao FROM servicos WHERE id=$1 AND barbearia_id=$2`,[r.servico_id,r.barbearia_id]);if(!serv.rowCount)throw new Error('Serviço inválido');if(await hasConflict(db,r,Number(serv.rows[0].duracao))){await db.query(`UPDATE reservas_pagamento SET status='pagamento_aprovado_sem_vaga',atualizado_em=NOW() WHERE id=$1`,[r.id]);await db.query('COMMIT');return {ok:false,status:409,error:'Pagamento confirmado, mas o horário já foi ocupado. Faça revisão manual.'}}
     const client=await upsertClient(db,{barbeariaId:r.barbearia_id,nome:r.nome,telefone:r.telefone,email:r.email});const total=Number(r.valor_total||0),paid=Number(r.valor_cobrado||0),payStatus=paid+0.009>=total?'pago':'parcial';const ag=await db.query(`INSERT INTO agendamentos(barbearia_id,cliente_id,barbeiro_id,servico_id,data,horario,status,origem,observacoes,forma_pagamento,status_pagamento,valor_cobrado,valor_pago,valor_servico,valor_final) VALUES($1,$2,$3,$4,$5,$6,'confirmado','publico_pix_manual',$7,'pix_manual',$8,$9,$9,$10,$10) RETURNING *`,[r.barbearia_id,client.id,r.barbeiro_id,r.servico_id,r.data,r.horario,`Pix manual confirmado por usuário ${confirmedBy||'equipe'}`,payStatus,paid,total]);await db.query(`UPDATE reservas_pagamento SET status='confirmada',agendamento_id=$1,atualizado_em=NOW() WHERE id=$2`,[ag.rows[0].id,r.id]);await db.query('COMMIT');return {ok:true,appointment:ag.rows[0]};
   }catch(e){try{await db.query('ROLLBACK')}catch{}throw e}finally{db.release()}}
-module.exports={finalizePaidReservation,confirmManualPix,paymentMatchesReservation};
+module.exports={finalizePaidReservation,confirmManualPix,paymentMatchesReservation,paymentForm};

@@ -23,5 +23,14 @@ test('gestão de produtos oferece busca, filtros e ativação',()=>{
 
 test('backend permite editar produto somente dentro da barbearia',()=>{
   assert.match(route,/router\.put\('\/produtos\/:id'/);
-  assert.match(route,/WHERE id=\$8 AND barbearia_id=\$9 RETURNING \*/);
+  assert.match(route,/WHERE id=\$9 AND barbearia_id=\$10 RETURNING \*/);
+});
+
+test('produto permite foto opcional e exclusão controlada',()=>{
+  assert.match(front,/produtoImagemUrl/);
+  assert.match(front,/produtoImagemFile/);
+  assert.match(front,/\/api\/uploads\/produto-imagem/);
+  assert.match(front,/data-prod-delete/);
+  assert.match(route,/router\.delete\('\/produtos\/:id'/);
+  assert.match(route,/DELETE FROM produtos WHERE id=\$1 AND barbearia_id=\$2/);
 });

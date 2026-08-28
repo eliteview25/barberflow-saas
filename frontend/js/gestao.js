@@ -99,7 +99,7 @@ function renderEstoque(){
       <select id="produtoNivel" aria-label="Filtrar por estoque"><option value="todos" ${estoqueState.nivel==='todos'?'selected':''}>Todo o estoque</option><option value="baixo" ${estoqueState.nivel==='baixo'?'selected':''}>Estoque baixo</option><option value="zerado" ${estoqueState.nivel==='zerado'?'selected':''}>Sem estoque</option></select>
     </div>
     <div class="table-wrap product-table-wrap"><table class="table product-table"><thead><tr><th>Produto</th><th>Venda</th><th>Custo / margem</th><th>Estoque</th><th>Status</th>${canManage?'<th>Ações</th>':''}</tr></thead><tbody>
-      ${produtos.map(p=>{const n=productNumbers(p);return `<tr class="${p.ativo?'':'product-inactive-row'}"><td><div class="product-name"><strong>${esc(p.nome)}</strong><small>SKU: ${esc(p.sku||'sem SKU')}</small></div></td><td><strong>${money(n.preco)}</strong></td><td>${money(n.custo)}<small class="product-margin">Margem ${productMargin(p).toFixed(0)}%</small></td><td><div class="product-stock"><strong>${n.estoque.toLocaleString('pt-BR')}</strong><small>Mín. ${n.minimo.toLocaleString('pt-BR')}</small>${productStockBadge(p)}</div></td><td><span class="badge ${p.ativo?'product-active':'product-inactive'}">${p.ativo?'Ativo':'Inativo'}</span></td>${canManage?`<td><div class="product-actions"><button type="button" class="btn btn-secondary" data-prod-edit="${p.id}">Editar</button><button type="button" class="btn btn-secondary" data-prod-stock="${p.id}">Estoque</button><button type="button" class="btn ${p.ativo?'btn-danger':'btn-success'}" data-prod-toggle="${p.id}">${p.ativo?'Desativar':'Ativar'}</button></div></td>`:''}</tr>`}).join('')||`<tr><td colspan="${canManage?6:5}"><div class="product-empty"><strong>Nenhum produto encontrado</strong><span>${estoqueState.produtos.length?'Ajuste os filtros para ver outros itens.':'Cadastre o primeiro produto para começar a controlar o estoque.'}</span></div></td></tr>`}
+      ${produtos.map(p=>{const n=productNumbers(p);return `<tr class="${p.ativo?'':'product-inactive-row'}"><td><div class="product-name product-name-photo"><div class="product-thumb">${p.imagem_url?`<img src="${esc(p.imagem_url)}" alt="" loading="lazy">`:'📦'}</div><div><strong>${esc(p.nome)}</strong><small>SKU: ${esc(p.sku||'sem SKU')}</small></div></div></td><td><strong>${money(n.preco)}</strong></td><td>${money(n.custo)}<small class="product-margin">Margem ${productMargin(p).toFixed(0)}%</small></td><td><div class="product-stock"><strong>${n.estoque.toLocaleString('pt-BR')}</strong><small>Mín. ${n.minimo.toLocaleString('pt-BR')}</small>${productStockBadge(p)}</div></td><td><span class="badge ${p.ativo?'product-active':'product-inactive'}">${p.ativo?'Ativo':'Inativo'}</span></td>${canManage?`<td><div class="product-actions"><button type="button" class="btn btn-secondary" data-prod-edit="${p.id}">Editar</button><button type="button" class="btn btn-secondary" data-prod-stock="${p.id}">Estoque</button><button type="button" class="btn ${p.ativo?'btn-danger':'btn-success'}" data-prod-toggle="${p.id}">${p.ativo?'Desativar':'Ativar'}</button><button type="button" class="btn btn-danger btn-outline-danger" data-prod-delete="${p.id}">Excluir</button></div></td>`:''}</tr>`}).join('')||`<tr><td colspan="${canManage?6:5}"><div class="product-empty"><strong>Nenhum produto encontrado</strong><span>${estoqueState.produtos.length?'Ajuste os filtros para ver outros itens.':'Cadastre o primeiro produto para começar a controlar o estoque.'}</span></div></td></tr>`}
     </tbody></table></div>`;
 
   byId('produtoBusca').addEventListener('input',e=>{estoqueState.busca=e.target.value;renderEstoque();byId('produtoBusca')?.focus()});
@@ -110,6 +110,7 @@ function renderEstoque(){
     contentEl.querySelectorAll('[data-prod-edit]').forEach(b=>b.addEventListener('click',()=>openProductModal(findProduct(b.dataset.prodEdit))));
     contentEl.querySelectorAll('[data-prod-stock]').forEach(b=>b.addEventListener('click',()=>openStockModal(findProduct(b.dataset.prodStock))));
     contentEl.querySelectorAll('[data-prod-toggle]').forEach(b=>b.addEventListener('click',()=>toggleProduct(findProduct(b.dataset.prodToggle))));
+    contentEl.querySelectorAll('[data-prod-delete]').forEach(b=>b.addEventListener('click',()=>deleteProduct(findProduct(b.dataset.prodDelete))));
   }
   initResponsiveTables();
 }
@@ -119,7 +120,7 @@ async function estoque(){
   renderEstoque();
 }
 function closeProductModal(){document.getElementById('productModal')?.remove()}
-function productPayload(p,override={}){const n=productNumbers(p||{});return{nome:p?.nome||'',sku:p?.sku||'',preco:n.preco,custo:n.custo,estoque:n.estoque,estoque_minimo:n.minimo,ativo:p?.ativo!==false,...override}}
+function productPayload(p,override={}){const n=productNumbers(p||{});return{nome:p?.nome||'',sku:p?.sku||'',preco:n.preco,custo:n.custo,estoque:n.estoque,estoque_minimo:n.minimo,imagem_url:p?.imagem_url||'',ativo:p?.ativo!==false,...override}}
 function openProductModal(produto=null){
   closeProductModal();
   const editing=Boolean(produto);
@@ -127,6 +128,10 @@ function openProductModal(produto=null){
   const modal=document.createElement('div');modal.id='productModal';modal.className='modal';
   modal.innerHTML=`<div class="modal-box product-modal-box"><div class="modal-head"><div><h2>${editing?'Editar produto':'Novo produto'}</h2><p class="muted">${editing?'Atualize os dados do item e salve.':'Cadastre um item para venda no caixa.'}</p></div><button type="button" class="close" id="fecharProduto" aria-label="Fechar">×</button></div>
     <form id="produtoForm">
+      <div class="product-photo-editor">
+        <div id="produtoFotoPreview" class="product-photo-preview">${p.imagem_url?`<img src="${esc(p.imagem_url)}" alt="Foto do produto">`:'<span>📦</span><small>Sem foto</small>'}</div>
+        <div class="product-photo-controls"><div class="field"><label>Foto do produto <small>(opcional)</small></label><input id="produtoImagemUrl" value="${esc(p.imagem_url||'')}" placeholder="https://... ou envie uma foto"></div><input id="produtoImagemFile" type="file" accept="image/jpeg,image/png" class="hidden"><div class="actions"><button id="enviarFotoProduto" type="button" class="btn btn-secondary">Enviar foto</button><button id="removerFotoProduto" type="button" class="btn btn-secondary ${p.imagem_url?'':'hidden'}">Remover foto</button></div><small class="muted">JPG ou PNG, até 5 MB. A foto é opcional.</small></div>
+      </div>
       <div class="form-grid">
         <div class="field product-field-wide"><label>Nome do produto</label><input id="produtoNome" maxlength="160" required value="${esc(p.nome)}" placeholder="Ex.: Pomada modeladora"></div>
         <div class="field"><label>SKU</label><input id="produtoSku" maxlength="80" value="${esc(p.sku)}" placeholder="Ex.: POM-001"></div>
@@ -140,11 +145,17 @@ function openProductModal(produto=null){
       <div class="actions product-modal-actions"><button type="button" class="btn btn-secondary" id="cancelarProduto">Cancelar</button><button type="submit" class="btn btn-primary" id="salvarProduto">${editing?'Salvar alterações':'Cadastrar produto'}</button></div>
     </form></div>`;
   document.body.appendChild(modal);
+  const photoPreview=byId('produtoFotoPreview'),photoUrl=byId('produtoImagemUrl'),photoFile=byId('produtoImagemFile'),uploadPhotoBtn=byId('enviarFotoProduto'),removePhotoBtn=byId('removerFotoProduto');
+  const renderPhoto=()=>{const url=photoUrl.value.trim();photoPreview.innerHTML=url?`<img src="${esc(url)}" alt="Foto do produto">`:'<span>📦</span><small>Sem foto</small>';removePhotoBtn.classList.toggle('hidden',!url)};
+  photoUrl.addEventListener('input',renderPhoto);
+  uploadPhotoBtn.addEventListener('click',()=>photoFile.click());
+  photoFile.addEventListener('change',async()=>{const file=photoFile.files?.[0];if(!file)return;const err=byId('produtoModalMsg');try{if(!['image/png','image/jpeg'].includes(file.type))throw new Error('Use uma foto JPG ou PNG.');if(file.size>5*1024*1024)throw new Error('A foto deve ter no máximo 5 MB.');uploadPhotoBtn.disabled=true;uploadPhotoBtn.textContent='Enviando...';const r=await fetch('/api/uploads/produto-imagem',{method:'POST',credentials:'same-origin',headers:{'Content-Type':file.type,'X-CSRF-Token':csrfToken()},body:file});let d={};try{d=await r.json()}catch{}if(!r.ok)throw new Error(d.erro||'Não foi possível enviar a foto');photoUrl.value=d.url;renderPhoto()}catch(error){err.textContent=error.message;err.classList.remove('hidden')}finally{uploadPhotoBtn.disabled=false;uploadPhotoBtn.textContent='Enviar foto';photoFile.value=''}});
+  removePhotoBtn.addEventListener('click',()=>{photoUrl.value='';renderPhoto()});
   const refreshPreview=()=>{const preco=Number(byId('produtoPreco').value||0),custo=Number(byId('produtoCusto').value||0),lucro=preco-custo,margem=preco>0?(lucro/preco)*100:0;byId('produtoResumo').innerHTML=`<span>Lucro unitário <strong>${money(lucro)}</strong></span><span>Margem <strong>${Math.max(0,margem).toFixed(1)}%</strong></span>`};
   ['produtoPreco','produtoCusto'].forEach(id=>byId(id).addEventListener('input',refreshPreview));refreshPreview();
   byId('fecharProduto').addEventListener('click',closeProductModal);byId('cancelarProduto').addEventListener('click',closeProductModal);modal.addEventListener('click',e=>{if(e.target===modal)closeProductModal()});
   byId('produtoForm').addEventListener('submit',async e=>{e.preventDefault();const btn=byId('salvarProduto'),err=byId('produtoModalMsg');btn.disabled=true;err.classList.add('hidden');try{
-    const body={nome:byId('produtoNome').value.trim(),sku:byId('produtoSku').value.trim(),preco:byId('produtoPreco').value,custo:byId('produtoCusto').value,estoque:byId('produtoEstoque').value,estoque_minimo:byId('produtoMinimo').value,ativo:byId('produtoAtivo').checked};
+    const body={nome:byId('produtoNome').value.trim(),sku:byId('produtoSku').value.trim(),preco:byId('produtoPreco').value,custo:byId('produtoCusto').value,estoque:byId('produtoEstoque').value,estoque_minimo:byId('produtoMinimo').value,imagem_url:byId('produtoImagemUrl').value.trim(),ativo:byId('produtoAtivo').checked};
     if(!body.nome)throw new Error('Informe o nome do produto.');
     await api(editing?`/operacao/produtos/${produto.id}`:'/operacao/produtos',{method:editing?'PUT':'POST',body:JSON.stringify(body)});closeProductModal();await estoque();flash(msgEl,editing?'Produto atualizado.':'Produto cadastrado.');
   }catch(error){err.textContent=error.message;err.classList.remove('hidden');btn.disabled=false}});
@@ -154,6 +165,7 @@ function openStockModal(produto){if(!produto)return;closeProductModal();const n=
   const input=byId('stockValue'),preview=byId('stockPreview'),sync=()=>preview.textContent=Math.max(0,Number(input.value||0)).toLocaleString('pt-BR');input.addEventListener('input',sync);modal.querySelectorAll('[data-stock-delta]').forEach(b=>b.addEventListener('click',()=>{input.value=Math.max(0,Number(input.value||0)+Number(b.dataset.stockDelta));sync()}));byId('fecharProduto').addEventListener('click',closeProductModal);byId('cancelarProduto').addEventListener('click',closeProductModal);modal.addEventListener('click',e=>{if(e.target===modal)closeProductModal()});byId('salvarEstoque').addEventListener('click',async()=>{const err=byId('produtoModalMsg');try{await api(`/operacao/produtos/${produto.id}`,{method:'PUT',body:JSON.stringify(productPayload(produto,{estoque:input.value}))});closeProductModal();await estoque();flash(msgEl,'Estoque atualizado.')}catch(error){err.textContent=error.message;err.classList.remove('hidden')}});input.focus();input.select();
 }
 async function toggleProduct(produto){if(!produto)return;const action=produto.ativo?'desativar':'ativar';if(!confirm(`Deseja ${action} "${produto.nome}"?`))return;try{await api(`/operacao/produtos/${produto.id}`,{method:'PUT',body:JSON.stringify(productPayload(produto,{ativo:!produto.ativo}))});await estoque();flash(msgEl,`Produto ${produto.ativo?'desativado':'ativado'}.`)}catch(error){flash(msgEl,error.message,'error')}}
+async function deleteProduct(produto){if(!produto)return;if(!confirm(`Excluir permanentemente "${produto.nome}"?\n\nAs vendas antigas continuarão preservadas no histórico, mas o produto sairá do catálogo.`))return;try{await api(`/operacao/produtos/${produto.id}`,{method:'DELETE'});await estoque();flash(msgEl,'Produto excluído com sucesso.')}catch(error){flash(msgEl,error.message,'error')}}
 
 async function pdv(){
   const [{cs,bs,ss},produtos]=await Promise.all([base(),api('/operacao/produtos')]);

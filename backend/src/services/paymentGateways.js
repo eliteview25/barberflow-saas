@@ -84,4 +84,4 @@ async function disconnectGateway(barbeariaId,provedor){
   await pool.query(`UPDATE integracoes_pagamento SET status='desconectado',provider_account_id=NULL,mp_user_id=NULL,access_token_enc=NULL,refresh_token_enc=NULL,secret_enc=NULL,public_key=NULL,scope=NULL,expires_at=NULL,metadata='{}'::jsonb,capabilities='{}'::jsonb,last_verified_at=NULL,last_error=NULL,atualizado_em=NOW() WHERE barbearia_id=$1 AND provedor=$2`,[barbeariaId,provedor]);
 }
 
-module.exports={PROVIDERS,ensurePaymentGatewaySchema,listGateways,saveProviderCredentials,disconnectGateway};
+module.exports={PROVIDERS,credentialsFor,ensurePaymentGatewaySchema,listGateways,saveProviderCredentials,disconnectGateway};

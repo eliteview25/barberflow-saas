@@ -70,6 +70,7 @@ function renderShell(active){
         <button type="button" class="master-side-link master-tab active" data-section="visao" data-click="closeMobileMenu()"><span class="master-side-icon">⌂</span><span>Visão geral</span></button>
         <button type="button" class="master-side-link master-tab" data-section="barbearias-sec" data-click="closeMobileMenu()"><span class="master-side-icon">▦</span><span>Barbearias</span></button>
         <button type="button" class="master-side-link master-tab" data-section="financeiro-sec" data-click="closeMobileMenu()"><span class="master-side-icon">↗</span><span>Financeiro SaaS</span></button>
+        <button type="button" class="master-side-link master-tab" data-section="pagamentos-master-sec" data-click="closeMobileMenu()"><span class="master-side-icon">💳</span><span>Pagamentos</span></button>
         <button type="button" class="master-side-link master-tab" data-section="suporte-sec" data-click="closeMobileMenu()"><span class="master-side-icon">🛟</span><span>Suporte</span></button>
         <button type="button" class="master-side-link master-tab" data-section="perfil-sec" data-click="closeMobileMenu()"><span class="master-side-icon">◎</span><span>Meu perfil</span></button>
       </nav>
@@ -80,23 +81,46 @@ function renderShell(active){
         <a href="#" data-click="logout()" class="master-logout-v2"><span class="menu-icon">↪</span><span>Sair</span></a>
       </div>
     </aside>`}
+  const section=new URLSearchParams(location.search).get('secao')||'';
   const links=[
     ['dashboard','/','🏠','Dashboard',['dono','gerente','recepcao','barbeiro']],
     ['agendamentos','/pages/agendamentos.html','📅','Agenda',['dono','gerente','recepcao','barbeiro']],
     ['clientes','/pages/clientes.html','👥','Clientes',['dono','gerente','recepcao']],
     ['barbeiros','/pages/barbeiros.html','💈','Barbeiros',['dono','gerente']],
     ['servicos','/pages/servicos.html','✂️','Serviços',['dono','gerente']],
-    ['pagamentos','/pages/pagamentos.html','💳','Pagamentos',['dono','gerente']],
+    ['pagina-publica','/pages/configuracoes.html?secao=pagina-publica','🌐','Página pública',['dono','gerente']],
     ['financeiro','/pages/financeiro.html','💰','Financeiro',['dono','gerente'],'financeiro_basico'],
-    ['equipe','/pages/equipe.html','🔐','Equipe',['dono','gerente'],'equipe'],
     ['gestao','/pages/gestao.html','🧰','Gestão',['dono','gerente','recepcao'],'pdv_estoque'],
+    ['pagamentos','/pages/pagamentos.html','💳','Pagamentos',['dono','gerente']],
+    ['equipe','/pages/equipe.html','🔐','Equipe',['dono','gerente'],'equipe'],
     ['automacoes','/pages/automacoes.html','🤖','Automações',['dono','gerente'],'automacoes'],
-    ['config','/pages/configuracoes.html','⚙️','Configurações',['dono','gerente']],
+    ['seguranca','/pages/configuracoes.html?secao=seguranca','🛡️','Segurança',['dono','gerente']],
+    ['perfil','/pages/configuracoes.html?secao=perfil','👤','Perfil',['dono','gerente']],
     ['suporte','/pages/suporte.html','🛟','Suporte',['dono','gerente','recepcao','barbeiro']],
     ['assinatura','/pages/assinatura.html','💳','Assinatura',['dono']]
   ];
   const allowed=links.filter(x=>x[4].includes(role)&&(!x[5]||hasFeature(x[5])));
-  const menu=allowed.map(x=>`<a class="${active===x[0]?'active':''}" href="${x[1]}"><span class="menu-icon">${x[2]}</span><span>${x[3]}</span></a>`).join('');
+  const byKey=Object.fromEntries(allowed.map(x=>[x[0],x]));
+  const isActive=k=>active===k||(active==='config'&&((k==='pagina-publica'&&section==='pagina-publica')||(k==='seguranca'&&section==='seguranca')||(k==='perfil'&&(!section||section==='perfil'))));
+  const linkHtml=x=>x?`<a class="${isActive(x[0])?'active':''}" href="${x[1]}"><span class="menu-icon">${x[2]}</span><span>${x[3]}</span></a>`:'';
+  const groupHtml=(id,icon,label,keys)=>{
+    const items=keys.map(k=>byKey[k]).filter(Boolean);
+    if(!items.length)return '';
+    const open=items.some(x=>isActive(x[0]));
+    return `<div class="menu-group ${open?'open':''}" data-menu-group="${id}">
+      <button class="menu-group-toggle ${open?'active':''}" type="button" aria-expanded="${open?'true':'false'}"><span class="menu-icon">${icon}</span><span>${label}</span><span class="menu-group-chevron">⌄</span></button>
+      <div class="menu-submenu">${items.map(linkHtml).join('')}</div>
+    </div>`;
+  };
+  const menu=[
+    linkHtml(byKey.dashboard),
+    groupHtml('barbearia','💈','Barbearia',['agendamentos','clientes','barbeiros','servicos','pagina-publica']),
+    linkHtml(byKey.financeiro),
+    linkHtml(byKey.gestao),
+    groupHtml('configuracoes','⚙️','Configurações',['pagamentos','equipe','automacoes','seguranca','perfil']),
+    linkHtml(byKey.suporte),
+    linkHtml(byKey.assinatura)
+  ].join('');
   return `
     <div class="mobile-appbar">
       <button class="icon-btn" type="button" data-click="toggleMobileMenu()" aria-label="Abrir menu">☰</button>
@@ -115,6 +139,9 @@ function renderShell(active){
     </aside>`
 }
 
+
+
+document.addEventListener('click',e=>{const toggle=e.target.closest('.menu-group-toggle');if(!toggle)return;const group=toggle.closest('.menu-group');const open=!group.classList.contains('open');group.classList.toggle('open',open);toggle.classList.toggle('active',open);toggle.setAttribute('aria-expanded',String(open))});
 
 document.addEventListener('click',e=>{const link=e.target.closest('.sidebar .menu a[href]');if(link)closeMobileMenu()});
 

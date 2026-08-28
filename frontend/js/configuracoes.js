@@ -3,6 +3,16 @@ if(requireAuth(['dono','gerente'])){
   const ids=['nome','telefone','email','endereco','cidade','estado','logo_url','banner_url','cor_primaria','cor_secundaria','cor_botao','cor_fundo','tema','descricao_publica','texto_boas_vindas','instagram','whatsapp_publico','mostrar_precos','mostrar_duracao','politica_cancelamento'];
   const el=Object.fromEntries(ids.map(id=>[id,document.getElementById(id)]));
   const user=currentUser();
+  const configSection=new URLSearchParams(location.search).get('secao')||'perfil';
+  const sectionMeta={
+    perfil:['Perfil','Dados da barbearia','Identidade e dados principais da sua barbearia.'],
+    seguranca:['Segurança','Segurança da conta','Senha e autenticação em dois fatores.'],
+    'pagina-publica':['Página pública','Página pública','Personalize a experiência de agendamento dos seus clientes.']
+  };
+  const sectionKey=sectionMeta[configSection]?configSection:'perfil';
+  document.querySelectorAll('[data-config-section]').forEach(x=>x.classList.toggle('hidden',x.dataset.configSection!==sectionKey));
+  const sm=sectionMeta[sectionKey];document.getElementById('configPageTitle').textContent=sm[1];document.getElementById('configPageSubtitle').textContent=sm[2];
+  const saveMain=document.getElementById('salvar');if(saveMain)saveMain.classList.toggle('hidden',sectionKey==='seguranca');
   const aiEls={status:document.getElementById('aiStatus'),hint:document.getElementById('aiPlanHint'),form:document.getElementById('aiConfigForm'),nome:document.getElementById('aiNome'),tom:document.getElementById('aiTom'),inicio:document.getElementById('aiMensagemInicial'),fallback:document.getElementById('aiMensagemFallback'),consultar:document.getElementById('aiConsultarHorarios'),agendar:document.getElementById('aiCriarAgendamento'),reagendar:document.getElementById('aiReagendar'),cancelar:document.getElementById('aiCancelar'),precos:document.getElementById('aiInformarPrecos'),pagamento:document.getElementById('aiEnviarPagamento'),humano:document.getElementById('aiTransferirSolicitacao'),reclamacao:document.getElementById('aiTransferirReclamacao'),problemaPagamento:document.getElementById('aiTransferirPagamento'),salvar:document.getElementById('salvarIa')};
   const securityEls={
     status:document.getElementById('mfaStatus'),
