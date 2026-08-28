@@ -5,8 +5,8 @@ const {externalSignal}=require('../utils/http');
 const BASE = 'https://api.mercadopago.com';
 
 function encryptionKey() {
-  const raw = process.env.MP_TOKEN_ENCRYPTION_KEY;
-  if (!raw) throw new Error('MP_TOKEN_ENCRYPTION_KEY não configurado');
+  const raw = process.env.MP_TOKEN_ENCRYPTION_KEY || process.env.APP_SECRETS_ENCRYPTION_KEY;
+  if (!raw) throw new Error('Chave de criptografia das integrações não configurada');
   return crypto.createHash('sha256').update(raw).digest();
 }
 
@@ -58,8 +58,8 @@ async function criarUrlConexao(barbeariaId){
   const {clientId,redirectUri}=oauthConfig();
   const state=crypto.randomBytes(32).toString('base64url');
   const verifier=crypto.randomBytes(48).toString('base64url');
-  await pool.query(`DELETE FROM oauth_states WHERE expira_em<NOW() OR barbearia_id=$1`,[barbeariaId]);
-  await pool.query(`INSERT INTO oauth_states(barbearia_id,state,code_verifier,expira_em) VALUES($1,$2,$3,NOW()+INTERVAL '10 minutes')`,[barbeariaId,state,verifier]);
+  await pool.query(`DELETE FROM oauth_states WHERE expira_em<NOW() OR (barbearia_id=$1 AND provedor='mercadopago')`,[barbeariaId]);
+  await pool.query(`INSERT INTO oauth_states(barbearia_id,state,code_verifier,provedor,expira_em) VALUES($1,$2,$3,'mercadopago',NOW()+INTERVAL '10 minutes')`,[barbeariaId,state,verifier]);
   const url=new URL('https://auth.mercadopago.com/authorization');
   url.searchParams.set('client_id',clientId);
   url.searchParams.set('response_type','code');
@@ -72,7 +72,7 @@ async function criarUrlConexao(barbeariaId){
 }
 
 async function concluirConexao({code,state}){
-  const st=await pool.query(`DELETE FROM oauth_states WHERE state=$1 AND expira_em>NOW() RETURNING *`,[state]);
+  const st=await pool.query(`DELETE FROM oauth_states WHERE state=$1 AND provedor='mercadopago' AND expira_em>NOW() RETURNING *`,[state]);
   if(!st.rowCount) throw new Error('Solicitação OAuth inválida ou expirada');
   const {clientId,clientSecret,redirectUri}=oauthConfig();
   const token=await oauthToken({client_id:clientId,client_secret:clientSecret,code,grant_type:'authorization_code',redirect_uri:redirectUri,code_verifier:st.rows[0].code_verifier});

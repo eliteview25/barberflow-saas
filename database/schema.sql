@@ -22,8 +22,8 @@ ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS status_pagamento VARCHAR(30) D
 ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS valor_cobrado NUMERIC(10,2) DEFAULT 0;
 ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS valor_pago NUMERIC(10,2) DEFAULT 0;
 ALTER TABLE reservas_pagamento ADD COLUMN IF NOT EXISTS forma_pagamento VARCHAR(30) DEFAULT 'mercado_pago';
-CREATE TABLE IF NOT EXISTS integracoes_pagamento(id SERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,provedor VARCHAR(40) NOT NULL,mp_user_id TEXT,access_token_enc TEXT,refresh_token_enc TEXT,public_key TEXT,scope TEXT,expires_at TIMESTAMP,status VARCHAR(30) DEFAULT 'desconectado',conectado_em TIMESTAMP,atualizado_em TIMESTAMP DEFAULT NOW(),UNIQUE(barbearia_id,provedor));
-CREATE TABLE IF NOT EXISTS oauth_states(id SERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,state TEXT UNIQUE NOT NULL,code_verifier TEXT NOT NULL,expira_em TIMESTAMP NOT NULL,criado_em TIMESTAMP DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS integracoes_pagamento(id SERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,provedor VARCHAR(40) NOT NULL,mp_user_id TEXT,provider_account_id TEXT,access_token_enc TEXT,refresh_token_enc TEXT,secret_enc TEXT,public_key TEXT,scope TEXT,expires_at TIMESTAMP,environment VARCHAR(20) DEFAULT 'production',metadata JSONB NOT NULL DEFAULT '{}'::jsonb,capabilities JSONB NOT NULL DEFAULT '{}'::jsonb,status VARCHAR(30) DEFAULT 'desconectado',last_verified_at TIMESTAMP,last_error TEXT,conectado_em TIMESTAMP,atualizado_em TIMESTAMP DEFAULT NOW(),UNIQUE(barbearia_id,provedor));
+CREATE TABLE IF NOT EXISTS oauth_states(id SERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,state TEXT UNIQUE NOT NULL,code_verifier TEXT NOT NULL,provedor VARCHAR(40) NOT NULL DEFAULT 'mercadopago',expira_em TIMESTAMP NOT NULL,criado_em TIMESTAMP DEFAULT NOW());
 
 
 -- Preparação para IA no WhatsApp (motor será integrado na próxima etapa)

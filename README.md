@@ -57,3 +57,14 @@ A versão atual **não envia respostas por IA ainda**. Ela já contém configura
 - Checkout interno Pix/cartão, migração de planos, 2FA e preparação para IA mantidos.
 
 Consulte `LANCAMENTO.md`, `BACKUP-PRODUCAO.md` e `LEGAL-README.md` antes de abrir o SaaS ao público.
+
+## Pagamentos 2.2
+- Nova área **Pagamentos** no menu para Dono/Gerente.
+- Mercado Pago: conta da própria barbearia conectada por OAuth, com Pix/cartão já processados pelo BarberFlow.
+- PagBank: conector Connect preparado.
+- Asaas: conexão por API Key da própria barbearia, validada e criptografada.
+- Pagar.me: conexão por Secret/Public Key da própria barbearia, validada e criptografada.
+- Stripe: scaffold de Connect preparado; antes de ativar pagamentos, será adotado/revisado o onboarding recomendado pela Stripe.
+- Conexões são isoladas por `barbearia_id`; segredos não são enviados ao frontend após o cadastro.
+
+Consulte `PAGAMENTOS-GATEWAYS.md` para configuração e limites desta versão.
