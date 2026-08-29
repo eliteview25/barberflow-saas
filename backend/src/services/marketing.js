@@ -2,6 +2,7 @@ const crypto=require('crypto');
 const pool=require('../config/db');
 const {normalizePhone}=require('../utils/security');
 const {sendTemplate}=require('./whatsapp');
+const wp=require('./whatsappProviders');
 
 function round2(n){return Math.round(Number(n||0)*100)/100}
 function code(prefix='BF'){return `${prefix}${crypto.randomBytes(4).toString('hex').toUpperCase()}`}
@@ -261,6 +262,8 @@ async function processReferralConversion(db,{order,clientId}){
 function renderParam(s,{client,coupon,barbershop}){
   return String(s||'').replaceAll('{nome}',String(client.nome||'')).replaceAll('{cupom}',String(coupon?.codigo||'')).replaceAll('{barbearia}',String(barbershop||''));
 }
+
+function renderPreview(s,{client,coupon,barbershop,link}){return String(s||'').replaceAll('{nome}',String(client.nome||'')).replaceAll('{cupom}',String(coupon?.codigo||'')).replaceAll('{barbearia}',String(barbershop||'')).replaceAll('{link}',String(link||''))}
 async function ensureCampaignLink(camp){
   if(!camp.link_destino)return null;
   if(camp.marketing_link_id){const old=(await pool.query(`SELECT * FROM marketing_links WHERE id=$1 AND barbearia_id=$2`,[camp.marketing_link_id,camp.barbearia_id])).rows[0];if(old)return old;}
@@ -297,8 +300,8 @@ async function processMarketingCampaigns(limit=1){
     }catch(e){await db.query('ROLLBACK').catch(()=>{});throw e}finally{db.release()}
 
     try{
-      const integ=(await pool.query(`SELECT * FROM integracoes_whatsapp WHERE barbearia_id=$1 AND status='conectado'`,[camp.barbearia_id])).rows[0];if(!integ)throw new Error('WhatsApp oficial não conectado');
-      if(!camp.template_nome)throw new Error('Template oficial não configurado');
+      const integ=await wp.activeConnection(camp.barbearia_id);if(!integ)throw new Error('Nenhum provedor WhatsApp ativo');
+      if(integ.provedor!=='evolution'&&!camp.template_nome)throw new Error(integ.provedor==='twilio'?'Content SID da Twilio não configurado':'Template oficial não configurado');if(integ.provedor==='evolution'&&!camp.mensagem_preview)throw new Error('Mensagem da campanha não configurada para Evolution');
       const bname=(await pool.query(`SELECT nome FROM barbearias WHERE id=$1`,[camp.barbearia_id])).rows[0]?.nome||'Barbearia';
       const cup=camp.cupom_id?(await pool.query(`SELECT codigo FROM marketing_cupons WHERE id=$1 AND barbearia_id=$2`,[camp.cupom_id,camp.barbearia_id])).rows[0]:null;
       const trackedLink=await ensureCampaignLink(camp);
@@ -307,7 +310,7 @@ async function processMarketingCampaigns(limit=1){
         const r=(await pool.query(`SELECT e.*,c.nome FROM marketing_envios e LEFT JOIN clientes c ON c.id=e.cliente_id AND c.barbearia_id=e.barbearia_id WHERE e.id=$1`,[row.id])).rows[0];
         try{
           const params=(Array.isArray(camp.template_parametros)?camp.template_parametros:[]).map(x=>renderParam(x,{client:r,coupon:cup,barbershop:bname}));
-          const sent=await sendTemplate(integ,r.telefone,camp.template_nome,params,camp.template_idioma||'pt_BR',{urlButtonParam:trackedLink?.token||null});
+          const trackedUrl=trackedLink?`${String(process.env.APP_URL||'').replace(/\/$/,'')}/m/${trackedLink.token}`:'';const fallback=renderPreview(camp.mensagem_preview,{client:r,coupon:cup,barbershop:bname,link:trackedUrl});const sent=integ.provedor==='evolution'?await wp.sendText(integ,r.telefone,fallback):await sendTemplate(integ,r.telefone,camp.template_nome,params,camp.template_idioma||'pt_BR',{urlButtonParam:trackedLink?.token||null,fallbackText:fallback});
           const mid=sent?.messages?.[0]?.id||null;
           await pool.query(`UPDATE marketing_envios SET status='enviado',provider_message_id=$1,enviado_em=NOW(),atualizado_em=NOW(),erro=NULL WHERE id=$2`,[mid,r.id]);
           await pool.query(`UPDATE marketing_campanhas SET enviados=enviados+1 WHERE id=$1`,[camp.id]);

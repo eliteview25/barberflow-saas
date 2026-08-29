@@ -1,5 +1,5 @@
-const pool=require('../config/db');const {externalSignal}=require('../utils/http');
-const {decrypt}=require('./secrets');
+const pool=require('../config/db');
+const providers=require('./whatsappProviders');
 const {contextoPlano}=require('./planos');
 const {horaParaMinutos,minutosParaHora}=require('../utils/time');
 const {createTrustedAppointment,lockSlot,slotContext}=require('./booking');
@@ -8,8 +8,8 @@ const {getSellerAccessToken}=require('./mercadoPagoOAuth');
 
 function digits(v){return String(v||'').replace(/\D/g,'').slice(-15)}
 function validPhone(v){const d=digits(v);return d.length>=10&&d.length<=15}
-async function integrationByPhoneId(phoneId){const r=await pool.query(`SELECT * FROM integracoes_whatsapp WHERE phone_number_id=$1 AND status='conectado'`,[phoneId]);return r.rows[0]||null}
-async function sendText(integ,to,body){if(!validPhone(to))throw new Error('Telefone inválido');const token=decrypt(integ.access_token_enc);const version=process.env.WHATSAPP_GRAPH_VERSION||'v23.0';const r=await fetch(`https://graph.facebook.com/${version}/${integ.phone_number_id}/messages`,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({messaging_product:'whatsapp',recipient_type:'individual',to:digits(to),type:'text',text:{preview_url:true,body:String(body).slice(0,4096)}}),signal:externalSignal()});let d={};try{d=await r.json()}catch{}if(!r.ok)throw new Error(d?.error?.message||`WhatsApp respondeu ${r.status}`);return d}
+async function integrationByPhoneId(phoneId){return providers.findMetaByPhoneId(phoneId)}
+async function sendText(integ,to,body){return providers.sendText(integ,to,body)}
 async function getSession(barbeariaId,telefone){const r=await pool.query(`SELECT * FROM whatsapp_sessoes WHERE barbearia_id=$1 AND telefone=$2`,[barbeariaId,digits(telefone)]);return r.rows[0]||null}
 async function saveSession(barbeariaId,telefone,etapa,dados={}){await pool.query(`INSERT INTO whatsapp_sessoes(barbearia_id,telefone,etapa,dados,atualizado_em) VALUES($1,$2,$3,$4,NOW()) ON CONFLICT(barbearia_id,telefone) DO UPDATE SET etapa=EXCLUDED.etapa,dados=EXCLUDED.dados,atualizado_em=NOW()`,[barbeariaId,digits(telefone),etapa,JSON.stringify(dados)])}
 async function resetSession(barbeariaId,telefone){await pool.query(`DELETE FROM whatsapp_sessoes WHERE barbearia_id=$1 AND telefone=$2`,[barbeariaId,digits(telefone)])}
@@ -47,5 +47,5 @@ async function finishBooking(integ,from,d,semCobranca){
     throw new Error('Forma de pagamento indisponível.');
   }catch(e){await resetSession(integ.barbearia_id,from);return sendText(integ,from,`Não consegui finalizar: ${e.message||'erro no agendamento'}. Digite *oi* para tentar novamente.`)}
 }
-async function sendTemplate(integ,to,name,params=[],language='pt_BR',options={}){if(!validPhone(to))throw new Error('Telefone inválido');if(!/^[A-Za-z0-9_]{1,512}$/.test(String(name||'')))throw new Error('Template WhatsApp inválido');const token=decrypt(integ.access_token_enc);const version=process.env.WHATSAPP_GRAPH_VERSION||'v23.0';const components=[];if(params.length)components.push({type:'body',parameters:params.map(x=>({type:'text',text:String(x)}))});if(options.urlButtonParam)components.push({type:'button',sub_type:'url',index:String(options.urlButtonIndex||0),parameters:[{type:'text',text:String(options.urlButtonParam).slice(0,200)}]});const r=await fetch(`https://graph.facebook.com/${version}/${integ.phone_number_id}/messages`,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({messaging_product:'whatsapp',to:digits(to),type:'template',template:{name,language:{code:language},components}}),signal:externalSignal()});let d={};try{d=await r.json()}catch{}if(!r.ok)throw new Error(d?.error?.message||`WhatsApp respondeu ${r.status}`);return d}
+async function sendTemplate(integ,to,name,params=[],language='pt_BR',options={}){return providers.sendTemplate(integ,to,name,params,language,options)}
 module.exports={integrationByPhoneId,sendText,sendTemplate,processIncoming};

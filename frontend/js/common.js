@@ -163,7 +163,6 @@ function renderShell(active){
     ['marketing-links','/pages/marketing.html?secao=links','🔗','Links rastreáveis',['dono','gerente'],'marketing'],
     ['marketing-modelos','/pages/marketing.html?secao=modelos','💬','Modelos WhatsApp',['dono','gerente'],'marketing'],
     ['gestao-pdv','/pages/gestao.html?secao=pdv','🧾','Caixa / PDV',['dono','gerente','recepcao'],'pdv_estoque'],
-    ['gestao-produtos','/pages/gestao.html?secao=estoque','📦','Produtos e estoque',['dono','gerente','recepcao'],'pdv_estoque'],
     ['gestao-comissoes','/pages/gestao.html?secao=comissoes','💈','Comissões',['dono','gerente'],'comissoes'],
     ['gestao-fila','/pages/gestao.html?secao=fila','⏱️','Fila de espera',['dono','gerente'],'fila_espera'],
     ['gestao-crm','/pages/gestao.html?secao=crm','👤','CRM',['dono','gerente'],'crm_avancado'],
@@ -183,7 +182,7 @@ function renderShell(active){
   const byKey=Object.fromEntries(allowed.map(x=>[x[0],x]));
   const marketingKeys={resumo:'marketing-resumo',campanhas:'marketing-campanhas',publicos:'marketing-publicos',cupons:'marketing-cupons',indicacoes:'marketing-indicacoes',links:'marketing-links',modelos:'marketing-modelos'};
   const marketingActive=active==='marketing'?(marketingKeys[section||'resumo']||'marketing-resumo'):'';
-  const gestaoKeys={pdv:'gestao-pdv',estoque:'gestao-produtos',comissoes:'gestao-comissoes',fila:'gestao-fila',crm:'gestao-crm',fidelidade:'gestao-fidelidade',avaliacoes:'gestao-avaliacoes',relatorios:'gestao-relatorios',dados:'gestao-dados'};
+  const gestaoKeys={pdv:'gestao-pdv',comissoes:'gestao-comissoes',fila:'gestao-fila',crm:'gestao-crm',fidelidade:'gestao-fidelidade',avaliacoes:'gestao-avaliacoes',relatorios:'gestao-relatorios',dados:'gestao-dados'};
   const lojaKeys={configuracoes:'loja-config',frete:'loja-frete',checkout:'loja-checkout',pedidos:'loja-pedidos'};
   const lojaActive=active==='loja'?(lojaKeys[section||'configuracoes']||'loja-config'):(active==='gestao'&&section==='estoque'&&origin==='loja'?'loja-produtos':'');
   const gestaoActive=active==='gestao'&&origin!=='loja'?(gestaoKeys[section||'pdv']||'gestao-pdv'):'';
@@ -221,7 +220,7 @@ function renderShell(active){
     barbeariaGroupHtml(),
     linkHtml(byKey.financeiro),
     groupHtml('marketing','📣','Marketing',['marketing-resumo','marketing-campanhas','marketing-publicos','marketing-cupons','marketing-indicacoes','marketing-links','marketing-modelos']),
-    groupHtml('gestao','🧰','Gestão',['gestao-pdv','gestao-produtos','gestao-comissoes','gestao-fila','gestao-crm','gestao-fidelidade','gestao-avaliacoes','gestao-relatorios','gestao-dados']),
+    groupHtml('gestao','🧰','Gestão',['gestao-pdv','gestao-comissoes','gestao-fila','gestao-crm','gestao-fidelidade','gestao-avaliacoes','gestao-relatorios','gestao-dados']),
     groupHtml('configuracoes','⚙️','Configurações',['pagamentos','equipe','automacoes','seguranca','perfil']),
     linkHtml(byKey.suporte),
     linkHtml(byKey.assinatura)

@@ -196,3 +196,23 @@ ALTER TABLE reservas_pagamento ADD COLUMN IF NOT EXISTS marketing_opt_in BOOLEAN
 CREATE INDEX IF NOT EXISTS ix_marketing_campanhas_tenant ON marketing_campanhas(barbearia_id,status,criado_em DESC);
 CREATE INDEX IF NOT EXISTS ix_marketing_envios_status ON marketing_envios(campanha_id,status);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_marketing_envio_provider_message ON marketing_envios(provider_message_id) WHERE provider_message_id IS NOT NULL;
+
+
+-- WhatsApp multi-provider (2.9)
+CREATE TABLE IF NOT EXISTS whatsapp_conexoes(
+  id BIGSERIAL PRIMARY KEY,
+  barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,
+  provedor VARCHAR(30) NOT NULL,
+  numero VARCHAR(40),
+  config JSONB NOT NULL DEFAULT '{}'::jsonb,
+  secret_enc TEXT,
+  webhook_token_hash VARCHAR(64),
+  webhook_token_enc TEXT,
+  status VARCHAR(30) NOT NULL DEFAULT 'desconectado',
+  conectado_em TIMESTAMP,
+  atualizado_em TIMESTAMP NOT NULL DEFAULT NOW(),
+  UNIQUE(barbearia_id,provedor)
+);
+ALTER TABLE automacoes_config ADD COLUMN IF NOT EXISTS whatsapp_provedor VARCHAR(30);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_whatsapp_conexao_webhook_token ON whatsapp_conexoes(webhook_token_hash) WHERE webhook_token_hash IS NOT NULL;
+CREATE INDEX IF NOT EXISTS ix_whatsapp_conexoes_tenant_status ON whatsapp_conexoes(barbearia_id,status,provedor);

@@ -3,6 +3,7 @@ const {obterAssinatura,obterPagamentoAutorizado,obterPagamento}=require('./merca
 const {getSellerAccessToken}=require('./mercadoPagoOAuth');
 const {finalizePaidReservation}=require('./reservations');
 const {integrationByPhoneId,processIncoming}=require('./whatsapp');
+const {byId:whatsappConnectionById}=require('./whatsappProviders');
 const {aplicarPagamentoPix}=require('./subscriptionPayments');
 const {markOrderPayment}=require('./storeCommerce');
 
@@ -49,5 +50,7 @@ async function processBilling(payload){
   const {barbearia_id,status,plano,referencia_externa,proxima_cobranca,provedor}=payload||{};const tenantId=Number(barbearia_id);if(!Number.isSafeInteger(tenantId)||tenantId<1||!['trial','ativa','inadimplente','atrasada','cancelada'].includes(status))throw new Error('Payload billing inválido');if(plano&&!['starter','pro','premium'].includes(plano))throw new Error('Plano billing inválido');const provider=provedor?String(provedor).trim().slice(0,40):null;if(provider&&!/^[a-z0-9_-]+$/i.test(provider))throw new Error('Provedor billing inválido');const target=await pool.query(`SELECT id FROM barbearias WHERE id=$1 AND COALESCE(is_system,false)=false`,[tenantId]);if(!target.rowCount)throw new Error('Tenant billing inválido');const r=await pool.query(`UPDATE assinaturas SET status=$1,plano=COALESCE($2,plano),plano_pendente=NULL,referencia_externa=COALESCE($3,referencia_externa),proxima_cobranca=COALESCE($4,proxima_cobranca),provedor=COALESCE($5,provedor),atualizado_em=NOW() WHERE id=(SELECT id FROM assinaturas WHERE barbearia_id=$6 ORDER BY id DESC LIMIT 1) RETURNING id`,[status,plano||null,referencia_externa?String(referencia_externa).slice(0,500):null,proxima_cobranca||null,provider,tenantId]);if(!r.rowCount)throw new Error('Assinatura não encontrada');
 }
 async function processWhatsapp(payload){const phoneId=String(payload?.phoneId||''),m=payload?.message;if(!phoneId||!m?.id)return;const integ=await integrationByPhoneId(phoneId);if(!integ)throw new Error('Phone Number ID não vinculado a nenhuma barbearia');if(m.type==='text')await processIncoming(integ,m.from,m.text?.body||'');}
-async function processByProvider(provider,payload){if(provider==='mercadopago')return processMercado(payload);if(provider==='billing')return processBilling(payload);if(provider==='whatsapp')return processWhatsapp(payload);throw new Error(`Provider de webhook desconhecido: ${provider}`)}
-module.exports={syncPreapproval,processMercado,processBilling,processWhatsapp,processByProvider};
+
+async function processWhatsappProvider(payload){const id=Number(payload?.connectionId||0),from=String(payload?.from||''),text=String(payload?.text||'');if(!Number.isSafeInteger(id)||id<1||!from)return;const integ=await whatsappConnectionById(id);if(!integ)throw new Error('Conexão WhatsApp não encontrada ou desconectada');await processIncoming(integ,from,text)}
+async function processByProvider(provider,payload){if(provider==='mercadopago')return processMercado(payload);if(provider==='billing')return processBilling(payload);if(provider==='whatsapp')return processWhatsapp(payload);if(provider==='whatsapp_provider')return processWhatsappProvider(payload);throw new Error(`Provider de webhook desconhecido: ${provider}`)}
+module.exports={syncPreapproval,processMercado,processBilling,processWhatsapp,processWhatsappProvider,processByProvider};

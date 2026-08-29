@@ -83,6 +83,12 @@ async function disconnect(barbeariaId){
   }
   await save(barbeariaId,{status:'desconectado',conectado_em:null,numero:null});
 }
+
+async function setWebhook(barbeariaId,url){
+  const r=await row(barbeariaId);if(!r)throw new Error('Sessão Evolution ainda não criada');if(!configured())throw new Error('Conector Evolution não configurado na infraestrutura');
+  const payload={enabled:true,url:String(url||''),webhookByEvents:true,webhookBase64:false,events:['MESSAGES_UPSERT','CONNECTION_UPDATE']};
+  return call(`/webhook/set/${encodeURIComponent(r.instance_name)}`,{method:'POST',body:payload});
+}
 async function sendTextByInstance(name,to,text){
   if(!validPhone(to))throw new Error('Telefone inválido');
   return call(`/message/sendText/${encodeURIComponent(name)}`,{method:'POST',body:{number:digits(to),textMessage:{text:String(text).slice(0,4000)},delay:400,linkPreview:true}});
@@ -92,4 +98,4 @@ async function sendText(barbeariaId,to,text){
   const st=await stateByName(r.instance_name);if(st!=='open'){await save(barbeariaId,{status:'desconectado'});throw new Error('Sessão QR desconectada. Escaneie novamente.')}
   return sendTextByInstance(r.instance_name,to,text);
 }
-module.exports={configured,status,start,disconnect,sendText,sendTextByInstance,instanceName,validPhone};
+module.exports={configured,status,start,disconnect,setWebhook,sendText,sendTextByInstance,instanceName,validPhone};

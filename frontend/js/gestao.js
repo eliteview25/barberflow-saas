@@ -4,9 +4,10 @@ const msgEl = document.getElementById('msg');
 const gestaoParams=new URLSearchParams(location.search);
 const origemLoja=gestaoParams.get('origem')==='loja';
 
-const GESTAO_TABS = [
+const GESTAO_TABS = origemLoja ? [
+  ['estoque','📦 Produtos da loja']
+] : [
   ['pdv','🧾 Caixa/PDV'],
-  ['estoque','📦 Produtos e Estoque'],
   ['comissoes','💈 Comissões'],
   ['fila','⏱️ Fila'],
   ['crm','👤 CRM'],
@@ -29,15 +30,28 @@ function denied(){
 }
 
 if(requireAuth(['dono','gerente','recepcao'])){
-  byId('shell').innerHTML=renderShell('gestao');
-  tabsEl.innerHTML=GESTAO_TABS.map(([id,label])=>`<button type="button" class="tab-btn" data-tab="${id}">${label}</button>`).join('');
-  tabsEl.addEventListener('click',e=>{
-    const button=e.target.closest('[data-tab]');
-    if(button) openTab(button.dataset.tab);
-  });
   const requested=new URLSearchParams(location.search).get('secao');
-  const initial=GESTAO_TABS.some(([id])=>id===requested)?requested:'pdv';
-  openTab(initial,false);
+  if(requested==='estoque'&&!origemLoja){
+    location.replace('/pages/gestao.html?secao=estoque&origem=loja');
+  }else{
+    byId('shell').innerHTML=renderShell('gestao');
+    if(origemLoja){
+      document.title='Produtos da Loja - BarberFlow';
+      const h1=document.querySelector('.topbar h1');
+      const p=document.querySelector('.topbar p');
+      if(h1)h1.textContent='Produtos da loja';
+      if(p)p.textContent='Catálogo, preços, estoque e publicação dos produtos vendidos na loja.';
+      tabsEl.classList.add('hidden');
+    }else{
+      tabsEl.innerHTML=GESTAO_TABS.map(([id,label])=>`<button type="button" class="tab-btn" data-tab="${id}">${label}</button>`).join('');
+      tabsEl.addEventListener('click',e=>{
+        const button=e.target.closest('[data-tab]');
+        if(button) openTab(button.dataset.tab);
+      });
+    }
+    const initial=origemLoja?'estoque':(GESTAO_TABS.some(([id])=>id===requested)?requested:'pdv');
+    openTab(initial,false);
+  }
 }
 
 async function base(){

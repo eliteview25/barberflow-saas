@@ -78,7 +78,16 @@ Gateways e checkout agora ficam totalmente centralizados em **Pagamentos**. A ab
 - Central Premium com visão geral, campanhas, públicos, cupons, indicações, links rastreáveis e modelos WhatsApp.
 - Segmentação por aniversariantes, novos, inativos, VIP, frequência, faltas, compradores e carrinho abandonado.
 - Consentimento promocional explícito no cliente, agendamento público e checkout da loja, com opt-out por SAIR/PARAR.
-- Campanhas pela WhatsApp Cloud API usando templates aprovados, lotes, retry e acompanhamento de enviado/entregue/lido.
+- Campanhas pelo provedor WhatsApp ativo; provedores oficiais usam templates aprovados e Evolution/QR usa mensagem livre, com lotes, retry e métricas compatíveis com cada conexão.
 - Links rastreáveis conectam campanhas à agenda/loja e atribuem conversões e receita.
 - Cupons server-side e programa de indicação com recompensas automáticas.
 - Schema preparado automaticamente no boot; não depende de comandos manuais no Render.
+
+
+## BarberFlow 2.9 — WhatsApp com 4 provedores
+- Cada barbearia escolhe entre Meta Cloud API, 360dialog, Twilio ou Evolution/QR Code.
+- É possível manter várias conexões configuradas e definir uma como ativa.
+- Marketing, lembretes, atendimento e futura IA usam a conexão ativa.
+- Meta, 360dialog e Twilio são apresentados como opções oficiais; Evolution/QR é alternativa com aviso de estabilidade.
+- Segredos ficam criptografados; webhooks e mudanças de provedor possuem proteções próprias.
+- Conexões Meta/Evolution anteriores são migradas automaticamente no boot.

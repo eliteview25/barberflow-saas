@@ -48,6 +48,7 @@ const marketingRoute = read('src/routes/marketing.js');
 const marketingPublic = read('src/routes/marketingPublic.js');
 const marketingService = read('src/services/marketing.js');
 const whatsappService = read('src/services/whatsapp.js');
+const whatsappProviders = read('src/services/whatsappProviders.js');
 const storeCommerce = read('src/services/storeCommerce.js');
 const pkg = JSON.parse(read('package.json'));
 const frontFiles = filesRecursive(path.resolve(root, '../frontend'));
@@ -75,6 +76,10 @@ check(/ux_produtos_tenant_sku_lower/.test(mig), 'SKU de produto é único por te
 check(/MP_WEBHOOK_SECRET/.test(app) && /validarWebhook/.test(mpRoute) && /req\.query\[['"]data\.id['"]\]/.test(mpRoute), 'Webhook Mercado Pago usa assinatura e data.id oficial da query');
 check(/validarMpTenantSignature/.test(mpRoute) && /mpTenantSignature/.test(mp), 'Roteamento multi-tenant do webhook Mercado Pago tem HMAC próprio');
 check(/x-hub-signature-256/.test(wa) && /createHmac\(['"]sha256['"]/.test(wa) && /timingSafeEqual/.test(wa), 'Webhook WhatsApp valida HMAC da Meta');
+check(/PROVIDERS=\['meta','360dialog','twilio','evolution'\]/.test(whatsappProviders) && /whatsapp_conexoes/.test(whatsappProviders), 'Central WhatsApp suporta os quatro provedores previstos');
+check(/secretValue\?encrypt\(secretValue\)/.test(whatsappProviders) && /webhookToken\?encrypt\(webhookToken\)/.test(whatsappProviders), 'Credenciais e tokens privados dos provedores WhatsApp ficam criptografados');
+check(/x-twilio-signature/.test(whatsappProviders) && /timingSafeEqual/.test(whatsappProviders) && /webhook\/twilio\/:token/.test(wa), 'Webhook Twilio valida assinatura e token privado da conexão');
+check(/providers\/:provider\/connect'.*exigirStepUp/s.test(wa) && /providers\/:provider\/activate'.*exigirStepUp/s.test(wa) && /delete\('\/providers\/:provider'.*exigirStepUp/s.test(wa), 'Alterações de provedor WhatsApp exigem step-up');
 check(/webhook_events/.test(mig) && /ON CONFLICT\(provider,event_id\)/.test(webhook) && /proxima_tentativa/.test(webhook), 'Webhooks usam inbox persistente, idempotência e retry');
 check(/WHEN webhook_events\.status IN \('processado','processando','falha_permanente'\) THEN webhook_events\.atualizado_em/.test(webhook), 'Retry duplicado não renova artificialmente claim de webhook em processamento');
 check(/paymentMatchesReservation/.test(reservations) && /external_reference/.test(reservations) && /currency/.test(reservations), 'Pagamento é reconciliado por referência, moeda e valor');
@@ -113,12 +118,12 @@ check(/campanhas\/:id\/agendar'.*exigirStepUp/s.test(marketingRoute) && /cupons'
 check(/validateCoupon/.test(storeCommerce) && /cupom_codigo/.test(storeCommerce) && /recordCouponUse/.test(storeCommerce), 'Cupons são validados e registrados no servidor no checkout da loja');
 check(/\^\(sair\|parar/.test(whatsappService) && /marketing_opt_in=false/.test(whatsappService) && /PROMOÇÕES|promoções/.test(whatsappService), 'WhatsApp processa opt-out e reautorização promocional');
 check(/updateWhatsAppMarketingStatus/.test(wa) && /statuses/.test(wa) && /provider_message_id/.test(marketingService), 'Webhook WhatsApp rastreia entrega e leitura das campanhas');
-check(/urlButtonParam/.test(whatsappService) && app.includes("app.use('/m',marketingLinkLimit,marketingPublic)") && /mkt=/.test(marketingPublic) && /marketing_link_id/.test(marketingService), 'Campanhas suportam botão dinâmico e links rastreáveis com atribuição');
+check(/urlButtonParam/.test(marketingService) && /sub_type:'url'/.test(whatsappProviders) && app.includes("app.use('/m',marketingLinkLimit,marketingPublic)") && /mkt=/.test(marketingPublic) && /marketing_link_id/.test(marketingService), 'Campanhas suportam botão dinâmico e links rastreáveis com atribuição');
 check(/marketingLinkLimit/.test(app) && /MARKETING_LINK_RATE_LIMIT_PER_MINUTE/.test(app), 'Links públicos de Marketing possuem rate limit dedicado');
 check(/marketing_opt_in===true/.test(storeCommerce) && /marketing_opt_in_em/.test(storeCommerce), 'Checkout da loja registra consentimento promocional explícito antes da conversão');
 
 
-const runtimeExternal = ['src/services/mercadoPago.js', 'src/services/mercadoPagoOAuth.js', 'src/services/whatsapp.js', 'src/services/whatsappQr.js', 'src/services/notifications.js', 'src/services/paymentGateways.js', 'src/routes/publico.js', 'src/routes/uploads.js', 'src/services/storeCommerce.js', 'src/routes/storePublic.js'];
+const runtimeExternal = ['src/services/mercadoPago.js', 'src/services/mercadoPagoOAuth.js', 'src/services/whatsapp.js', 'src/services/whatsappProviders.js', 'src/services/whatsappQr.js', 'src/services/notifications.js', 'src/services/paymentGateways.js', 'src/routes/publico.js', 'src/routes/uploads.js', 'src/services/storeCommerce.js', 'src/routes/storePublic.js'];
 for (const file of runtimeExternal) { const s = read(file); if (/fetch\s*\(/.test(s)) check(/signal\s*:/.test(s), `${file} usa timeout/cancelamento em fetch externo`) }
 
 if (exists('.env')) aviso('.env existe localmente; confirme que continua ignorado pelo Git e não entra no ZIP');
