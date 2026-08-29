@@ -28,6 +28,9 @@ await client.query(`CREATE TABLE IF NOT EXISTS automacoes_envios(id SERIAL PRIMA
 await client.query(`CREATE TABLE IF NOT EXISTS produtos(id SERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,nome VARCHAR(160) NOT NULL,sku VARCHAR(80),preco NUMERIC(10,2) DEFAULT 0,custo NUMERIC(10,2) DEFAULT 0,estoque NUMERIC(10,2) DEFAULT 0,estoque_minimo NUMERIC(10,2) DEFAULT 0,ativo BOOLEAN DEFAULT true,criado_em TIMESTAMP DEFAULT NOW())`);
 await client.query(`ALTER TABLE produtos ADD COLUMN IF NOT EXISTS imagem_url TEXT`);
 await client.query(`ALTER TABLE produtos ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMP DEFAULT NOW()`);
+await client.query(`ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS mostrar_whatsapp_publico BOOLEAN NOT NULL DEFAULT true`);
+await client.query(`ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS mostrar_mapa_publico BOOLEAN NOT NULL DEFAULT true`);
+await client.query(`CREATE TABLE IF NOT EXISTS platform_settings(chave VARCHAR(80) PRIMARY KEY,valor TEXT,atualizado_por INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,criado_em TIMESTAMP NOT NULL DEFAULT NOW(),atualizado_em TIMESTAMP NOT NULL DEFAULT NOW())`);
 await client.query(`CREATE TABLE IF NOT EXISTS platform_payment_gateways(
   provedor VARCHAR(40) PRIMARY KEY,
   secret_enc TEXT,
@@ -83,7 +86,7 @@ const dupEmail=await client.query(`SELECT LOWER(email) email,COUNT(*)::int n FRO
 // Security hardening migration
 await client.query(`CREATE EXTENSION IF NOT EXISTS pgcrypto`);
 for(const [t,c,ty] of [
- ['usuarios','token_version','INTEGER NOT NULL DEFAULT 0'],['usuarios','mfa_secret_enc','TEXT'],['usuarios','mfa_enabled','BOOLEAN NOT NULL DEFAULT false'],['usuarios','desativado_por_exclusao','BOOLEAN NOT NULL DEFAULT false'],
+ ['usuarios','token_version','INTEGER NOT NULL DEFAULT 0'],['usuarios','mfa_secret_enc','TEXT'],['usuarios','mfa_pending_secret_enc','TEXT'],['usuarios','mfa_enabled','BOOLEAN NOT NULL DEFAULT false'],['usuarios','desativado_por_exclusao','BOOLEAN NOT NULL DEFAULT false'],
  ['barbearias','email_verificado','BOOLEAN NOT NULL DEFAULT true'],['assinaturas','status_antes_exclusao','VARCHAR(30)'],['assinaturas','billing_change_pending','BOOLEAN NOT NULL DEFAULT false'],['assinaturas','billing_idempotency_key','TEXT'],
  ['agendamentos','public_token','TEXT'],['agendamentos','valor_servico','NUMERIC(10,2)'],['agendamentos','valor_final','NUMERIC(10,2)'],['reservas_pagamento','public_token','TEXT']
 ]) await client.query(`ALTER TABLE ${t} ADD COLUMN IF NOT EXISTS ${c} ${ty}`);

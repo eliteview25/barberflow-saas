@@ -29,7 +29,7 @@ async function validarBookingOtp(client,{barbeariaId,telefone,email,codigo}){
 }
 async function tenant(slug){
   const b=(await pool.query(`
-    SELECT b.id,b.nome,b.slug,b.telefone,b.email,b.endereco,b.cidade,b.estado,b.logo_url,b.banner_url,b.cor_primaria,b.cor_secundaria,b.cor_botao,b.cor_fundo,b.tema,b.descricao_publica,b.texto_boas_vindas,b.instagram,b.whatsapp_publico,b.mostrar_precos,b.mostrar_duracao,b.politica_cancelamento,
+    SELECT b.id,b.nome,b.slug,b.telefone,b.email,b.endereco,b.cidade,b.estado,b.logo_url,b.banner_url,b.cor_primaria,b.cor_secundaria,b.cor_botao,b.cor_fundo,b.tema,b.descricao_publica,b.texto_boas_vindas,b.instagram,b.whatsapp_publico,COALESCE(b.mostrar_whatsapp_publico,true) mostrar_whatsapp_publico,COALESCE(b.mostrar_mapa_publico,true) mostrar_mapa_publico,b.mostrar_precos,b.mostrar_duracao,b.politica_cancelamento,
            COALESCE(b.pagamento_agendamento,'nenhum') pagamento_agendamento,COALESCE(b.percentual_sinal,50) percentual_sinal,
            COALESCE(b.aceitar_mercadopago,false) aceitar_mercadopago,COALESCE(b.mp_aceitar_pix,true) mp_aceitar_pix,COALESCE(b.mp_aceitar_cartao,true) mp_aceitar_cartao,
            COALESCE(b.aceitar_pix_manual,false) aceitar_pix_manual,b.pix_chave,b.pix_nome,b.pix_banco,COALESCE(b.aceitar_dinheiro,true) aceitar_dinheiro,
@@ -39,8 +39,8 @@ async function tenant(slug){
       JOIN LATERAL (SELECT plano,status,fim_trial FROM assinaturas a WHERE a.barbearia_id=b.id ORDER BY a.id DESC LIMIT 1) ass ON true
      WHERE b.slug=$1 AND b.ativo=true AND b.excluido_em IS NULL AND b.email_verificado=true
        AND (ass.status='ativa' OR (ass.status='trial' AND ass.fim_trial>=CURRENT_DATE))`,[String(slug||'').slice(0,120)])).rows[0]||null;
-  if(!b)return null;const a={plano:b.plano,status:b.assinatura_status,fim_trial:b.fim_trial};b.plano_efetivo=planoEfetivo(a);b.trial_ativo=trialAtivo(a);if(b.plano_efetivo==='starter')return null;
-  if(b.plano_efetivo==='pro'){b.logo_url=null;b.banner_url=null;b.cor_primaria='#f59e0b';b.cor_secundaria='#111827';b.cor_botao='#f59e0b';b.cor_fundo='#f7f7f8';b.tema='claro';b.texto_boas_vindas=null;b.instagram=null;b.politica_cancelamento=null;b.mostrar_precos=true;b.mostrar_duracao=true;}
+  if(!b)return null;const a={plano:b.plano,status:b.assinatura_status,fim_trial:b.fim_trial};b.plano_efetivo=planoEfetivo(a);b.trial_ativo=trialAtivo(a);
+  if(['starter','pro'].includes(b.plano_efetivo)){b.logo_url=null;b.banner_url=null;b.cor_primaria='#f59e0b';b.cor_secundaria='#111827';b.cor_botao='#f59e0b';b.cor_fundo='#f7f7f8';b.tema='claro';b.texto_boas_vindas=null;b.instagram=null;b.politica_cancelamento=null;b.mostrar_precos=true;b.mostrar_duracao=true;}
   return b;
 }
 function valorCobranca(preco,modo,percentual){const total=Number(preco||0);if(modo==='total')return total;if(modo==='sinal')return Math.max(0.01,Math.round((total*Math.max(1,Math.min(100,Number(percentual||50)))/100)*100)/100);return 0}

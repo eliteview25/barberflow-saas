@@ -8,6 +8,7 @@ const {intId,cleanText,isoDate}=require('../utils/validation');
 const {audit}=require('../services/audit');
 const {PROVIDERS}=require('../services/paymentGateways');
 const {listPlatformGateways,savePlatformGatewayCredentials,disconnectPlatformGateway}=require('../services/platformPaymentGateways');
+const {getSupportSettings,setPlatformSetting}=require('../services/platformSettings');
 const router=express.Router();
 router.use(autenticar,exigirPapel('super_admin'));
 
@@ -201,6 +202,9 @@ router.patch('/barbearias/:id/assinatura',exigirStepUp,async(req,res)=>{
   }catch(e){if(locked)await pool.query(`UPDATE assinaturas SET billing_change_pending=false WHERE id=$1`,[locked]).catch(()=>{});console.error(e);res.status(500).json({erro:'Erro ao atualizar assinatura'});}
 });
 
+
+router.get('/settings/support',async(req,res)=>{try{res.json(await getSupportSettings())}catch(e){console.error(e);res.status(500).json({erro:'Erro ao carregar configurações de suporte'})}});
+router.put('/settings/support',exigirStepUp,async(req,res)=>{try{const raw=String(req.body?.whatsapp||'').trim();let whatsapp=null;if(raw){whatsapp=normalizePhone(raw);if(whatsapp.length<10||whatsapp.length>15)return res.status(400).json({erro:'Informe um WhatsApp válido com DDD e país quando necessário'})}await setPlatformSetting('support_whatsapp',whatsapp,req.usuario.id);await audit(req,{acao:'master.suporte.whatsapp_configurado',barbeariaId:req.usuario.barbearia_id,alvoTipo:'platform_setting',alvoId:null,detalhes:{configurado:!!whatsapp}});res.json({whatsapp,mensagem:whatsapp?'WhatsApp do suporte atualizado':'WhatsApp do suporte removido'})}catch(e){console.error(e);res.status(500).json({erro:'Erro ao salvar WhatsApp do suporte'})}});
 
 router.get('/payment-gateways',async(req,res)=>{try{res.json({gateways:await listPlatformGateways()})}catch(e){console.error(e);res.status(500).json({erro:'Erro ao carregar gateways da plataforma'})}});
 router.post('/payment-gateways/:provedor/credenciais',exigirStepUp,async(req,res)=>{try{const provedor=String(req.params.provedor||'').toLowerCase();if(!PROVIDERS[provedor])return res.status(404).json({erro:'Gateway inválido'});const r=await savePlatformGatewayCredentials(req.usuario.id,provedor,req.body||{});await audit(req,{acao:'master.gateway.salvo',barbeariaId:req.usuario.barbearia_id,alvoTipo:'gateway',alvoId:null,detalhes:{provedor,ambiente:r.ambiente}});res.json({...r,mensagem:`Credenciais ${PROVIDERS[provedor].nome} salvas`})}catch(e){console.error('master_gateway_save',{provedor:req.params.provedor,message:e.message});res.status(e.status||500).json({erro:String(e.message||'Erro ao salvar gateway').slice(0,220)})}});

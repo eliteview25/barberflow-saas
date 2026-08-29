@@ -3,6 +3,8 @@ const pool=require('../config/db');
 const LEGAL_VERSION='2026-08-27';
 
 async function ensureLaunchSchema(){
+  await pool.query(`ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS mostrar_whatsapp_publico BOOLEAN NOT NULL DEFAULT true`);
+  await pool.query(`ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS mostrar_mapa_publico BOOLEAN NOT NULL DEFAULT true`);
   await pool.query(`ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS onboarding_link_compartilhado BOOLEAN NOT NULL DEFAULT false`);
   await pool.query(`ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS onboarding_concluido_em TIMESTAMP`);
   await pool.query(`CREATE TABLE IF NOT EXISTS legal_acceptances(

@@ -8,6 +8,9 @@
 -- password_resets -> recuperação de senha com token de uso único
 
 
+-- Segurança 2FA do Supermaster: chave de troca pendente sem invalidar o autenticador atual
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS mfa_pending_secret_enc TEXT;
+
 -- Pagamentos multiempresa / Mercado Pago OAuth
 ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS aceitar_mercadopago BOOLEAN DEFAULT false;
 ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS mp_aceitar_pix BOOLEAN DEFAULT true;
@@ -89,6 +92,18 @@ CREATE TABLE IF NOT EXISTS platform_payment_gateways(
   environment VARCHAR(20) NOT NULL DEFAULT 'production',
   status VARCHAR(30) NOT NULL DEFAULT 'sem_credenciais',
   metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  atualizado_por INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+  criado_em TIMESTAMP NOT NULL DEFAULT NOW(),
+  atualizado_em TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+
+-- Experiência pública e configurações da plataforma (2.5.3)
+ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS mostrar_whatsapp_publico BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS mostrar_mapa_publico BOOLEAN NOT NULL DEFAULT true;
+CREATE TABLE IF NOT EXISTS platform_settings(
+  chave VARCHAR(80) PRIMARY KEY,
+  valor TEXT,
   atualizado_por INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
   criado_em TIMESTAMP NOT NULL DEFAULT NOW(),
   atualizado_em TIMESTAMP NOT NULL DEFAULT NOW()

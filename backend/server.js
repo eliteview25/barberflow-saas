@@ -9,6 +9,8 @@ const {ensurePaymentGatewaySchema}=require('./src/services/paymentGateways');
 const {ensureFinanceAnalyticsSchema}=require('./src/services/financeAnalytics');
 const {ensurePlatformPaymentGatewaySchema}=require('./src/services/platformPaymentGateways');
 const {ensureProductSchema}=require('./src/services/productCatalog');
+const {ensureAccountSecuritySchema}=require('./src/services/accountSecurity');
+const {ensurePlatformSettingsSchema}=require('./src/services/platformSettings');
 const {notifyOps}=require('./src/services/opsAlerts');
 const PORT=Number(process.env.PORT||3001);
 let server;
@@ -49,6 +51,8 @@ async function iniciar(){
     await ensurePaymentGatewaySchema();
     await ensurePlatformPaymentGatewaySchema();
     await ensureProductSchema();
+    await ensureAccountSecuritySchema();
+    await ensurePlatformSettingsSchema();
     await ensureFinanceAnalyticsSchema();
     console.log('Base de pré-lançamento preparada.');
     console.log('Base de IA preparada.');
@@ -56,6 +60,8 @@ async function iniciar(){
     console.log('Gateways de pagamento preparados.');
     console.log('Gateways da plataforma preparados.');
     console.log('Catálogo de produtos preparado.');
+    console.log('Segurança da conta preparada.');
+    console.log('Configurações da plataforma preparadas.');
     console.log('Metas e analytics financeiros preparados.');
     console.log('PostgreSQL conectado!');
     server=app.listen(PORT,()=>{

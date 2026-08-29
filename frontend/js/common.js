@@ -72,6 +72,7 @@ function renderShell(active){
         <button type="button" class="master-side-link master-tab" data-section="financeiro-sec" data-click="closeMobileMenu()"><span class="master-side-icon">↗</span><span>Financeiro SaaS</span></button>
         <button type="button" class="master-side-link master-tab" data-section="pagamentos-master-sec" data-click="closeMobileMenu()"><span class="master-side-icon">💳</span><span>Pagamentos</span></button>
         <button type="button" class="master-side-link master-tab" data-section="suporte-sec" data-click="closeMobileMenu()"><span class="master-side-icon">🛟</span><span>Suporte</span></button>
+        <button type="button" class="master-side-link master-tab" data-section="seguranca-master-sec" data-click="closeMobileMenu()"><span class="master-side-icon">🔐</span><span>Segurança / 2FA</span></button>
         <button type="button" class="master-side-link master-tab" data-section="perfil-sec" data-click="closeMobileMenu()"><span class="master-side-icon">◎</span><span>Meu perfil</span></button>
       </nav>
       <div class="master-sidebar-label master-sidebar-system-label">SISTEMA</div>
@@ -90,7 +91,15 @@ function renderShell(active){
     ['servicos','/pages/servicos.html','✂️','Serviços',['dono','gerente']],
     ['pagina-publica','/pages/configuracoes.html?secao=pagina-publica','🌐','Página pública',['dono','gerente']],
     ['financeiro','/pages/financeiro.html','💰','Financeiro',['dono','gerente'],'financeiro_basico'],
-    ['gestao','/pages/gestao.html','🧰','Gestão',['dono','gerente','recepcao'],'pdv_estoque'],
+    ['gestao-pdv','/pages/gestao.html?secao=pdv','🧾','Caixa / PDV',['dono','gerente','recepcao'],'pdv_estoque'],
+    ['gestao-produtos','/pages/gestao.html?secao=estoque','📦','Produtos e estoque',['dono','gerente','recepcao'],'pdv_estoque'],
+    ['gestao-comissoes','/pages/gestao.html?secao=comissoes','💈','Comissões',['dono','gerente'],'comissoes'],
+    ['gestao-fila','/pages/gestao.html?secao=fila','⏱️','Fila de espera',['dono','gerente'],'fila_espera'],
+    ['gestao-crm','/pages/gestao.html?secao=crm','👤','CRM',['dono','gerente'],'crm_avancado'],
+    ['gestao-fidelidade','/pages/gestao.html?secao=fidelidade','🎁','Fidelidade',['dono','gerente'],'fidelidade'],
+    ['gestao-avaliacoes','/pages/gestao.html?secao=avaliacoes','⭐','Avaliações',['dono','gerente'],'avaliacoes'],
+    ['gestao-relatorios','/pages/gestao.html?secao=relatorios','📊','Relatórios',['dono','gerente'],'relatorios_avancados'],
+    ['gestao-dados','/pages/gestao.html?secao=dados','⬇️','Exportar dados',['dono','gerente'],'exportacao_dados'],
     ['pagamentos','/pages/pagamentos.html','💳','Pagamentos',['dono','gerente']],
     ['equipe','/pages/equipe.html','🔐','Equipe',['dono','gerente'],'equipe'],
     ['automacoes','/pages/automacoes.html','🤖','Automações',['dono','gerente'],'automacoes'],
@@ -101,7 +110,9 @@ function renderShell(active){
   ];
   const allowed=links.filter(x=>x[4].includes(role)&&(!x[5]||hasFeature(x[5])));
   const byKey=Object.fromEntries(allowed.map(x=>[x[0],x]));
-  const isActive=k=>active===k||(active==='config'&&((k==='pagina-publica'&&section==='pagina-publica')||(k==='seguranca'&&section==='seguranca')||(k==='perfil'&&(!section||section==='perfil'))));
+  const gestaoKeys={pdv:'gestao-pdv',estoque:'gestao-produtos',comissoes:'gestao-comissoes',fila:'gestao-fila',crm:'gestao-crm',fidelidade:'gestao-fidelidade',avaliacoes:'gestao-avaliacoes',relatorios:'gestao-relatorios',dados:'gestao-dados'};
+  const gestaoActive=active==='gestao'?(gestaoKeys[section||'pdv']||'gestao-pdv'):'';
+  const isActive=k=>active===k||k===gestaoActive||(active==='config'&&((k==='pagina-publica'&&section==='pagina-publica')||(k==='seguranca'&&section==='seguranca')||(k==='perfil'&&(!section||section==='perfil'))));
   const linkHtml=x=>x?`<a class="${isActive(x[0])?'active':''}" href="${x[1]}"><span class="menu-icon">${x[2]}</span><span>${x[3]}</span></a>`:'';
   const groupHtml=(id,icon,label,keys)=>{
     const items=keys.map(k=>byKey[k]).filter(Boolean);
@@ -116,7 +127,7 @@ function renderShell(active){
     linkHtml(byKey.dashboard),
     groupHtml('barbearia','💈','Barbearia',['agendamentos','clientes','barbeiros','servicos','pagina-publica']),
     linkHtml(byKey.financeiro),
-    linkHtml(byKey.gestao),
+    groupHtml('gestao','🧰','Gestão',['gestao-pdv','gestao-produtos','gestao-comissoes','gestao-fila','gestao-crm','gestao-fidelidade','gestao-avaliacoes','gestao-relatorios','gestao-dados']),
     groupHtml('configuracoes','⚙️','Configurações',['pagamentos','equipe','automacoes','seguranca','perfil']),
     linkHtml(byKey.suporte),
     linkHtml(byKey.assinatura)

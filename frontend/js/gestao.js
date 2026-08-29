@@ -33,7 +33,9 @@ if(requireAuth(['dono','gerente','recepcao'])){
     const button=e.target.closest('[data-tab]');
     if(button) openTab(button.dataset.tab);
   });
-  openTab('pdv');
+  const requested=new URLSearchParams(location.search).get('secao');
+  const initial=GESTAO_TABS.some(([id])=>id===requested)?requested:'pdv';
+  openTab(initial,false);
 }
 
 async function base(){
@@ -41,7 +43,8 @@ async function base(){
   return {cs,bs,ss};
 }
 
-async function openTab(tab){
+async function openTab(tab,syncUrl=true){
+  if(syncUrl){const url=new URL(location.href);url.searchParams.set('secao',tab);history.replaceState(null,'',url)}
   document.querySelectorAll('.tab-btn').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));
   loading();
   try{

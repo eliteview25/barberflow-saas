@@ -1078,8 +1078,11 @@ router.get(
                     'Microsoft Authenticator',
                     'Authy',
                     '1Password',
-                    'Bitwarden'
-                ]
+                    'Bitwarden',
+                    'Aegis',
+                    'FreeOTP'
+                ],
+                required: req.usuario.papel === 'super_admin'
             }
         });
     }
@@ -1275,6 +1278,12 @@ router.post(
     '/mfa/disable',
     autenticar,
     async (req, res) => {
+        if (req.usuario.papel === 'super_admin') {
+            return res.status(403).json({
+                erro: 'O 2FA é obrigatório para o Supermaster. Use a opção de trocar o aplicativo autenticador.'
+            });
+        }
+
         const senha = String(req.body?.senha || '');
         const code = String(req.body?.code || '');
         const r = await pool.query(
@@ -1328,6 +1337,172 @@ router.post(
             mensagem: 'Autenticação em dois fatores desativada.',
             mfa_enabled: false,
             csrf_token: csrf
+        });
+    }
+);
+
+
+
+/* =========================================================
+   TROCA SEGURA DO AUTENTICADOR DO SUPERMASTER
+   A chave atual permanece ativa até a nova ser confirmada.
+========================================================= */
+
+router.post(
+    '/mfa/rotate/start',
+    autenticar,
+    async (req, res) => {
+        if (req.usuario.papel !== 'super_admin') {
+            return res.status(403).json({ erro: 'Disponível apenas para o Supermaster' });
+        }
+
+        const senha = String(req.body?.senha || '');
+        const code = String(req.body?.code || '');
+
+        const r = await pool.query(
+            `SELECT email,senha_hash,mfa_secret_enc,COALESCE(mfa_enabled,false) AS mfa_enabled
+             FROM usuarios
+             WHERE id=$1 AND ativo=true AND papel='super_admin'`,
+            [req.usuario.id]
+        );
+
+        const usuario = r.rows[0];
+
+        if (!usuario || !(await bcrypt.compare(senha, usuario.senha_hash))) {
+            return res.status(400).json({ erro: 'Senha atual incorreta' });
+        }
+
+        if (!usuario.mfa_enabled || !usuario.mfa_secret_enc) {
+            return res.status(409).json({ erro: 'O 2FA atual precisa estar ativo para trocar o autenticador' });
+        }
+
+        let atual;
+        try {
+            atual = decrypt(usuario.mfa_secret_enc);
+        } catch {
+            return res.status(500).json({ erro: 'Não foi possível validar o 2FA atual' });
+        }
+
+        if (!verifyTotp(atual, code)) {
+            return res.status(400).json({ erro: 'Código do autenticador atual inválido' });
+        }
+
+        const novoSecret = generateSecret();
+
+        await pool.query(
+            `UPDATE usuarios
+             SET mfa_pending_secret_enc=$1,atualizado_em=NOW()
+             WHERE id=$2`,
+            [encrypt(novoSecret), req.usuario.id]
+        );
+
+        return res.json({
+            secret: novoSecret,
+            otpauth_uri: otpauthUri({
+                secret: novoSecret,
+                email: usuario.email,
+                issuer: 'BarberFlow'
+            }),
+            compatible_apps: [
+                'Google Authenticator',
+                'Microsoft Authenticator',
+                'Authy',
+                '1Password',
+                'Bitwarden',
+                'Aegis',
+                'FreeOTP'
+            ],
+            mensagem: 'Nova chave criada. O autenticador atual continua válido até a confirmação.'
+        });
+    }
+);
+
+
+router.post(
+    '/mfa/rotate/confirm',
+    autenticar,
+    async (req, res) => {
+        if (req.usuario.papel !== 'super_admin') {
+            return res.status(403).json({ erro: 'Disponível apenas para o Supermaster' });
+        }
+
+        const senha = String(req.body?.senha || '');
+        const code = String(req.body?.code || '');
+
+        const r = await pool.query(
+            `SELECT senha_hash,mfa_pending_secret_enc
+             FROM usuarios
+             WHERE id=$1 AND ativo=true AND papel='super_admin'`,
+            [req.usuario.id]
+        );
+
+        const usuario = r.rows[0];
+
+        if (!usuario || !(await bcrypt.compare(senha, usuario.senha_hash))) {
+            return res.status(400).json({ erro: 'Senha atual incorreta' });
+        }
+
+        if (!usuario.mfa_pending_secret_enc) {
+            return res.status(409).json({ erro: 'Nenhuma troca de autenticador está pendente' });
+        }
+
+        let novoSecret;
+        try {
+            novoSecret = decrypt(usuario.mfa_pending_secret_enc);
+        } catch {
+            return res.status(500).json({ erro: 'Não foi possível ler a nova configuração de 2FA' });
+        }
+
+        if (!verifyTotp(novoSecret, code)) {
+            return res.status(400).json({ erro: 'Código do novo autenticador inválido' });
+        }
+
+        const updated = await pool.query(
+            `UPDATE usuarios
+             SET mfa_secret_enc=mfa_pending_secret_enc,
+                 mfa_pending_secret_enc=NULL,
+                 mfa_enabled=true,
+                 token_version=COALESCE(token_version,0)+1,
+                 atualizado_em=NOW()
+             WHERE id=$1
+             RETURNING COALESCE(token_version,0)::int AS token_version`,
+            [req.usuario.id]
+        );
+
+        const tokenVersion = Number(updated.rows[0]?.token_version || 0);
+        const csrf = setSession(res, {
+            ...req.usuario,
+            token_version: tokenVersion
+        });
+
+        res.clearCookie('bf_stepup', { path: '/' });
+
+        return res.json({
+            mensagem: 'Novo autenticador ativado. A chave anterior foi invalidada.',
+            mfa_enabled: true,
+            csrf_token: csrf
+        });
+    }
+);
+
+
+router.post(
+    '/mfa/rotate/cancel',
+    autenticar,
+    async (req, res) => {
+        if (req.usuario.papel !== 'super_admin') {
+            return res.status(403).json({ erro: 'Disponível apenas para o Supermaster' });
+        }
+
+        await pool.query(
+            `UPDATE usuarios
+             SET mfa_pending_secret_enc=NULL,atualizado_em=NOW()
+             WHERE id=$1`,
+            [req.usuario.id]
+        );
+
+        return res.json({
+            mensagem: 'Troca cancelada. O autenticador atual continua válido.'
         });
     }
 );
