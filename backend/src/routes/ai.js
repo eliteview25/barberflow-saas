@@ -1,5 +1,5 @@
 const express=require('express');
-const {autenticar,exigirPapel,exigirAssinatura}=require('../middlewares/auth');
+const {autenticar,exigirPapel,exigirAssinatura,exigirStepUp}=require('../middlewares/auth');
 const {contextoPlano,exigirRecurso}=require('../services/planos');
 const {getAiConfig,updateAiConfig,getAiUsage}=require('../services/aiConfig');
 const {allowedAiTools}=require('../services/aiPolicy');

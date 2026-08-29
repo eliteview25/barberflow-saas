@@ -1,6 +1,6 @@
 const express=require('express');
 const pool=require('../config/db');
-const {autenticar,exigirPapel,exigirAssinatura}=require('../middlewares/auth');
+const {autenticar,exigirPapel,exigirAssinatura,exigirStepUp}=require('../middlewares/auth');
 const {exigirRecurso}=require('../services/planos');
 const {intId,cleanText,finiteMoney,finitePercent,csvQuote,isoDate,safeHttpUrl}=require('../utils/validation');
 const router=express.Router();
