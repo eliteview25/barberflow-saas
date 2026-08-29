@@ -12,7 +12,64 @@ function timeBR(v){return String(v||'').slice(0,5)}
 function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function roleLabel(p){return ({super_admin:'Master',dono:'Dono',gerente:'Gerente',recepcao:'Recepção',barbeiro:'Barbeiro'})[p]||p||''}
 function hasRole(...roles){return roles.includes(currentUser().papel)}
-async function requestStepUp(){let mfa=!!currentUser().mfa_enabled;try{const mr=await fetch('/api/auth/me',{credentials:'same-origin',headers:authHeaders()});if(mr.ok){const me=await mr.json();mfa=!!me.mfa_enabled;const u={...currentUser(),mfa_enabled:mfa};localStorage.setItem('bf_user',JSON.stringify(u));}}catch{}const body={};if(mfa){const code=prompt('Confirmação de segurança — código de 6 dígitos do seu autenticador:');if(code===null)throw new Error('Confirmação cancelada');body.mfa_code=String(code).replace(/\D/g,'').slice(0,6);if(body.mfa_code.length!==6)throw new Error('Código de autenticação inválido');}else{const senha=prompt('Confirmação de segurança — digite sua senha atual:');if(!senha)throw new Error('Confirmação cancelada');body.senha=senha;}const r=await fetch('/api/auth/step-up',{method:'POST',credentials:'same-origin',headers:authHeaders(),body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw new Error(d.erro||'Falha na confirmação de segurança');return true}
+function ensureSecurityChallengeModal(){
+  let root=document.getElementById('bfSecurityChallenge');
+  if(root)return root;
+  root=document.createElement('div');
+  root.id='bfSecurityChallenge';
+  root.className='modal-backdrop security-challenge-backdrop hidden';
+  root.setAttribute('role','dialog');
+  root.setAttribute('aria-modal','true');
+  root.setAttribute('aria-labelledby','bfSecurityTitle');
+  root.innerHTML=`<div class="security-challenge-card">
+    <div class="security-challenge-head"><div class="security-challenge-icon">🔐</div><div><span>VERIFICAÇÃO DE SEGURANÇA</span><h2 id="bfSecurityTitle">Confirme sua identidade</h2><p id="bfSecuritySubtitle"></p></div><button type="button" class="modal-close" id="bfSecurityClose" aria-label="Fechar">×</button></div>
+    <form id="bfSecurityForm" novalidate>
+      <div id="bfSecuritySecretBox" class="security-secret-box hidden"><small>CHAVE DO AUTENTICADOR</small><div><code id="bfSecuritySecret"></code><button type="button" class="btn btn-secondary" id="bfSecurityCopySecret">Copiar</button></div><p>Adicione esta chave no Google Authenticator, Microsoft Authenticator, Authy, 1Password, Bitwarden, Aegis ou outro app TOTP.</p></div>
+      <div id="bfSecurityError" class="notice error hidden"></div>
+      <div class="field"><label id="bfSecurityLabel" for="bfSecurityInput">Código de autenticação</label><input id="bfSecurityInput" autocomplete="one-time-code"></div>
+      <label id="bfSecurityShowPasswordWrap" class="show-password-check hidden"><input id="bfSecurityShowPassword" type="checkbox"> <span>Ver senha</span></label>
+      <div class="security-challenge-note" id="bfSecurityNote"></div>
+      <div class="security-challenge-actions"><button type="button" class="btn btn-secondary" id="bfSecurityCancel">Cancelar</button><button type="submit" class="btn btn-dark" id="bfSecurityConfirm">Confirmar</button></div>
+    </form>
+  </div>`;
+  document.body.appendChild(root);
+  return root;
+}
+function securityChallenge({mode='totp',title='Confirme sua identidade',subtitle='',secret='',confirmLabel='Confirmar',note='',onConfirm}){
+  return new Promise((resolve,reject)=>{
+    const root=ensureSecurityChallengeModal(),form=root.querySelector('#bfSecurityForm'),input=root.querySelector('#bfSecurityInput'),error=root.querySelector('#bfSecurityError'),titleEl=root.querySelector('#bfSecurityTitle'),subtitleEl=root.querySelector('#bfSecuritySubtitle'),label=root.querySelector('#bfSecurityLabel'),showWrap=root.querySelector('#bfSecurityShowPasswordWrap'),show=root.querySelector('#bfSecurityShowPassword'),confirm=root.querySelector('#bfSecurityConfirm'),secretBox=root.querySelector('#bfSecuritySecretBox'),secretEl=root.querySelector('#bfSecuritySecret'),noteEl=root.querySelector('#bfSecurityNote'),cancel=root.querySelector('#bfSecurityCancel'),close=root.querySelector('#bfSecurityClose'),copy=root.querySelector('#bfSecurityCopySecret');
+    const previous=document.activeElement;let finished=false;
+    titleEl.textContent=title;subtitleEl.textContent=subtitle||'';subtitleEl.classList.toggle('hidden',!subtitle);noteEl.textContent=note||'';noteEl.classList.toggle('hidden',!note);confirm.textContent=confirmLabel;error.classList.add('hidden');error.textContent='';
+    const isPassword=mode==='password';label.textContent=isPassword?'Senha atual':'Código de 6 dígitos';input.type=isPassword?'password':'text';input.value='';input.inputMode=isPassword?'text':'numeric';input.autocomplete=isPassword?'current-password':'one-time-code';input.maxLength=isPassword?128:6;input.placeholder=isPassword?'Digite sua senha':'000000';input.classList.toggle('totp-input',!isPassword);showWrap.classList.toggle('hidden',!isPassword);show.checked=false;
+    secretBox.classList.toggle('hidden',!secret);secretEl.textContent=secret||'';
+    root.classList.remove('hidden');document.body.classList.add('modal-open');
+    const cleanup=(ok,value)=>{if(finished)return;finished=true;root.classList.add('hidden');document.body.classList.remove('modal-open');form.onsubmit=null;cancel.onclick=null;close.onclick=null;root.onclick=null;document.removeEventListener('keydown',onKey);show.onchange=null;copy.onclick=null;setTimeout(()=>previous?.focus?.(),0);ok?resolve(value):reject(new Error('Confirmação cancelada'));};
+    const onKey=e=>{if(e.key==='Escape')cleanup(false)};document.addEventListener('keydown',onKey);
+    show.onchange=()=>{input.type=show.checked?'text':'password'};
+    if(!isPassword)input.oninput=()=>{input.value=String(input.value||'').replace(/\D/g,'').slice(0,6)};else input.oninput=null;
+    copy.onclick=async()=>{try{await navigator.clipboard.writeText(secret||'');copy.textContent='Copiado';setTimeout(()=>copy.textContent='Copiar',1300)}catch{}};
+    cancel.onclick=()=>cleanup(false);close.onclick=()=>cleanup(false);root.onclick=e=>{if(e.target===root)cleanup(false)};
+    form.onsubmit=async e=>{e.preventDefault();const value=isPassword?String(input.value||''):String(input.value||'').replace(/\D/g,'').slice(0,6);if((isPassword&&!value)||(!isPassword&&value.length!==6)){error.textContent=isPassword?'Digite sua senha atual.':'Digite o código completo de 6 dígitos.';error.classList.remove('hidden');input.focus();return}confirm.disabled=true;confirm.textContent='Verificando...';error.classList.add('hidden');try{const result=await onConfirm(value);cleanup(true,result)}catch(err){error.textContent=err?.message||'Não foi possível confirmar sua identidade.';error.classList.remove('hidden');input.select?.();input.focus()}finally{if(!finished){confirm.disabled=false;confirm.textContent=confirmLabel}}};
+    setTimeout(()=>input.focus(),40);
+  });
+}
+async function requestStepUp(){
+  let mfa=!!currentUser().mfa_enabled;
+  try{const mr=await fetch('/api/auth/me',{credentials:'same-origin',headers:authHeaders()});if(mr.ok){const me=await mr.json();mfa=!!me.mfa_enabled;const u={...currentUser(),mfa_enabled:mfa};localStorage.setItem('bf_user',JSON.stringify(u));}}catch{}
+  return securityChallenge({
+    mode:mfa?'totp':'password',
+    title:'Confirme esta alteração',
+    subtitle:mfa?'Use o código atual do seu aplicativo autenticador.':'Por segurança, confirme sua senha atual para continuar.',
+    note:mfa?'O código é usado somente para esta verificação e nunca é armazenado.':'A senha é enviada com segurança apenas para validar esta ação.',
+    onConfirm:async value=>{
+      const body=mfa?{mfa_code:value}:{senha:value};
+      const r=await fetch('/api/auth/step-up',{method:'POST',credentials:'same-origin',headers:authHeaders(),body:JSON.stringify(body)});
+      let d={};try{d=await r.json()}catch{}
+      if(!r.ok)throw new Error(d.erro||'Falha na confirmação de segurança');
+      return true;
+    }
+  });
+}
 async function api(path,opts={},retried=false){
   let r;try{r=await fetch(`${API}${path}`,{...opts,credentials:'same-origin',headers:authHeaders(opts.headers||{})})}catch{throw new Error('Não foi possível conectar ao BarberFlow. Verifique sua internet e tente novamente.')}
   let d={};try{d=await r.json()}catch{}
@@ -82,7 +139,9 @@ function renderShell(active){
         <a href="#" data-click="logout()" class="master-logout-v2"><span class="menu-icon">↪</span><span>Sair</span></a>
       </div>
     </aside>`}
-  const section=new URLSearchParams(location.search).get('secao')||'';
+  const params=new URLSearchParams(location.search);
+  const section=params.get('secao')||'';
+  const origin=params.get('origem')||'';
   const links=[
     ['dashboard','/','🏠','Dashboard',['dono','gerente','recepcao','barbeiro']],
     ['agendamentos','/pages/agendamentos.html','📅','Agenda',['dono','gerente','recepcao','barbeiro']],
@@ -90,8 +149,19 @@ function renderShell(active){
     ['barbeiros','/pages/barbeiros.html','💈','Barbeiros',['dono','gerente']],
     ['servicos','/pages/servicos.html','✂️','Serviços',['dono','gerente']],
     ['pagina-publica','/pages/configuracoes.html?secao=pagina-publica','🌐','Página pública',['dono','gerente']],
-    ['loja','/pages/loja.html','🛍️','Loja',['dono','gerente'],'loja_publica'],
+    ['loja-config','/pages/loja.html?secao=configuracoes','🎨','Configurações',['dono','gerente'],'loja_publica'],
+    ['loja-produtos','/pages/gestao.html?secao=estoque&origem=loja','📦','Produtos',['dono','gerente'],'loja_publica'],
+    ['loja-frete','/pages/loja.html?secao=frete','🚚','Frete e retirada',['dono','gerente'],'loja_publica'],
+    ['loja-checkout','/pages/loja.html?secao=checkout','💳','Checkout',['dono','gerente'],'loja_publica'],
+    ['loja-pedidos','/pages/loja.html?secao=pedidos','🧾','Pedidos',['dono','gerente'],'loja_publica'],
     ['financeiro','/pages/financeiro.html','💰','Financeiro',['dono','gerente'],'financeiro_basico'],
+    ['marketing-resumo','/pages/marketing.html?secao=resumo','📈','Visão geral',['dono','gerente'],'marketing'],
+    ['marketing-campanhas','/pages/marketing.html?secao=campanhas','📣','Campanhas',['dono','gerente'],'marketing'],
+    ['marketing-publicos','/pages/marketing.html?secao=publicos','🎯','Públicos',['dono','gerente'],'marketing'],
+    ['marketing-cupons','/pages/marketing.html?secao=cupons','🏷️','Cupons',['dono','gerente'],'marketing'],
+    ['marketing-indicacoes','/pages/marketing.html?secao=indicacoes','🤝','Indicações',['dono','gerente'],'marketing'],
+    ['marketing-links','/pages/marketing.html?secao=links','🔗','Links rastreáveis',['dono','gerente'],'marketing'],
+    ['marketing-modelos','/pages/marketing.html?secao=modelos','💬','Modelos WhatsApp',['dono','gerente'],'marketing'],
     ['gestao-pdv','/pages/gestao.html?secao=pdv','🧾','Caixa / PDV',['dono','gerente','recepcao'],'pdv_estoque'],
     ['gestao-produtos','/pages/gestao.html?secao=estoque','📦','Produtos e estoque',['dono','gerente','recepcao'],'pdv_estoque'],
     ['gestao-comissoes','/pages/gestao.html?secao=comissoes','💈','Comissões',['dono','gerente'],'comissoes'],
@@ -111,9 +181,13 @@ function renderShell(active){
   ];
   const allowed=links.filter(x=>x[4].includes(role)&&(!x[5]||hasFeature(x[5])));
   const byKey=Object.fromEntries(allowed.map(x=>[x[0],x]));
+  const marketingKeys={resumo:'marketing-resumo',campanhas:'marketing-campanhas',publicos:'marketing-publicos',cupons:'marketing-cupons',indicacoes:'marketing-indicacoes',links:'marketing-links',modelos:'marketing-modelos'};
+  const marketingActive=active==='marketing'?(marketingKeys[section||'resumo']||'marketing-resumo'):'';
   const gestaoKeys={pdv:'gestao-pdv',estoque:'gestao-produtos',comissoes:'gestao-comissoes',fila:'gestao-fila',crm:'gestao-crm',fidelidade:'gestao-fidelidade',avaliacoes:'gestao-avaliacoes',relatorios:'gestao-relatorios',dados:'gestao-dados'};
-  const gestaoActive=active==='gestao'?(gestaoKeys[section||'pdv']||'gestao-pdv'):'';
-  const isActive=k=>active===k||k===gestaoActive||(active==='config'&&((k==='pagina-publica'&&section==='pagina-publica')||(k==='seguranca'&&section==='seguranca')||(k==='perfil'&&(!section||section==='perfil'))));
+  const lojaKeys={configuracoes:'loja-config',frete:'loja-frete',checkout:'loja-checkout',pedidos:'loja-pedidos'};
+  const lojaActive=active==='loja'?(lojaKeys[section||'configuracoes']||'loja-config'):(active==='gestao'&&section==='estoque'&&origin==='loja'?'loja-produtos':'');
+  const gestaoActive=active==='gestao'&&origin!=='loja'?(gestaoKeys[section||'pdv']||'gestao-pdv'):'';
+  const isActive=k=>active===k||k===gestaoActive||k===lojaActive||k===marketingActive||(active==='config'&&((k==='pagina-publica'&&section==='pagina-publica')||(k==='seguranca'&&section==='seguranca')||(k==='perfil'&&(!section||section==='perfil'))));
   const linkHtml=x=>x?`<a class="${isActive(x[0])?'active':''}" href="${x[1]}"><span class="menu-icon">${x[2]}</span><span>${x[3]}</span></a>`:'';
   const groupHtml=(id,icon,label,keys)=>{
     const items=keys.map(k=>byKey[k]).filter(Boolean);
@@ -124,10 +198,29 @@ function renderShell(active){
       <div class="menu-submenu">${items.map(linkHtml).join('')}</div>
     </div>`;
   };
+  const lojaGroupHtml=()=>{
+    const items=['loja-config','loja-produtos','loja-frete','loja-checkout','loja-pedidos'].map(k=>byKey[k]).filter(Boolean);
+    if(!items.length)return '';
+    const open=items.some(x=>isActive(x[0]));
+    return `<div class="menu-group nested-menu-group ${open?'open':''}" data-menu-group="loja">
+      <button class="menu-group-toggle ${open?'active':''}" type="button" aria-expanded="${open?'true':'false'}"><span class="menu-icon">🛍️</span><span>Loja</span><span class="menu-group-chevron">⌄</span></button>
+      <div class="menu-submenu">${items.map(linkHtml).join('')}</div>
+    </div>`;
+  };
+  const barbeariaGroupHtml=()=>{
+    const direct=['agendamentos','clientes','barbeiros','servicos','pagina-publica'].map(k=>byKey[k]).filter(Boolean);
+    const store=['loja-config','loja-produtos','loja-frete','loja-checkout','loja-pedidos'].map(k=>byKey[k]).filter(Boolean);
+    const open=[...direct,...store].some(x=>isActive(x[0]));
+    return `<div class="menu-group ${open?'open':''}" data-menu-group="barbearia">
+      <button class="menu-group-toggle ${open?'active':''}" type="button" aria-expanded="${open?'true':'false'}"><span class="menu-icon">💈</span><span>Barbearia</span><span class="menu-group-chevron">⌄</span></button>
+      <div class="menu-submenu">${direct.map(linkHtml).join('')}${lojaGroupHtml()}</div>
+    </div>`;
+  };
   const menu=[
     linkHtml(byKey.dashboard),
-    groupHtml('barbearia','💈','Barbearia',['agendamentos','clientes','barbeiros','servicos','pagina-publica','loja']),
+    barbeariaGroupHtml(),
     linkHtml(byKey.financeiro),
+    groupHtml('marketing','📣','Marketing',['marketing-resumo','marketing-campanhas','marketing-publicos','marketing-cupons','marketing-indicacoes','marketing-links','marketing-modelos']),
     groupHtml('gestao','🧰','Gestão',['gestao-pdv','gestao-produtos','gestao-comissoes','gestao-fila','gestao-crm','gestao-fidelidade','gestao-avaliacoes','gestao-relatorios','gestao-dados']),
     groupHtml('configuracoes','⚙️','Configurações',['pagamentos','equipe','automacoes','seguranca','perfil']),
     linkHtml(byKey.suporte),

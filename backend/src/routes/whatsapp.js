@@ -10,6 +10,7 @@ const {processByProvider}=require('../services/webhookProcessors');
 const qr=require('../services/whatsappQr');
 const {cleanText}=require('../utils/validation');
 const {normalizePhone}=require('../utils/security');
+const {updateWhatsAppMarketingStatus}=require('../services/marketing');
 const router=express.Router();
 
 function hashToken(v){return crypto.createHash('sha256').update(String(v||'')).digest('hex')}
@@ -30,7 +31,7 @@ router.post('/webhook',async(req,res)=>{
     const sig=String(req.headers['x-hub-signature-256']||''),expected='sha256='+crypto.createHmac('sha256',secret).update(req.rawBody||Buffer.from(JSON.stringify(req.body||{}))).digest('hex');
     const a=Buffer.from(sig),b=Buffer.from(expected);if(a.length!==b.length||!crypto.timingSafeEqual(a,b))return res.sendStatus(401);
     const queued=[];
-    for(const entry of req.body?.entry||[])for(const change of entry.changes||[]){const v=change.value||{},phoneId=v.metadata?.phone_number_id;for(const m of v.messages||[]){if(!m.id||!phoneId)continue;const row=await enqueue('whatsapp',String(m.id),{phoneId:String(phoneId),message:m});queued.push({id:String(m.id),status:row.status});}}
+    for(const entry of req.body?.entry||[])for(const change of entry.changes||[]){const v=change.value||{},phoneId=v.metadata?.phone_number_id;for(const st of v.statuses||[]){if(st.id)await updateWhatsAppMarketingStatus(st.id,st.status,st.errors).catch(e=>console.error('Status campanha WhatsApp:',e.message));}for(const m of v.messages||[]){if(!m.id||!phoneId)continue;const row=await enqueue('whatsapp',String(m.id),{phoneId:String(phoneId),message:m});queued.push({id:String(m.id),status:row.status});}}
     res.sendStatus(200);
     for(const q of queued)if(q.status!=='processado')setImmediate(()=>processEvent('whatsapp',q.id,p=>processByProvider('whatsapp',p)).catch(e=>console.error('Webhook WhatsApp:',e.message)));
   }catch(e){console.error('Webhook WhatsApp:',e.message);return res.sendStatus(500)}

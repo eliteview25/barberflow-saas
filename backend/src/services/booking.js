@@ -31,14 +31,14 @@ async function slotContext(db,{barbeariaId,barbeiroId,servicoId,data,horario,ign
   if(hold.rowCount)return {ok:false,code:'CONFLITO',error:'Horário temporariamente reservado'};
   return {ok:true,barbeiro:barb.rows[0],servico:serv.rows[0],data,horario,duracao:dur};
 }
-async function upsertClient(db,{barbeariaId,nome,telefone,email}){
+async function upsertClient(db,{barbeariaId,nome,telefone,email,marketingOptIn=false,marketingOrigem='publico'}){
   nome=cleanText(nome,120,{required:true});telefone=normalizePhone(telefone);email=String(email||'').trim().toLowerCase()||null;
   if(!nome||telefone.length<10||telefone.length>15)throw Object.assign(new Error('Nome ou telefone inválido'),{code:'DADOS_INVALIDOS'});
   if(email&&!validEmail(email))throw Object.assign(new Error('E-mail inválido'),{code:'DADOS_INVALIDOS'});
   await db.query(`SELECT pg_advisory_xact_lock(hashtext($1))`,[`client:${barbeariaId}:${telefone}`]);
   let r=await db.query(`SELECT * FROM clientes WHERE barbearia_id=$1 AND regexp_replace(telefone,'\\D','','g')=$2 ORDER BY id LIMIT 1 FOR UPDATE`,[barbeariaId,telefone]);
-  if(!r.rowCount)r=await db.query(`INSERT INTO clientes(barbearia_id,nome,telefone,email) VALUES($1,$2,$3,$4) RETURNING *`,[barbeariaId,nome,telefone,email]);
-  else {await db.query(`UPDATE clientes SET nome=$1,email=COALESCE($2,email) WHERE id=$3 AND barbearia_id=$4`,[nome,email,r.rows[0].id,barbeariaId]);r.rows[0]={...r.rows[0],nome,email:email||r.rows[0].email};}
+  if(!r.rowCount)r=await db.query(`INSERT INTO clientes(barbearia_id,nome,telefone,email,marketing_opt_in,marketing_opt_in_em,marketing_opt_in_origem) VALUES($1,$2,$3,$4,$5,CASE WHEN $5 THEN NOW() ELSE NULL END,CASE WHEN $5 THEN $6 ELSE NULL END) RETURNING *`,[barbeariaId,nome,telefone,email,!!marketingOptIn,marketingOrigem]);
+  else {await db.query(`UPDATE clientes SET nome=$1,email=COALESCE($2,email),marketing_opt_in=CASE WHEN $5 THEN true ELSE marketing_opt_in END,marketing_opt_in_em=CASE WHEN $5 AND marketing_opt_in=false THEN NOW() ELSE marketing_opt_in_em END,marketing_opt_in_origem=CASE WHEN $5 AND marketing_opt_in=false THEN $6 ELSE marketing_opt_in_origem END,marketing_opt_out_em=CASE WHEN $5 THEN NULL ELSE marketing_opt_out_em END WHERE id=$3 AND barbearia_id=$4`,[nome,email,r.rows[0].id,barbeariaId,!!marketingOptIn,marketingOrigem]);r.rows[0]={...r.rows[0],nome,email:email||r.rows[0].email,marketing_opt_in:marketingOptIn?true:r.rows[0].marketing_opt_in};}
   return r.rows[0];
 }
 async function createTrustedAppointment({barbeariaId,nome,telefone,email,barbeiroId,servicoId,data,horario,origem='interno',formaPagamento='nao_informado',statusPagamento='nao_exigido',status='agendado',valorCobrado=0,valorPago=0,observacoes=null}){

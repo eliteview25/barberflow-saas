@@ -15,6 +15,7 @@ const {ensureStorefrontSchema}=require('./src/services/storefront');
 const {ensureStoreCommerceSchema,releaseExpiredStoreOrders}=require('./src/services/storeCommerce');
 const {ensureTenantLifecycleSchema,purgeExpiredTenants}=require('./src/services/tenantLifecycle');
 const {notifyOps}=require('./src/services/opsAlerts');
+const {ensureMarketingSchema,processMarketingCampaigns}=require('./src/services/marketing');
 const PORT=Number(process.env.PORT||3001);
 let server;
 let encerrando=false;
@@ -60,6 +61,7 @@ async function iniciar(){
     await ensureStorefrontSchema();
     await ensureStoreCommerceSchema();
     await ensureTenantLifecycleSchema();
+    await ensureMarketingSchema();
     const purged=await purgeExpiredTenants();
     if(purged)console.log(`Barbearias expiradas eliminadas permanentemente: ${purged}`);
     console.log('Base de pré-lançamento preparada.');
@@ -74,6 +76,7 @@ async function iniciar(){
     console.log('Loja pública preparada.');
     console.log('E-commerce e frete preparados.');
     console.log('Ciclo de exclusão de 30 dias preparado.');
+    console.log('Marketing, cupons, públicos e indicações preparados.');
     console.log('PostgreSQL conectado!');
     server=app.listen(PORT,()=>{
       console.log(`BarberFlow SaaS: http://localhost:${PORT}`);
@@ -82,6 +85,7 @@ async function iniciar(){
     });
     const purgeTimer=setInterval(()=>purgeExpiredTenants().catch(e=>console.error('tenant_purge_interval',e.message)),15*60*1000);purgeTimer.unref();
     const storeTimer=setInterval(()=>releaseExpiredStoreOrders().catch(e=>console.error('store_order_expiry',e.message)),5*60*1000);storeTimer.unref();
+    const marketingTimer=setInterval(()=>processMarketingCampaigns(2).catch(e=>console.error('marketing_campaign_interval',e.message)),60*1000);marketingTimer.unref();
   }catch(e){
     console.error('Falha ao iniciar: PostgreSQL indisponível:',e.message);
     await notifyOps({nivel:'error',evento:'startup_failed',mensagem:e.message});

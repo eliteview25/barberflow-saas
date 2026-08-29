@@ -44,6 +44,11 @@ const subPayments = read('src/services/subscriptionPayments.js');
 const paymentGateways = read('src/services/paymentGateways.js');
 const paymentsRoute = read('src/routes/pagamentos.js');
 const financeAnalytics = read('src/services/financeAnalytics.js');
+const marketingRoute = read('src/routes/marketing.js');
+const marketingPublic = read('src/routes/marketingPublic.js');
+const marketingService = read('src/services/marketing.js');
+const whatsappService = read('src/services/whatsapp.js');
+const storeCommerce = read('src/services/storeCommerce.js');
 const pkg = JSON.parse(read('package.json'));
 const frontFiles = filesRecursive(path.resolve(root, '../frontend'));
 const front = frontFiles.map(p => fs.readFileSync(p, 'utf8')).join('\n');
@@ -101,6 +106,17 @@ check(/mercadopago/.test(paymentGateways) && /pagbank/.test(paymentGateways) && 
 check(!paymentsRoute.includes('res.json({secret_enc') && !paymentsRoute.includes('res.json({access_token_enc') && !paymentsRoute.includes('res.json({refresh_token_enc'), 'API de pagamentos não devolve segredos armazenados ao frontend');
 check(/metas_financeiras/.test(financeAnalytics) && /barbearia_id=\$1/.test(financeAnalytics) && /exigirPapel\('dono'\).*financeiro\/metas/s.test(tenant), 'Metas financeiras são isoladas por tenant e edição exige dono');
 check(/NOT EXISTS\(SELECT 1 FROM vendas v WHERE v\.barbearia_id=a\.barbearia_id AND v\.agendamento_id=a\.id AND v\.status='finalizada'\)/.test(financeAnalytics), 'Analytics financeiro evita dupla contagem entre PDV e agendamento');
+
+check(/exigirRecurso\('marketing'\)/.test(marketingRoute) && /req\.usuario\.barbearia_id/.test(marketingRoute), 'Marketing exige plano compatível e escopo do tenant');
+check(/c\.barbearia_id=\$1 AND c\.marketing_opt_in=true/.test(marketingService), 'Públicos de campanha incluem somente clientes com consentimento promocional');
+check(/campanhas\/:id\/agendar'.*exigirStepUp/s.test(marketingRoute) && /cupons'.*exigirStepUp/s.test(marketingRoute), 'Envio de campanha e criação de cupons usam step-up de segurança');
+check(/validateCoupon/.test(storeCommerce) && /cupom_codigo/.test(storeCommerce) && /recordCouponUse/.test(storeCommerce), 'Cupons são validados e registrados no servidor no checkout da loja');
+check(/\^\(sair\|parar/.test(whatsappService) && /marketing_opt_in=false/.test(whatsappService) && /PROMOÇÕES|promoções/.test(whatsappService), 'WhatsApp processa opt-out e reautorização promocional');
+check(/updateWhatsAppMarketingStatus/.test(wa) && /statuses/.test(wa) && /provider_message_id/.test(marketingService), 'Webhook WhatsApp rastreia entrega e leitura das campanhas');
+check(/urlButtonParam/.test(whatsappService) && app.includes("app.use('/m',marketingLinkLimit,marketingPublic)") && /mkt=/.test(marketingPublic) && /marketing_link_id/.test(marketingService), 'Campanhas suportam botão dinâmico e links rastreáveis com atribuição');
+check(/marketingLinkLimit/.test(app) && /MARKETING_LINK_RATE_LIMIT_PER_MINUTE/.test(app), 'Links públicos de Marketing possuem rate limit dedicado');
+check(/marketing_opt_in===true/.test(storeCommerce) && /marketing_opt_in_em/.test(storeCommerce), 'Checkout da loja registra consentimento promocional explícito antes da conversão');
+
 
 const runtimeExternal = ['src/services/mercadoPago.js', 'src/services/mercadoPagoOAuth.js', 'src/services/whatsapp.js', 'src/services/whatsappQr.js', 'src/services/notifications.js', 'src/services/paymentGateways.js', 'src/routes/publico.js', 'src/routes/uploads.js', 'src/services/storeCommerce.js', 'src/routes/storePublic.js'];
 for (const file of runtimeExternal) { const s = read(file); if (/fetch\s*\(/.test(s)) check(/signal\s*:/.test(s), `${file} usa timeout/cancelamento em fetch externo`) }

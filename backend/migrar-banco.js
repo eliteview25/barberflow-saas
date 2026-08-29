@@ -1,4 +1,4 @@
-require('dotenv').config(); const bcrypt=require('bcryptjs'); const pool=require('./src/config/db'); const cleanEnv=(v,max)=>String(v||'').trim().slice(0,max);
+require('dotenv').config(); const bcrypt=require('bcryptjs'); const pool=require('./src/config/db'); const {ensureMarketingSchema}=require('./src/services/marketing'); const cleanEnv=(v,max)=>String(v||'').trim().slice(0,max);
 async function main(){const client=await pool.connect();try{await client.query('BEGIN');
 await client.query(`CREATE TABLE IF NOT EXISTS barbearias(id SERIAL PRIMARY KEY,nome VARCHAR(120) NOT NULL,slug VARCHAR(120) UNIQUE NOT NULL,telefone VARCHAR(30),email VARCHAR(160),endereco VARCHAR(200),cidade VARCHAR(100),estado VARCHAR(2),logo_url TEXT,cor_primaria VARCHAR(20) DEFAULT '#f59e0b',ativo BOOLEAN DEFAULT true,criado_em TIMESTAMP DEFAULT NOW())`);
 await client.query(`CREATE TABLE IF NOT EXISTS usuarios(id SERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id),nome VARCHAR(120) NOT NULL,email VARCHAR(160) UNIQUE NOT NULL,senha_hash TEXT NOT NULL,papel VARCHAR(30) DEFAULT 'recepcao',ativo BOOLEAN DEFAULT true,criado_em TIMESTAMP DEFAULT NOW())`);
@@ -283,4 +283,5 @@ await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS ux_meta_financeira_geral_m
 await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS ux_meta_financeira_barbeiro_mes ON metas_financeiras(barbearia_id,barbeiro_id,mes) WHERE barbeiro_id IS NOT NULL`);
 await client.query(`CREATE INDEX IF NOT EXISTS ix_metas_financeiras_tenant_mes ON metas_financeiras(barbearia_id,mes DESC)`);
 
+await ensureMarketingSchema(client);
 await client.query('COMMIT');console.log('✅ Migração SaaS concluída. Banco pronto para dados antigos ou instalação nova.');}catch(e){await client.query('ROLLBACK');console.error(e);process.exitCode=1;}finally{client.release();await pool.end();}}main();

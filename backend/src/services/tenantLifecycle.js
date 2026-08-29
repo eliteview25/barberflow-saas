@@ -14,6 +14,7 @@ async function deleteTenantData(id,db){
   await db.query(`DELETE FROM password_resets WHERE usuario_id IN (SELECT id FROM usuarios WHERE barbearia_id=$1)`,[id]);
   await db.query(`DELETE FROM email_verification_tokens WHERE usuario_id IN (SELECT id FROM usuarios WHERE barbearia_id=$1)`,[id]);
   const ordered=[
+    'marketing_envios','marketing_cupom_usos','marketing_indicacao_conversoes','marketing_indicacao_codigos','marketing_campanhas','marketing_links','marketing_modelos','marketing_cupons','marketing_indicacoes_config',
     'automacoes_envios','avaliacoes','reservas_pagamento','fila_espera','fidelidade_saldos','vendas','horarios_trabalho','agendamentos',
     'legal_acceptances','support_tickets','booking_otps','metas_financeiras','ai_uso_mensal','ai_config','automacoes_config','fidelidade_config','pacotes',
     'integracoes_whatsapp_qr','whatsapp_verify_tokens','whatsapp_sessoes','integracoes_whatsapp','oauth_states','integracoes_pagamento',

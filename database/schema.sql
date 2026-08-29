@@ -155,3 +155,44 @@ CREATE TABLE IF NOT EXISTS loja_pedido_itens(
 );
 CREATE INDEX IF NOT EXISTS ix_loja_pedidos_tenant_status ON loja_pedidos(barbearia_id,status_pedido,criado_em DESC);
 CREATE INDEX IF NOT EXISTS ix_loja_pedidos_expira ON loja_pedidos(status_pagamento,expira_em) WHERE status_pagamento='pendente';
+
+
+-- BarberFlow 2.8: Marketing, campanhas, cupons, indicação e atribuição
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS data_nascimento DATE;
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS marketing_opt_in BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS marketing_opt_out_em TIMESTAMP;
+CREATE TABLE IF NOT EXISTS marketing_modelos(id BIGSERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,nome VARCHAR(120) NOT NULL,template_nome_meta VARCHAR(512),idioma VARCHAR(20) NOT NULL DEFAULT 'pt_BR',mensagem_preview TEXT,parametros JSONB NOT NULL DEFAULT '[]'::jsonb,ativo BOOLEAN NOT NULL DEFAULT true,criado_em TIMESTAMP NOT NULL DEFAULT NOW(),atualizado_em TIMESTAMP NOT NULL DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS marketing_cupons(id BIGSERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,cliente_id INTEGER REFERENCES clientes(id) ON DELETE CASCADE,codigo VARCHAR(40) NOT NULL,descricao VARCHAR(200),tipo VARCHAR(20) NOT NULL,valor NUMERIC(10,2) NOT NULL,pedido_minimo NUMERIC(10,2) NOT NULL DEFAULT 0,desconto_maximo NUMERIC(10,2),inicio TIMESTAMP,fim TIMESTAMP,limite_total INTEGER,limite_por_cliente INTEGER NOT NULL DEFAULT 1,usos INTEGER NOT NULL DEFAULT 0,ativo BOOLEAN NOT NULL DEFAULT true,criado_em TIMESTAMP NOT NULL DEFAULT NOW(),atualizado_em TIMESTAMP NOT NULL DEFAULT NOW(),UNIQUE(barbearia_id,codigo));
+CREATE TABLE IF NOT EXISTS marketing_campanhas(id BIGSERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,nome VARCHAR(160) NOT NULL,objetivo VARCHAR(80),segmento VARCHAR(40) NOT NULL DEFAULT 'todos',segmento_config JSONB NOT NULL DEFAULT '{}'::jsonb,modelo_id BIGINT REFERENCES marketing_modelos(id) ON DELETE SET NULL,template_nome VARCHAR(512),template_idioma VARCHAR(20) NOT NULL DEFAULT 'pt_BR',template_parametros JSONB NOT NULL DEFAULT '[]'::jsonb,mensagem_preview TEXT,cupom_id BIGINT REFERENCES marketing_cupons(id) ON DELETE SET NULL,investimento NUMERIC(10,2) NOT NULL DEFAULT 0,status VARCHAR(30) NOT NULL DEFAULT 'rascunho',agendada_para TIMESTAMP,total_alvo INTEGER NOT NULL DEFAULT 0,enviados INTEGER NOT NULL DEFAULT 0,erros INTEGER NOT NULL DEFAULT 0,cliques INTEGER NOT NULL DEFAULT 0,conversoes INTEGER NOT NULL DEFAULT 0,receita NUMERIC(12,2) NOT NULL DEFAULT 0,criado_por INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,enviado_em TIMESTAMP,criado_em TIMESTAMP NOT NULL DEFAULT NOW(),atualizado_em TIMESTAMP NOT NULL DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS marketing_envios(id BIGSERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,campanha_id BIGINT NOT NULL REFERENCES marketing_campanhas(id) ON DELETE CASCADE,cliente_id INTEGER REFERENCES clientes(id) ON DELETE SET NULL,telefone VARCHAR(40) NOT NULL,status VARCHAR(30) NOT NULL DEFAULT 'pendente',erro TEXT,enviado_em TIMESTAMP,criado_em TIMESTAMP NOT NULL DEFAULT NOW(),UNIQUE(campanha_id,cliente_id));
+CREATE TABLE IF NOT EXISTS marketing_links(id BIGSERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,campanha_id BIGINT REFERENCES marketing_campanhas(id) ON DELETE SET NULL,nome VARCHAR(140) NOT NULL,token VARCHAR(80) NOT NULL UNIQUE,destino VARCHAR(30) NOT NULL,cliques INTEGER NOT NULL DEFAULT 0,conversoes INTEGER NOT NULL DEFAULT 0,receita NUMERIC(12,2) NOT NULL DEFAULT 0,ativo BOOLEAN NOT NULL DEFAULT true,criado_em TIMESTAMP NOT NULL DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS marketing_cupom_usos(id BIGSERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,cupom_id BIGINT NOT NULL REFERENCES marketing_cupons(id) ON DELETE CASCADE,loja_pedido_id BIGINT REFERENCES loja_pedidos(id) ON DELETE SET NULL,cliente_id INTEGER REFERENCES clientes(id) ON DELETE SET NULL,telefone VARCHAR(40),valor_desconto NUMERIC(10,2) NOT NULL DEFAULT 0,criado_em TIMESTAMP NOT NULL DEFAULT NOW(),UNIQUE(loja_pedido_id));
+CREATE TABLE IF NOT EXISTS marketing_indicacoes_config(barbearia_id INTEGER PRIMARY KEY REFERENCES barbearias(id) ON DELETE CASCADE,ativo BOOLEAN NOT NULL DEFAULT false,tipo_recompensa VARCHAR(20) NOT NULL DEFAULT 'fixo',valor_indicador NUMERIC(10,2) NOT NULL DEFAULT 10,valor_indicado NUMERIC(10,2) NOT NULL DEFAULT 10,pedido_minimo NUMERIC(10,2) NOT NULL DEFAULT 0,atualizado_em TIMESTAMP NOT NULL DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS marketing_indicacao_codigos(id BIGSERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,cliente_id INTEGER NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,codigo VARCHAR(40) NOT NULL UNIQUE,ativo BOOLEAN NOT NULL DEFAULT true,criado_em TIMESTAMP NOT NULL DEFAULT NOW(),UNIQUE(barbearia_id,cliente_id));
+CREATE TABLE IF NOT EXISTS marketing_indicacao_conversoes(id BIGSERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,codigo_id BIGINT NOT NULL REFERENCES marketing_indicacao_codigos(id) ON DELETE CASCADE,indicado_cliente_id INTEGER NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,loja_pedido_id BIGINT NOT NULL REFERENCES loja_pedidos(id) ON DELETE CASCADE,cupom_indicador_id BIGINT REFERENCES marketing_cupons(id) ON DELETE SET NULL,cupom_indicado_id BIGINT REFERENCES marketing_cupons(id) ON DELETE SET NULL,criado_em TIMESTAMP NOT NULL DEFAULT NOW(),UNIQUE(barbearia_id,indicado_cliente_id),UNIQUE(loja_pedido_id));
+ALTER TABLE loja_pedidos ADD COLUMN IF NOT EXISTS desconto NUMERIC(10,2) NOT NULL DEFAULT 0;
+ALTER TABLE loja_pedidos ADD COLUMN IF NOT EXISTS cupom_id BIGINT REFERENCES marketing_cupons(id) ON DELETE SET NULL;
+ALTER TABLE loja_pedidos ADD COLUMN IF NOT EXISTS cupom_codigo VARCHAR(40);
+ALTER TABLE loja_pedidos ADD COLUMN IF NOT EXISTS marketing_link_id BIGINT REFERENCES marketing_links(id) ON DELETE SET NULL;
+ALTER TABLE loja_pedidos ADD COLUMN IF NOT EXISTS marketing_campanha_id BIGINT REFERENCES marketing_campanhas(id) ON DELETE SET NULL;
+ALTER TABLE loja_pedidos ADD COLUMN IF NOT EXISTS indicacao_codigo VARCHAR(40);
+ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS marketing_link_id BIGINT REFERENCES marketing_links(id) ON DELETE SET NULL;
+ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS marketing_campanha_id BIGINT REFERENCES marketing_campanhas(id) ON DELETE SET NULL;
+ALTER TABLE reservas_pagamento ADD COLUMN IF NOT EXISTS marketing_link_id BIGINT REFERENCES marketing_links(id) ON DELETE SET NULL;
+ALTER TABLE reservas_pagamento ADD COLUMN IF NOT EXISTS marketing_campanha_id BIGINT REFERENCES marketing_campanhas(id) ON DELETE SET NULL;
+
+-- BarberFlow 2.8.0 — complementos de consentimento, entrega/leitura e atribuição
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS marketing_opt_in_em TIMESTAMP;
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS marketing_opt_in_origem VARCHAR(40);
+ALTER TABLE marketing_campanhas ADD COLUMN IF NOT EXISTS link_destino VARCHAR(30);
+ALTER TABLE marketing_campanhas ADD COLUMN IF NOT EXISTS marketing_link_id BIGINT REFERENCES marketing_links(id) ON DELETE SET NULL;
+ALTER TABLE marketing_envios ADD COLUMN IF NOT EXISTS provider_message_id TEXT;
+ALTER TABLE marketing_envios ADD COLUMN IF NOT EXISTS tentativas INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE marketing_envios ADD COLUMN IF NOT EXISTS entregue_em TIMESTAMP;
+ALTER TABLE marketing_envios ADD COLUMN IF NOT EXISTS lido_em TIMESTAMP;
+ALTER TABLE marketing_envios ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMP NOT NULL DEFAULT NOW();
+ALTER TABLE loja_pedidos ADD COLUMN IF NOT EXISTS marketing_opt_in BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE reservas_pagamento ADD COLUMN IF NOT EXISTS marketing_opt_in BOOLEAN NOT NULL DEFAULT false;
+CREATE INDEX IF NOT EXISTS ix_marketing_campanhas_tenant ON marketing_campanhas(barbearia_id,status,criado_em DESC);
+CREATE INDEX IF NOT EXISTS ix_marketing_envios_status ON marketing_envios(campanha_id,status);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_marketing_envio_provider_message ON marketing_envios(provider_message_id) WHERE provider_message_id IS NOT NULL;

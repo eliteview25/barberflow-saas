@@ -18,9 +18,8 @@ async function configPayload(barbeariaId){
     COALESCE(loja_frete_minimo,0) loja_frete_minimo,loja_frete_gratis_ate_km,loja_frete_gratis_acima,COALESCE(loja_frete_distancia_max_km,20) loja_frete_distancia_max_km,
     COALESCE(loja_aceitar_pix,true) loja_aceitar_pix,COALESCE(loja_aceitar_cartao,true) loja_aceitar_cartao
     FROM barbearias WHERE id=$1`,[barbeariaId])).rows[0];
-  const produtos=(await pool.query(`SELECT id,nome,preco,estoque,ativo,imagem_url,descricao_publica,COALESCE(mostrar_na_loja,false) mostrar_na_loja,COALESCE(destaque_pagina_publica,false) destaque_pagina_publica FROM produtos WHERE barbearia_id=$1 ORDER BY ativo DESC,nome`,[barbeariaId])).rows;
   const ctx=await contextoPlano(barbeariaId),mp=await tenantMpCredentials(barbeariaId);
-  return {barbearia:b,produtos,plano:ctx.plano_efetivo,mercadopago:{configurado:mp.configured,webhook_pronto:!!mp.webhookReady},frete_provedor:(process.env.GOOGLE_MAPS_ROUTES_API_KEY||process.env.GOOGLE_MAPS_API_KEY)?'Google Routes':'OpenStreetMap / OSRM'};
+  return {barbearia:b,plano:ctx.plano_efetivo,mercadopago:{configurado:mp.configured,webhook_pronto:!!mp.webhookReady},frete_provedor:(process.env.GOOGLE_MAPS_ROUTES_API_KEY||process.env.GOOGLE_MAPS_API_KEY)?'Google Routes':'OpenStreetMap / OSRM'};
 }
 router.get('/config',async(req,res)=>{try{res.json(await configPayload(req.usuario.barbearia_id))}catch(e){console.error(e);res.status(500).json({erro:'Erro ao carregar configurações da loja'})}});
 

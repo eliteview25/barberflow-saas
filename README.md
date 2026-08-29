@@ -73,3 +73,12 @@ Consulte `PAGAMENTOS-GATEWAYS.md` para configuração e limites desta versão.
 ## Pagamentos 2.3
 
 Gateways e checkout agora ficam totalmente centralizados em **Pagamentos**. A aba Configurações não possui mais recebimentos. Mercado Pago, PagBank, Asaas, Pagar.me e Stripe ficam prontos para receber as credenciais do dono da barbearia; apenas o driver Mercado Pago está ativo no checkout nesta etapa. Veja `PAGAMENTOS-GATEWAYS.md`.
+
+## BarberFlow 2.8 — Marketing
+- Central Premium com visão geral, campanhas, públicos, cupons, indicações, links rastreáveis e modelos WhatsApp.
+- Segmentação por aniversariantes, novos, inativos, VIP, frequência, faltas, compradores e carrinho abandonado.
+- Consentimento promocional explícito no cliente, agendamento público e checkout da loja, com opt-out por SAIR/PARAR.
+- Campanhas pela WhatsApp Cloud API usando templates aprovados, lotes, retry e acompanhamento de enviado/entregue/lido.
+- Links rastreáveis conectam campanhas à agenda/loja e atribuem conversões e receita.
+- Cupons server-side e programa de indicação com recompensas automáticas.
+- Schema preparado automaticamente no boot; não depende de comandos manuais no Render.
