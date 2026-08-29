@@ -3,6 +3,7 @@ const pool=require('../config/db');
 const {precoPlano,obterPagamento}=require('./mercadoPago');
 
 async function ensureSubscriptionPaymentSchema(db=pool){
+  await db.query(`ALTER TABLE assinaturas ADD COLUMN IF NOT EXISTS ciclo_cobranca VARCHAR(20) NOT NULL DEFAULT 'mensal'`);
   await db.query(`CREATE TABLE IF NOT EXISTS assinaturas_pagamentos(
     id BIGSERIAL PRIMARY KEY,
     barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,
@@ -21,12 +22,12 @@ async function ensureSubscriptionPaymentSchema(db=pool){
     criado_em TIMESTAMP NOT NULL DEFAULT NOW(),
     atualizado_em TIMESTAMP NOT NULL DEFAULT NOW()
   )`);
-  for(const [col,type] of [['qr_code','TEXT'],['qr_code_base64','TEXT'],['ticket_url','TEXT']]) await db.query(`ALTER TABLE assinaturas_pagamentos ADD COLUMN IF NOT EXISTS ${col} ${type}`);
+  for(const [col,type] of [['qr_code','TEXT'],['qr_code_base64','TEXT'],['ticket_url','TEXT'],['ciclo_cobranca',"VARCHAR(20) NOT NULL DEFAULT 'mensal'"]]) await db.query(`ALTER TABLE assinaturas_pagamentos ADD COLUMN IF NOT EXISTS ${col} ${type}`);
   await db.query(`CREATE UNIQUE INDEX IF NOT EXISTS ux_assinaturas_pagamentos_ref ON assinaturas_pagamentos(referencia_externa) WHERE referencia_externa IS NOT NULL`);
   await db.query(`CREATE INDEX IF NOT EXISTS ix_assinaturas_pagamentos_tenant_status ON assinaturas_pagamentos(barbearia_id,status,criado_em DESC)`);
 }
-function pixExternalReference({barbeariaId,plano,paymentRowId}){return `barberflow-subscription-pix:${barbeariaId}:${plano}:${paymentRowId}`}
-function parsePixExternalReference(value){const m=String(value||'').match(/^barberflow-subscription-pix:(\d+):(starter|pro|premium):(\d+)$/);return m?{barbeariaId:Number(m[1]),plano:m[2],paymentRowId:Number(m[3])}:null}
+function pixExternalReference({barbeariaId,plano,ciclo='mensal',paymentRowId}){return `barberflow-subscription-pix:${barbeariaId}:${plano}:${ciclo==='anual'?'anual':'mensal'}:${paymentRowId}`}
+function parsePixExternalReference(value){const raw=String(value||'');let m=raw.match(/^barberflow-subscription-pix:(\d+):(starter|pro|premium):(mensal|anual):(\d+)$/);if(m)return {barbeariaId:Number(m[1]),plano:m[2],ciclo:m[3],paymentRowId:Number(m[4])};m=raw.match(/^barberflow-subscription-pix:(\d+):(starter|pro|premium):(\d+)$/);return m?{barbeariaId:Number(m[1]),plano:m[2],ciclo:'mensal',paymentRowId:Number(m[3])}:null}
 function normalizeMpPaymentStatus(status){const s=String(status||'').toLowerCase();if(s==='approved')return 'pago';if(['pending','in_process','in_mediation','authorized'].includes(s))return 'pendente';if(['rejected','cancelled','canceled','refunded','charged_back'].includes(s))return 'cancelado';return 'pendente'}
 function paymentAmount(payment){return Number(payment?.transaction_amount??payment?.amount??payment?.transaction_details?.total_paid_amount??0)}
 async function aplicarPagamentoPix(payment,{expectedTenantId=null,db=pool}={}){
@@ -45,7 +46,7 @@ async function aplicarPagamentoPix(payment,{expectedTenantId=null,db=pool}={}){
     const atual=(await db.query(`SELECT id,plano,proxima_cobranca FROM assinaturas WHERE barbearia_id=$1 ORDER BY id DESC LIMIT 1 FOR UPDATE`,[parsed.barbeariaId])).rows[0];
     if(!atual)throw new Error('Assinatura local não encontrada');
     const renewing=atual.plano===parsed.plano;
-    await db.query(`UPDATE assinaturas SET plano=$1,plano_pendente=NULL,status='ativa',provedor='mercadopago_pix',provedor_status='approved',checkout_url=NULL,billing_change_pending=false,billing_idempotency_key=NULL,proxima_cobranca=CASE WHEN $2 AND proxima_cobranca>=CURRENT_DATE THEN (proxima_cobranca+INTERVAL '1 month')::date ELSE (CURRENT_DATE+INTERVAL '1 month')::date END,atualizado_em=NOW() WHERE id=$3`,[parsed.plano,renewing,atual.id]);
+    await db.query(`UPDATE assinaturas SET plano=$1,plano_pendente=NULL,status='ativa',provedor='mercadopago_pix',provedor_status='approved',checkout_url=NULL,billing_change_pending=false,billing_idempotency_key=NULL,ciclo_cobranca=$4,proxima_cobranca=CASE WHEN $4='anual' AND $2 AND proxima_cobranca>=CURRENT_DATE THEN (proxima_cobranca+INTERVAL '1 year')::date WHEN $4='anual' THEN (CURRENT_DATE+INTERVAL '1 year')::date WHEN $2 AND proxima_cobranca>=CURRENT_DATE THEN (proxima_cobranca+INTERVAL '1 month')::date ELSE (CURRENT_DATE+INTERVAL '1 month')::date END,atualizado_em=NOW() WHERE id=$3`,[parsed.plano,renewing,atual.id,parsed.ciclo||'mensal']);
     await db.query(`INSERT INTO assinaturas_cobrancas(barbearia_id,assinatura_id,competencia,valor,status,vencimento,pago_em,provedor,referencia_externa) VALUES($1,$2,date_trunc('month',CURRENT_DATE)::date,$3,'pago',CURRENT_DATE,NOW(),'mercadopago_pix',$4) ON CONFLICT (provedor,referencia_externa) WHERE referencia_externa IS NOT NULL DO UPDATE SET status='pago',pago_em=COALESCE(assinaturas_cobrancas.pago_em,NOW()),valor=EXCLUDED.valor,atualizado_em=NOW()`,[parsed.barbeariaId,atual.id,Number(row.valor),ref]);
   }
   return {...row,status,referencia_externa:ref};

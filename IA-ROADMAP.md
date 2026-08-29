@@ -18,9 +18,9 @@ A IA nunca deve receber uma conexão SQL nem gerar SQL. As ações previstas sã
 A tabela `ai_config` guarda apenas preferências operacionais do tenant: nome do assistente, tom, mensagens e quais ações podem ser usadas. A tabela `ai_uso_mensal` está preparada para contabilizar franquia, tokens e custo por tenant.
 
 ## Planos
-- Starter: R$ 49,90/mês — até 2 profissionais.
-- Pro: R$ 89,90/mês — até 5 profissionais. IA prevista como adicional de R$ 59,90/mês quando o billing do add-on for implementado.
-- Premium: R$ 169,90/mês — profissionais ilimitados e IA incluída quando a integração for ativada. Franquia planejada: 500 atendimentos/mês.
+- Starter: R$ 59,90/mês — até 2 profissionais.
+- Pro: R$ 109,90/mês — até 5 profissionais. IA prevista como adicional de R$ 59,90/mês quando o billing do add-on for implementado.
+- Premium: R$ 189,90/mês — profissionais ilimitados e IA incluída quando a integração for ativada. Franquia planejada: 500 atendimentos/mês.
 
 ## Próxima implementação
 1. Webhook de mensagens recebidas da Meta.

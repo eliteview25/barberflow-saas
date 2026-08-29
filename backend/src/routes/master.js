@@ -9,18 +9,20 @@ const {audit}=require('../services/audit');
 const {PROVIDERS}=require('../services/paymentGateways');
 const {listPlatformGateways,savePlatformGatewayCredentials,disconnectPlatformGateway}=require('../services/platformPaymentGateways');
 const {getSupportSettings,setPlatformSetting}=require('../services/platformSettings');
+const {ensureTenantLifecycleSchema,purgeTenantPermanent,purgeExpiredTenants}=require('../services/tenantLifecycle');
 const router=express.Router();
 router.use(autenticar,exigirPapel('super_admin'));
 
-function mensalidade(plano){try{return precoPlano(plano)}catch{return 0}}
+function mensalidade(plano,ciclo='mensal'){try{const valor=precoPlano(plano,ciclo);return ciclo==='anual'?valor/12:valor}catch{return 0}}
 function validarPlano(p){return ['starter','pro','premium'].includes(p)}
 function validarStatus(s){return ['trial','ativa','inadimplente','atrasada','cancelada'].includes(s)}
+async function cancelarCobrancaAntesDeExcluir(id){const ext=(await pool.query(`SELECT provedor,referencia_externa,status FROM assinaturas WHERE barbearia_id=$1 ORDER BY id DESC LIMIT 1`,[id])).rows[0];if(ext?.provedor==='mercadopago'&&ext.referencia_externa&&ext.status!=='cancelada')await atualizarStatusAssinatura(ext.referencia_externa,'canceled');}
 
 router.get('/dashboard',async(req,res)=>{
   try{
     const resumo=await pool.query(`
       WITH ult AS (
-        SELECT DISTINCT ON (barbearia_id) barbearia_id,plano,status,fim_trial,proxima_cobranca
+        SELECT DISTINCT ON (barbearia_id) barbearia_id,plano,status,fim_trial,proxima_cobranca,COALESCE(ciclo_cobranca,'mensal') ciclo_cobranca
         FROM assinaturas ORDER BY barbearia_id,id DESC
       )
       SELECT
@@ -33,8 +35,9 @@ router.get('/dashboard',async(req,res)=>{
         (SELECT COUNT(*) FROM agendamentos a JOIN barbearias b ON b.id=a.barbearia_id WHERE date_trunc('month',a.data)=date_trunc('month',CURRENT_DATE) AND COALESCE(b.is_system,false)=false AND b.excluido_em IS NULL)::int AS agendamentos_mes,
         (SELECT COUNT(*) FROM clientes c JOIN barbearias b ON b.id=c.barbearia_id WHERE COALESCE(b.is_system,false)=false AND b.excluido_em IS NULL)::int AS clientes_total
     `);
-    const planos=await pool.query(`SELECT plano,COUNT(*)::int quantidade FROM (SELECT DISTINCT ON (a.barbearia_id) a.barbearia_id,a.plano,a.status FROM assinaturas a JOIN barbearias b ON b.id=a.barbearia_id WHERE COALESCE(b.is_system,false)=false AND b.excluido_em IS NULL ORDER BY a.barbearia_id,a.id DESC) x WHERE status='ativa' GROUP BY plano`);
-    const mrr=planos.rows.reduce((s,x)=>s+mensalidade(x.plano)*Number(x.quantidade),0);
+    const ciclos=await pool.query(`SELECT plano,COALESCE(ciclo_cobranca,'mensal') ciclo,COUNT(*)::int quantidade FROM (SELECT DISTINCT ON (a.barbearia_id) a.barbearia_id,a.plano,a.status,a.ciclo_cobranca FROM assinaturas a JOIN barbearias b ON b.id=a.barbearia_id WHERE COALESCE(b.is_system,false)=false AND b.excluido_em IS NULL ORDER BY a.barbearia_id,a.id DESC) x WHERE status='ativa' GROUP BY plano,COALESCE(ciclo_cobranca,'mensal')`);
+    const grupos={};for(const x of ciclos.rows){grupos[x.plano]??={plano:x.plano,quantidade:0,mrr:0};grupos[x.plano].quantidade+=Number(x.quantidade);grupos[x.plano].mrr+=mensalidade(x.plano,x.ciclo)*Number(x.quantidade)}const planos=Object.values(grupos);
+    const mrr=planos.reduce((s,x)=>s+Number(x.mrr||0),0);
     const recentes=await pool.query(`
       SELECT b.id,b.nome,b.slug,b.ativo,b.criado_em,u.nome dono,u.email,
              a.plano,a.status,a.fim_trial,a.proxima_cobranca,
@@ -45,7 +48,7 @@ router.get('/dashboard',async(req,res)=>{
       WHERE COALESCE(b.is_system,false)=false AND b.excluido_em IS NULL
       ORDER BY b.criado_em DESC LIMIT 8
     `);
-    res.json({resumo:{...resumo.rows[0],mrr},planos:planos.rows,recentes:recentes.rows});
+    res.json({resumo:{...resumo.rows[0],mrr},planos,recentes:recentes.rows});
   }catch(e){console.error(e);res.status(500).json({erro:'Erro ao carregar Dashboard Master'});}
 });
 
@@ -63,7 +66,7 @@ router.get('/financeiro',async(req,res)=>{
       GROUP BY 1 ORDER BY 1
     `,[mesesPassados]);
     const atuais=await pool.query(`
-      SELECT a.barbearia_id,a.plano,a.status,a.fim_trial,a.proxima_cobranca,b.nome
+      SELECT a.barbearia_id,a.plano,a.status,a.fim_trial,a.proxima_cobranca,COALESCE(a.ciclo_cobranca,'mensal') ciclo_cobranca,b.nome
       FROM assinaturas a
       JOIN barbearias b ON b.id=a.barbearia_id
       WHERE a.id=(SELECT id FROM assinaturas x WHERE x.barbearia_id=a.barbearia_id ORDER BY id DESC LIMIT 1)
@@ -83,7 +86,7 @@ router.get('/financeiro',async(req,res)=>{
       const d=new Date();d.setDate(1);d.setMonth(d.getMonth()+i);
       let projetado=0;let assinaturas=0;
       for(const a of atuais.rows){
-        const valor=mensalidade(a.plano);
+        const valor=mensalidade(a.plano,a.ciclo_cobranca);
         if(!valor)continue;
         if(a.status==='ativa'){projetado+=valor;assinaturas++;continue;}
         if(a.status==='trial'){
@@ -95,10 +98,10 @@ router.get('/financeiro',async(req,res)=>{
       futuro.push({periodo:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,projetado,assinaturas});
     }
     const mesAtual=historico[historico.length-1]||{realizado:0,em_aberto:0};
-    const mrr=atuais.rows.filter(x=>x.status==='ativa').reduce((s,x)=>s+mensalidade(x.plano),0);
+    const mrr=atuais.rows.filter(x=>x.status==='ativa').reduce((s,x)=>s+mensalidade(x.plano,x.ciclo_cobranca),0);
     const projetado12=futuro.slice(0,12).reduce((s,x)=>s+x.projetado,0);
     const realizado12=historico.slice(-12).reduce((s,x)=>s+x.realizado,0);
-    const planosMix=['starter','pro','premium'].map(plano=>{const rows=atuais.rows.filter(x=>x.status==='ativa'&&x.plano===plano);return {plano,quantidade:rows.length,mrr:rows.length*mensalidade(plano)};});
+    const planosMix=['starter','pro','premium'].map(plano=>{const rows=atuais.rows.filter(x=>x.status==='ativa'&&x.plano===plano);return {plano,quantidade:rows.length,mrr:rows.reduce((s,x)=>s+mensalidade(plano,x.ciclo_cobranca),0)};});
     res.json({
       resumo:{mrr,arr:mrr*12,realizado_mes:mesAtual.realizado,em_aberto:mesAtual.em_aberto,realizado_12m:realizado12,projetado_12m:projetado12},
       historico,futuro,planos:planosMix,cobrancas_status:cobrancasStatus.rows.map(x=>({...x,total:Number(x.total||0)})),
@@ -109,13 +112,14 @@ router.get('/financeiro',async(req,res)=>{
 
 router.get('/barbearias',async(req,res)=>{
   try{
+    await purgeExpiredTenants();
     const busca=String(req.query.busca||'').trim().slice(0,120);
     const status=String(req.query.status||'').trim();if(status&&!['trial','ativa','inadimplente','atrasada','cancelada','excluida'].includes(status))return res.status(400).json({erro:'Filtro de status inválido'});
     const vals=[];const where=[`COALESCE(b.is_system,false)=false`];
     if(busca){vals.push(`%${busca}%`);where.push(`(b.nome ILIKE $${vals.length} OR b.slug ILIKE $${vals.length} OR u.email ILIKE $${vals.length})`)}
     if(status==='excluida')where.push(`b.excluido_em IS NOT NULL`);else{where.push(`b.excluido_em IS NULL`);if(status){vals.push(status);where.push(`a.status=$${vals.length}`)}}
     const r=await pool.query(`
-      SELECT b.id,b.nome,b.slug,b.telefone,b.email,b.cidade,b.estado,b.ativo,b.criado_em,b.excluido_em,
+      SELECT b.id,b.nome,b.slug,b.telefone,b.email,b.cidade,b.estado,b.ativo,b.criado_em,b.excluido_em,b.exclusao_programada_em,
              u.nome dono,u.email dono_email,a.plano,a.status,a.fim_trial,a.proxima_cobranca,
              (SELECT COUNT(*) FROM usuarios x WHERE x.barbearia_id=b.id AND x.ativo=true)::int usuarios,
              (SELECT COUNT(*) FROM barbeiros x WHERE x.barbearia_id=b.id AND x.ativo=true)::int barbeiros,
@@ -157,30 +161,24 @@ router.patch('/barbearias/:id/status',exigirStepUp,async(req,res)=>{
 });
 
 router.delete('/barbearias/:id',exigirStepUp,async(req,res)=>{
-  const id=Number(req.params.id); const confirmacao=String(req.body?.confirmacao||'').trim();
-  if(!Number.isInteger(id)||id<1)return res.status(400).json({erro:'Barbearia inválida'});
+  const id=intId(req.params.id),confirmacao=String(req.body?.confirmacao||'').trim();
+  if(!id)return res.status(400).json({erro:'Barbearia inválida'});
   try{
+    await ensureTenantLifecycleSchema();
     const pre=(await pool.query(`SELECT id,nome,excluido_em FROM barbearias WHERE id=$1 AND COALESCE(is_system,false)=false`,[id])).rows[0];
-    if(!pre)return res.status(404).json({erro:'Barbearia não encontrada'});if(pre.excluido_em)return res.status(409).json({erro:'Barbearia já excluída'});if(confirmacao!==pre.nome)return res.status(400).json({erro:'Digite exatamente o nome da barbearia para confirmar a exclusão'});
-    const ext=(await pool.query(`SELECT provedor,referencia_externa,status FROM assinaturas WHERE barbearia_id=$1 ORDER BY id DESC LIMIT 1`,[id])).rows[0];
-    if(ext?.provedor==='mercadopago'&&ext.referencia_externa&&ext.status!=='cancelada'){try{await atualizarStatusAssinatura(ext.referencia_externa,'canceled')}catch(e){console.error('cancel_subscription_before_delete',e.data||e.message);return res.status(502).json({erro:'Não foi possível cancelar a cobrança recorrente no Mercado Pago. A barbearia não foi excluída para evitar cobrança indevida.'})}}
-  }catch(e){return res.status(500).json({erro:'Erro ao validar cobrança externa'})}
-  const client=await pool.connect();
-  try{
-    await client.query('BEGIN');
-    const b=await client.query(`SELECT id,nome,excluido_em FROM barbearias WHERE id=$1 AND COALESCE(is_system,false)=false FOR UPDATE`,[id]);
-    if(!b.rowCount){await client.query('ROLLBACK');return res.status(404).json({erro:'Barbearia não encontrada'});}
-    if(b.rows[0].excluido_em){await client.query('ROLLBACK');return res.status(409).json({erro:'Barbearia já excluída'});}
-    if(confirmacao!==b.rows[0].nome){await client.query('ROLLBACK');return res.status(400).json({erro:'Digite exatamente o nome da barbearia para confirmar a exclusão'});}
-    await client.query(`UPDATE barbearias SET ativo=false,excluido_em=NOW() WHERE id=$1`,[id]);
-    await client.query(`UPDATE usuarios SET desativado_por_exclusao=true,ativo=false WHERE barbearia_id=$1 AND papel<>'super_admin' AND ativo=true`,[id]);
-    await client.query(`UPDATE assinaturas SET status_antes_exclusao=status,status='cancelada',atualizado_em=NOW() WHERE id=(SELECT id FROM assinaturas WHERE barbearia_id=$1 ORDER BY id DESC LIMIT 1)`,[id]);
-    await audit(req,{acao:'master.barbearia.excluida',barbeariaId:id,alvoTipo:'barbearia',alvoId:id,detalhes:{nome:b.rows[0].nome}},client);
-    await client.query('COMMIT');res.json({mensagem:'Barbearia excluída com segurança. Os dados foram preservados para auditoria/restauração.'});
-  }catch(e){await client.query('ROLLBACK');console.error(e);res.status(500).json({erro:'Erro ao excluir barbearia'});}finally{client.release();}
+    if(!pre)return res.status(404).json({erro:'Barbearia não encontrada'});if(pre.excluido_em)return res.status(409).json({erro:'Barbearia já está na lixeira'});
+    if(confirmacao!==pre.nome)return res.status(400).json({erro:'Digite exatamente o nome da barbearia'});
+    try{await cancelarCobrancaAntesDeExcluir(id)}catch(e){console.error('cancel_subscription_before_delete',e.data||e.message);return res.status(502).json({erro:'Não foi possível cancelar a cobrança recorrente. A barbearia não foi excluída.'})}
+    const c=await pool.connect();try{await c.query('BEGIN');const b=(await c.query(`SELECT id,nome,excluido_em FROM barbearias WHERE id=$1 AND COALESCE(is_system,false)=false FOR UPDATE`,[id])).rows[0];if(!b){await c.query('ROLLBACK');return res.status(404).json({erro:'Barbearia não encontrada'})}if(b.excluido_em){await c.query('ROLLBACK');return res.status(409).json({erro:'Barbearia já está na lixeira'})}await c.query(`UPDATE barbearias SET ativo=false,excluido_em=NOW(),exclusao_programada_em=NOW()+INTERVAL '30 days',excluida_por=$2 WHERE id=$1`,[id,req.usuario.id]);await c.query(`UPDATE usuarios SET desativado_por_exclusao=true,ativo=false WHERE barbearia_id=$1 AND papel<>'super_admin' AND ativo=true`,[id]);await c.query(`UPDATE assinaturas SET status_antes_exclusao=status,status='cancelada',provedor_status=CASE WHEN provedor='mercadopago' THEN 'canceled' ELSE provedor_status END,atualizado_em=NOW() WHERE id=(SELECT id FROM assinaturas WHERE barbearia_id=$1 ORDER BY id DESC LIMIT 1)`,[id]);await audit(req,{acao:'master.barbearia.excluida',barbeariaId:id,alvoTipo:'barbearia',alvoId:id,detalhes:{nome:b.nome,retencao_dias:30,exclusao_permanente:false}},c);await c.query('COMMIT');res.json({mensagem:'Barbearia enviada para a lixeira por 30 dias.',exclusao_em_dias:30});}catch(e){await c.query('ROLLBACK').catch(()=>{});throw e}finally{c.release()}
+  }catch(e){console.error(e);res.status(500).json({erro:'Erro ao excluir barbearia'})}
 });
 
-router.post('/barbearias/:id/restaurar',exigirStepUp,async(req,res)=>{const id=intId(req.params.id);if(!id)return res.status(400).json({erro:'Barbearia inválida'});const c=await pool.connect();try{await c.query('BEGIN');const r=await c.query(`UPDATE barbearias SET ativo=true,excluido_em=NULL WHERE id=$1 AND COALESCE(is_system,false)=false RETURNING id,nome,ativo`,[id]);if(!r.rowCount){await c.query('ROLLBACK');return res.status(404).json({erro:'Barbearia não encontrada'})}await c.query(`UPDATE usuarios SET ativo=true,desativado_por_exclusao=false WHERE barbearia_id=$1 AND desativado_por_exclusao=true AND papel<>'super_admin'`,[id]);await audit(req,{acao:'master.barbearia.restaurada',barbeariaId:id,alvoTipo:'barbearia',alvoId:id,detalhes:{nome:r.rows[0].nome}},c);await c.query('COMMIT');res.json({...r.rows[0],assinatura_reativacao_necessaria:true,mensagem:'Barbearia e usuários restaurados. Reative/reconcilie a assinatura antes de liberar cobrança.'})}catch(e){await c.query('ROLLBACK');res.status(500).json({erro:'Erro ao restaurar barbearia'})}finally{c.release()}});
+router.delete('/barbearias/:id/permanente',exigirStepUp,async(req,res)=>{
+  const id=intId(req.params.id),confirmacao=String(req.body?.confirmacao||'').trim();if(!id)return res.status(400).json({erro:'Barbearia inválida'});
+  try{const pre=(await pool.query(`SELECT id,nome FROM barbearias WHERE id=$1 AND COALESCE(is_system,false)=false`,[id])).rows[0];if(!pre)return res.status(404).json({erro:'Barbearia não encontrada'});if(confirmacao!==pre.nome)return res.status(400).json({erro:'Digite exatamente o nome da barbearia'});try{await cancelarCobrancaAntesDeExcluir(id)}catch(e){return res.status(502).json({erro:'Não foi possível cancelar a cobrança recorrente. A exclusão permanente foi interrompida.'})}const out=await purgeTenantPermanent(id);if(!out)return res.status(404).json({erro:'Barbearia não encontrada'});await audit(req,{acao:'master.barbearia.excluida_permanente',barbeariaId:null,alvoTipo:'barbearia',alvoId:id,detalhes:{nome:pre.nome,exclusao_permanente:true}}).catch(e=>console.error('audit_permanent_tenant_delete',e.message));res.json({mensagem:'Barbearia e dados relacionados excluídos permanentemente.'});}catch(e){console.error('permanent_tenant_delete',e);res.status(500).json({erro:'Erro ao excluir permanentemente a barbearia'})}
+});
+
+router.post('/barbearias/:id/restaurar',exigirStepUp,async(req,res)=>{const id=intId(req.params.id);if(!id)return res.status(400).json({erro:'Barbearia inválida'});const c=await pool.connect();try{await c.query('BEGIN');const r=await c.query(`UPDATE barbearias SET ativo=true,excluido_em=NULL,exclusao_programada_em=NULL,excluida_por=NULL WHERE id=$1 AND COALESCE(is_system,false)=false AND (exclusao_programada_em IS NULL OR exclusao_programada_em>NOW()) RETURNING id,nome,ativo`,[id]);if(!r.rowCount){await c.query('ROLLBACK');return res.status(404).json({erro:'Barbearia não encontrada ou prazo de recuperação expirado'})}await c.query(`UPDATE usuarios SET ativo=true,desativado_por_exclusao=false WHERE barbearia_id=$1 AND desativado_por_exclusao=true AND papel<>'super_admin'`,[id]);await audit(req,{acao:'master.barbearia.restaurada',barbeariaId:id,alvoTipo:'barbearia',alvoId:id,detalhes:{nome:r.rows[0].nome}},c);await c.query('COMMIT');res.json({...r.rows[0],assinatura_reativacao_necessaria:true,mensagem:'Barbearia restaurada. Reative a assinatura antes de liberar cobrança recorrente.'})}catch(e){await c.query('ROLLBACK');res.status(500).json({erro:'Erro ao restaurar barbearia'})}finally{c.release()}});
 
 router.patch('/barbearias/:id/assinatura',exigirStepUp,async(req,res)=>{
   const id=intId(req.params.id);if(!id)return res.status(400).json({erro:'Barbearia inválida'});
@@ -193,7 +191,7 @@ router.patch('/barbearias/:id/assinatura',exigirStepUp,async(req,res)=>{
     if(plano&&plano!==a.plano&&a.provedor==='mercadopago'&&a.referencia_externa&&['ativa','trial'].includes(a.status)){
       const l=await pool.query(`UPDATE assinaturas SET billing_change_pending=true,plano_pendente=$1,atualizado_em=NOW() WHERE id=$2 AND COALESCE(billing_change_pending,false)=false RETURNING id`,[plano,a.id]);
       if(!l.rowCount)return res.status(409).json({erro:'Já existe uma alteração de cobrança em andamento'});locked=a.id;
-      try{await atualizarValorAssinatura(a.referencia_externa,precoPlano(plano));}
+      try{await atualizarValorAssinatura(a.referencia_externa,precoPlano(plano,a.ciclo_cobranca||'mensal'));}
       catch(e){await pool.query(`UPDATE assinaturas SET billing_change_pending=false,plano_pendente=NULL WHERE id=$1`,[a.id]).catch(()=>{});console.error('Reconciliação plano MP:',e.data||e);return res.status(502).json({erro:'Não foi possível atualizar o valor no Mercado Pago. O plano local não foi alterado.'});}
     }
     const r=await pool.query(`UPDATE assinaturas SET plano=COALESCE($1,plano),plano_pendente=NULL,status=COALESCE($2,status),fim_trial=COALESCE($3::date,fim_trial),proxima_cobranca=$4::date,billing_change_pending=false,atualizado_em=NOW() WHERE id=$5 RETURNING *`,[plano||null,status||null,fim_trial||null,proxima_cobranca||null,a.id]);
@@ -247,7 +245,7 @@ router.get('/system/health',async(req,res)=>{
       pool.query(`SELECT status,destino,criado_em FROM backup_runs ORDER BY id DESC LIMIT 1`)
     ]);
     const mem=process.memoryUsage();
-    res.json({ok:true,db_latency_ms:dbLatency,uptime_seconds:Math.round(process.uptime()),memory_mb:Math.round(mem.rss/1024/1024),errors_24h:errors.rows[0].n,support_open:support.rows[0].n,webhook_errors:webhooks.rows[0].n,automation_errors:autos.rows[0].n,stale_payments:payments.rows[0].n,backup:backup.rows[0]||null,backup_remote_configured:!!(process.env.BACKUP_UPLOAD_URL&&process.env.BACKUP_ENCRYPTION_KEY),release:process.env.RELEASE_VERSION||'2.1.0'});
+    res.json({ok:true,db_latency_ms:dbLatency,uptime_seconds:Math.round(process.uptime()),memory_mb:Math.round(mem.rss/1024/1024),errors_24h:errors.rows[0].n,support_open:support.rows[0].n,webhook_errors:webhooks.rows[0].n,automation_errors:autos.rows[0].n,stale_payments:payments.rows[0].n,backup:backup.rows[0]||null,backup_remote_configured:!!(process.env.BACKUP_UPLOAD_URL&&process.env.BACKUP_ENCRYPTION_KEY),release:process.env.RELEASE_VERSION||'2.7.0'});
   }catch(e){res.status(503).json({ok:false,erro:'Diagnóstico indisponível'})}
 });
 

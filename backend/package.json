@@ -1,6 +1,6 @@
 {
   "name": "barberflow-saas",
-  "version": "2.5.3",
+  "version": "2.7.0",
   "description": "BarberFlow SaaS - gestão e agendamento para barbearias",
   "main": "server.js",
   "scripts": {

@@ -11,6 +11,9 @@ const {ensurePlatformPaymentGatewaySchema}=require('./src/services/platformPayme
 const {ensureProductSchema}=require('./src/services/productCatalog');
 const {ensureAccountSecuritySchema}=require('./src/services/accountSecurity');
 const {ensurePlatformSettingsSchema}=require('./src/services/platformSettings');
+const {ensureStorefrontSchema}=require('./src/services/storefront');
+const {ensureStoreCommerceSchema,releaseExpiredStoreOrders}=require('./src/services/storeCommerce');
+const {ensureTenantLifecycleSchema,purgeExpiredTenants}=require('./src/services/tenantLifecycle');
 const {notifyOps}=require('./src/services/opsAlerts');
 const PORT=Number(process.env.PORT||3001);
 let server;
@@ -54,6 +57,11 @@ async function iniciar(){
     await ensureAccountSecuritySchema();
     await ensurePlatformSettingsSchema();
     await ensureFinanceAnalyticsSchema();
+    await ensureStorefrontSchema();
+    await ensureStoreCommerceSchema();
+    await ensureTenantLifecycleSchema();
+    const purged=await purgeExpiredTenants();
+    if(purged)console.log(`Barbearias expiradas eliminadas permanentemente: ${purged}`);
     console.log('Base de pré-lançamento preparada.');
     console.log('Base de IA preparada.');
     console.log('Checkout de assinatura preparado.');
@@ -63,11 +71,17 @@ async function iniciar(){
     console.log('Segurança da conta preparada.');
     console.log('Configurações da plataforma preparadas.');
     console.log('Metas e analytics financeiros preparados.');
+    console.log('Loja pública preparada.');
+    console.log('E-commerce e frete preparados.');
+    console.log('Ciclo de exclusão de 30 dias preparado.');
     console.log('PostgreSQL conectado!');
     server=app.listen(PORT,()=>{
       console.log(`BarberFlow SaaS: http://localhost:${PORT}`);
       console.log(`Agendamento público: http://localhost:${PORT}/agendar/SEU-SLUG`);
+      console.log(`Loja pública: http://localhost:${PORT}/loja/SEU-SLUG`);
     });
+    const purgeTimer=setInterval(()=>purgeExpiredTenants().catch(e=>console.error('tenant_purge_interval',e.message)),15*60*1000);purgeTimer.unref();
+    const storeTimer=setInterval(()=>releaseExpiredStoreOrders().catch(e=>console.error('store_order_expiry',e.message)),5*60*1000);storeTimer.unref();
   }catch(e){
     console.error('Falha ao iniciar: PostgreSQL indisponível:',e.message);
     await notifyOps({nivel:'error',evento:'startup_failed',mensagem:e.message});

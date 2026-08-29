@@ -26,7 +26,7 @@ if(prod&&process.env.BACKUP_UPLOAD_URL){try{if(new URL(process.env.BACKUP_UPLOAD
 if(prod&&!process.env.SUPPORT_EMAIL&&!process.env.SUPPORT_WHATSAPP)aviso('SUPPORT_EMAIL/SUPPORT_WHATSAPP ausentes: suporte funcionará apenas por chamados internos');
 
 for(const k of ['BOOTSTRAP_ADMIN_PASSWORD','MASTER_ADMIN_PASSWORD'])if(prod&&/^CHANGE_ME|TroqueEstaSenha|BarberMaster/i.test(process.env[k]||''))erro(`${k} ainda usa valor de exemplo/temporário`);
-if(process.env.ALLOW_PLAN_PRICE_OVERRIDE==='true')for(const [k,def] of [['PLAN_STARTER_PRICE',49.90],['PLAN_PRO_PRICE',89.90],['PLAN_PREMIUM_PRICE',169.90]]){const v=Number(process.env[k]??def);if(!Number.isFinite(v)||v<=0||v>100000)erro(`${k} inválido`)}
+if(process.env.ALLOW_PLAN_PRICE_OVERRIDE==='true')for(const [k,def] of [['PLAN_STARTER_PRICE',59.90],['PLAN_PRO_PRICE',109.90],['PLAN_PREMIUM_PRICE',189.90],['PLAN_STARTER_ANNUAL_PRICE',599],['PLAN_PRO_ANNUAL_PRICE',1099],['PLAN_PREMIUM_ANNUAL_PRICE',1899]]){const v=Number(process.env[k]??def);if(!Number.isFinite(v)||v<=0||v>100000)erro(`${k} inválido`)}
 if(!process.env.CLOUDINARY_CLOUD_NAME)aviso('Cloudinary não configurado: upload ficará indisponível');
 if(!process.env.EVOLUTION_API_URL||!process.env.EVOLUTION_API_KEY)aviso('Evolution API não configurada: QR ficará indisponível');else if(prod){try{const u=new URL(process.env.EVOLUTION_API_URL);if(u.protocol!=='https:'&&process.env.ALLOW_INSECURE_EVOLUTION_HTTP!=='true')erro('EVOLUTION_API_URL deve usar HTTPS em produção (ou exceção controlada)')}catch{erro('EVOLUTION_API_URL inválida')}}
 function intRange(k,min,max){if(process.env[k]==null||process.env[k]==='')return;const n=Number(process.env[k]);if(!Number.isInteger(n)||n<min||n>max)erro(`${k} deve ser inteiro entre ${min} e ${max}`)}

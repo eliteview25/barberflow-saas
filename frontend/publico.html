@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#111827">
   <title>Agendamento - BarberFlow</title>
-  <link rel="stylesheet" href="/style.css?v=20260828-supportmap253">
+  <link rel="stylesheet" href="/style.css?v=20260829-store270">
 </head>
 <body class="public-bg public-custom">
   <main class="public-shell public-shell-custom">
@@ -21,6 +21,7 @@
           <div class="public-social">
             <a id="whatsappLink" class="hidden" target="_blank" rel="noopener">WhatsApp</a>
             <a id="instagramLink" class="hidden" target="_blank" rel="noopener">Instagram</a>
+            <a id="storeHeroLink" class="hidden">Loja</a>
           </div>
         </div>
       </div>
@@ -31,6 +32,12 @@
       <div class="public-location-icon">📍</div>
       <div class="public-location-copy"><span>Localização</span><strong id="publicLocationAddress"></strong><small>Abra no Google Maps para ver a rota a partir da sua localização.</small></div>
       <div class="public-location-actions"><a id="mapSearchLink" class="btn btn-secondary" target="_blank" rel="noopener">Ver no mapa</a><a id="mapDirectionsLink" class="btn btn-dark" target="_blank" rel="noopener">Como chegar</a></div>
+    </section>
+
+
+    <section id="publicStoreSection" class="public-store-section hidden">
+      <div class="public-store-head"><div><span class="public-eyebrow">Produtos da barbearia</span><h2 id="publicStoreTitle">Destaques da loja</h2><p>Leve o cuidado da barbearia para casa.</p></div><a id="publicStoreLink" class="btn btn-dark">Ver loja completa</a></div>
+      <div id="publicStoreProducts" class="public-store-products"></div>
     </section>
 
     <section class="public-card public-booking-card">
@@ -142,6 +149,6 @@
   </main>
 
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" defer></script>
-  <script src="/js/publico.js?v=20260828-supportmap253" defer></script>
+  <script src="/js/publico.js?v=20260829-store270" defer></script>
 </body>
 </html>

@@ -6,7 +6,8 @@ await client.query(`CREATE TABLE IF NOT EXISTS assinaturas(id SERIAL PRIMARY KEY
 
 await client.query(`CREATE TABLE IF NOT EXISTS assinaturas_cobrancas(id SERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,assinatura_id INTEGER REFERENCES assinaturas(id) ON DELETE SET NULL,competencia DATE NOT NULL DEFAULT CURRENT_DATE,valor NUMERIC(10,2) NOT NULL DEFAULT 0,status VARCHAR(30) NOT NULL DEFAULT 'pendente',vencimento DATE,pago_em TIMESTAMP,provedor VARCHAR(40),referencia_externa TEXT,criado_em TIMESTAMP DEFAULT NOW(),atualizado_em TIMESTAMP DEFAULT NOW())`);
 await client.query(`CREATE TABLE IF NOT EXISTS assinaturas_pagamentos(id BIGSERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,assinatura_id INTEGER REFERENCES assinaturas(id) ON DELETE SET NULL,plano VARCHAR(30) NOT NULL CHECK(plano IN ('starter','pro','premium')),valor NUMERIC(10,2) NOT NULL CHECK(valor>0),forma_pagamento VARCHAR(20) NOT NULL CHECK(forma_pagamento IN ('pix','cartao')),status VARCHAR(30) NOT NULL DEFAULT 'criando',referencia_externa TEXT,idempotency_key TEXT NOT NULL UNIQUE,expira_em TIMESTAMP,pago_em TIMESTAMP,qr_code TEXT,qr_code_base64 TEXT,ticket_url TEXT,criado_em TIMESTAMP NOT NULL DEFAULT NOW(),atualizado_em TIMESTAMP NOT NULL DEFAULT NOW())`);
-for(const [c,t] of [['qr_code','TEXT'],['qr_code_base64','TEXT'],['ticket_url','TEXT']]) await client.query(`ALTER TABLE assinaturas_pagamentos ADD COLUMN IF NOT EXISTS ${c} ${t}`);
+for(const [c,t] of [['qr_code','TEXT'],['qr_code_base64','TEXT'],['ticket_url','TEXT'],['ciclo_cobranca',"VARCHAR(20) NOT NULL DEFAULT 'mensal'"]]) await client.query(`ALTER TABLE assinaturas_pagamentos ADD COLUMN IF NOT EXISTS ${c} ${t}`);
+await client.query(`ALTER TABLE assinaturas ADD COLUMN IF NOT EXISTS ciclo_cobranca VARCHAR(20) NOT NULL DEFAULT 'mensal'`);
 await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS ux_assinaturas_pagamentos_ref ON assinaturas_pagamentos(referencia_externa) WHERE referencia_externa IS NOT NULL`);
 await client.query(`CREATE INDEX IF NOT EXISTS ix_assinaturas_pagamentos_tenant_status ON assinaturas_pagamentos(barbearia_id,status,criado_em DESC)`);
 await client.query(`CREATE TABLE IF NOT EXISTS password_resets(id SERIAL PRIMARY KEY,usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,token_hash TEXT NOT NULL,expira_em TIMESTAMP NOT NULL,usado BOOLEAN DEFAULT false,criado_em TIMESTAMP DEFAULT NOW())`);
@@ -28,6 +29,18 @@ await client.query(`CREATE TABLE IF NOT EXISTS automacoes_envios(id SERIAL PRIMA
 await client.query(`CREATE TABLE IF NOT EXISTS produtos(id SERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,nome VARCHAR(160) NOT NULL,sku VARCHAR(80),preco NUMERIC(10,2) DEFAULT 0,custo NUMERIC(10,2) DEFAULT 0,estoque NUMERIC(10,2) DEFAULT 0,estoque_minimo NUMERIC(10,2) DEFAULT 0,ativo BOOLEAN DEFAULT true,criado_em TIMESTAMP DEFAULT NOW())`);
 await client.query(`ALTER TABLE produtos ADD COLUMN IF NOT EXISTS imagem_url TEXT`);
 await client.query(`ALTER TABLE produtos ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMP DEFAULT NOW()`);
+await client.query(`ALTER TABLE produtos ADD COLUMN IF NOT EXISTS mostrar_na_loja BOOLEAN NOT NULL DEFAULT false`);
+await client.query(`ALTER TABLE produtos ADD COLUMN IF NOT EXISTS destaque_pagina_publica BOOLEAN NOT NULL DEFAULT false`);
+await client.query(`ALTER TABLE produtos ADD COLUMN IF NOT EXISTS descricao_publica TEXT`);
+await client.query(`CREATE INDEX IF NOT EXISTS ix_produtos_loja ON produtos(barbearia_id,mostrar_na_loja,ativo)`);
+await client.query(`ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_ativa BOOLEAN NOT NULL DEFAULT false`);
+await client.query(`ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_titulo VARCHAR(160)`);
+await client.query(`ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_descricao TEXT`);
+await client.query(`ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_logo_url TEXT`);
+await client.query(`ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_banner_url TEXT`);
+await client.query(`ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS exclusao_programada_em TIMESTAMP`);
+await client.query(`ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS excluida_por INTEGER`);
+await client.query(`CREATE INDEX IF NOT EXISTS ix_barbearias_exclusao_programada ON barbearias(exclusao_programada_em) WHERE exclusao_programada_em IS NOT NULL`);
 await client.query(`ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS mostrar_whatsapp_publico BOOLEAN NOT NULL DEFAULT true`);
 await client.query(`ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS mostrar_mapa_publico BOOLEAN NOT NULL DEFAULT true`);
 await client.query(`CREATE TABLE IF NOT EXISTS platform_settings(chave VARCHAR(80) PRIMARY KEY,valor TEXT,atualizado_por INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,criado_em TIMESTAMP NOT NULL DEFAULT NOW(),atualizado_em TIMESTAMP NOT NULL DEFAULT NOW())`);
@@ -44,6 +57,26 @@ await client.query(`CREATE TABLE IF NOT EXISTS platform_payment_gateways(
 )`);
 await client.query(`CREATE TABLE IF NOT EXISTS vendas(id SERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,cliente_id INTEGER REFERENCES clientes(id),barbeiro_id INTEGER REFERENCES barbeiros(id),agendamento_id INTEGER REFERENCES agendamentos(id),forma_pagamento VARCHAR(30),status VARCHAR(30) DEFAULT 'finalizada',total NUMERIC(10,2) DEFAULT 0,desconto NUMERIC(10,2) DEFAULT 0,criado_em TIMESTAMP DEFAULT NOW())`);
 await client.query(`CREATE TABLE IF NOT EXISTS venda_itens(id SERIAL PRIMARY KEY,venda_id INTEGER NOT NULL REFERENCES vendas(id) ON DELETE CASCADE,tipo VARCHAR(20) NOT NULL,referencia_id INTEGER,descricao VARCHAR(200),quantidade NUMERIC(10,2) DEFAULT 1,valor_unitario NUMERIC(10,2) DEFAULT 0,subtotal NUMERIC(10,2) DEFAULT 0)`);
+
+// BarberFlow 2.7 — e-commerce, entrega por distância e retirada
+for(const [c,t] of [
+ ['loja_aceitar_retirada','BOOLEAN NOT NULL DEFAULT true'],['loja_aceitar_entrega','BOOLEAN NOT NULL DEFAULT false'],['loja_retirada_instrucao','TEXT'],
+ ['loja_pedido_minimo','NUMERIC(10,2) NOT NULL DEFAULT 0'],['loja_frete_taxa_base','NUMERIC(10,2) NOT NULL DEFAULT 0'],['loja_frete_por_km','NUMERIC(10,2) NOT NULL DEFAULT 2'],
+ ['loja_frete_minimo','NUMERIC(10,2) NOT NULL DEFAULT 0'],['loja_frete_gratis_ate_km','NUMERIC(10,2)'],['loja_frete_gratis_acima','NUMERIC(10,2)'],
+ ['loja_frete_distancia_max_km','NUMERIC(10,2) NOT NULL DEFAULT 20'],['loja_aceitar_pix','BOOLEAN NOT NULL DEFAULT true'],['loja_aceitar_cartao','BOOLEAN NOT NULL DEFAULT true']
+]) await client.query(`ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS ${c} ${t}`);
+await client.query(`CREATE TABLE IF NOT EXISTS loja_pedidos(
+ id BIGSERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,public_token TEXT NOT NULL UNIQUE,idempotency_key TEXT,
+ cliente_nome VARCHAR(160) NOT NULL,cliente_email VARCHAR(160) NOT NULL,cliente_telefone VARCHAR(30) NOT NULL,tipo_entrega VARCHAR(20) NOT NULL DEFAULT 'retirada',
+ cep VARCHAR(12),endereco TEXT,numero VARCHAR(40),complemento VARCHAR(160),bairro VARCHAR(120),cidade VARCHAR(120),estado VARCHAR(40),distancia_km NUMERIC(10,2),
+ subtotal NUMERIC(10,2) NOT NULL DEFAULT 0,frete NUMERIC(10,2) NOT NULL DEFAULT 0,total NUMERIC(10,2) NOT NULL DEFAULT 0,forma_pagamento VARCHAR(20),
+ status_pagamento VARCHAR(30) NOT NULL DEFAULT 'pendente',status_pedido VARCHAR(30) NOT NULL DEFAULT 'aguardando_pagamento',mp_payment_id TEXT,mp_status VARCHAR(40),
+ qr_code TEXT,qr_code_base64 TEXT,ticket_url TEXT,estoque_reservado BOOLEAN NOT NULL DEFAULT true,venda_id INTEGER REFERENCES vendas(id) ON DELETE SET NULL,
+ expira_em TIMESTAMP,criado_em TIMESTAMP NOT NULL DEFAULT NOW(),pago_em TIMESTAMP,atualizado_em TIMESTAMP NOT NULL DEFAULT NOW(),UNIQUE(barbearia_id,idempotency_key))`);
+await client.query(`CREATE TABLE IF NOT EXISTS loja_pedido_itens(id BIGSERIAL PRIMARY KEY,pedido_id BIGINT NOT NULL REFERENCES loja_pedidos(id) ON DELETE CASCADE,produto_id INTEGER REFERENCES produtos(id) ON DELETE SET NULL,nome VARCHAR(200) NOT NULL,imagem_url TEXT,quantidade INTEGER NOT NULL,valor_unitario NUMERIC(10,2) NOT NULL,subtotal NUMERIC(10,2) NOT NULL)`);
+await client.query(`CREATE INDEX IF NOT EXISTS ix_loja_pedidos_tenant_status ON loja_pedidos(barbearia_id,status_pedido,criado_em DESC)`);
+await client.query(`CREATE INDEX IF NOT EXISTS ix_loja_pedidos_expira ON loja_pedidos(status_pagamento,expira_em) WHERE status_pagamento='pendente'`);
+
 await client.query(`CREATE TABLE IF NOT EXISTS fila_espera(id SERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,cliente_id INTEGER NOT NULL REFERENCES clientes(id),barbeiro_id INTEGER REFERENCES barbeiros(id),servico_id INTEGER NOT NULL REFERENCES servicos(id),status VARCHAR(30) DEFAULT 'aguardando',observacoes TEXT,criado_em TIMESTAMP DEFAULT NOW(),atualizado_em TIMESTAMP DEFAULT NOW())`);
 await client.query(`CREATE TABLE IF NOT EXISTS avaliacoes(id SERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,agendamento_id INTEGER UNIQUE NOT NULL REFERENCES agendamentos(id) ON DELETE CASCADE,nota INTEGER NOT NULL CHECK(nota BETWEEN 1 AND 5),comentario TEXT,publica BOOLEAN DEFAULT true,criado_em TIMESTAMP DEFAULT NOW())`);
 await client.query(`CREATE TABLE IF NOT EXISTS fidelidade_config(barbearia_id INTEGER PRIMARY KEY REFERENCES barbearias(id) ON DELETE CASCADE,ativo BOOLEAN DEFAULT false,pontos_por_real NUMERIC(10,2) DEFAULT 1,pontos_recompensa INTEGER DEFAULT 500,recompensa_texto VARCHAR(200) DEFAULT 'Benefício da barbearia')`);

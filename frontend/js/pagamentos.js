@@ -6,7 +6,7 @@ if(requireAuth(['dono','gerente'])){
   let gatewayData=[],paymentsEnabled=false,currentGateway=null,lastGatewayTrigger=null;
   const providerMark={mercadopago:'MP',pagbank:'PB',asaas:'AS',pagarme:'PM',stripe:'ST'};
   function statusLabel(g){return g.credenciais_salvas?'Credenciais salvas':'Aguardando credenciais'}
-  function capabilityText(g){if(g.id==='mercadopago')return g.credenciais_salvas?'Credenciais prontas para o checkout atual':'Preencha as credenciais para liberar o checkout';return 'Credenciais preparadas • driver será conectado depois'}
+  function capabilityText(g){if(g.id==='mercadopago'){if(!g.credenciais_salvas)return 'Preencha as credenciais para liberar o checkout';return g.webhook_ready?'Checkout + confirmação automática por webhook prontos':'Checkout pronto • adicione o segredo do webhook para confirmação automática em segundo plano'}return 'Credenciais preparadas • driver será conectado depois'}
   function renderGateways(){
     const grid=document.getElementById('gatewayGrid'),owner=user.papel==='dono';
     grid.innerHTML=gatewayData.map(g=>{

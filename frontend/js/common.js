@@ -12,7 +12,7 @@ function timeBR(v){return String(v||'').slice(0,5)}
 function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function roleLabel(p){return ({super_admin:'Master',dono:'Dono',gerente:'Gerente',recepcao:'Recepção',barbeiro:'Barbeiro'})[p]||p||''}
 function hasRole(...roles){return roles.includes(currentUser().papel)}
-async function requestStepUp(){const senha=prompt('Confirme sua senha do Supermaster:');if(!senha)throw new Error('Confirmação cancelada');const mfa_code=prompt('Código de 6 dígitos do autenticador:');if(!mfa_code)throw new Error('Código MFA obrigatório');const r=await fetch('/api/auth/step-up',{method:'POST',credentials:'same-origin',headers:authHeaders(),body:JSON.stringify({senha,mfa_code})});const d=await r.json();if(!r.ok)throw new Error(d.erro||'Falha na confirmação de segurança');return true}
+async function requestStepUp(){let mfa=!!currentUser().mfa_enabled;try{const mr=await fetch('/api/auth/me',{credentials:'same-origin',headers:authHeaders()});if(mr.ok){const me=await mr.json();mfa=!!me.mfa_enabled;const u={...currentUser(),mfa_enabled:mfa};localStorage.setItem('bf_user',JSON.stringify(u));}}catch{}const body={};if(mfa){const code=prompt('Confirmação de segurança — código de 6 dígitos do seu autenticador:');if(code===null)throw new Error('Confirmação cancelada');body.mfa_code=String(code).replace(/\D/g,'').slice(0,6);if(body.mfa_code.length!==6)throw new Error('Código de autenticação inválido');}else{const senha=prompt('Confirmação de segurança — digite sua senha atual:');if(!senha)throw new Error('Confirmação cancelada');body.senha=senha;}const r=await fetch('/api/auth/step-up',{method:'POST',credentials:'same-origin',headers:authHeaders(),body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw new Error(d.erro||'Falha na confirmação de segurança');return true}
 async function api(path,opts={},retried=false){
   let r;try{r=await fetch(`${API}${path}`,{...opts,credentials:'same-origin',headers:authHeaders(opts.headers||{})})}catch{throw new Error('Não foi possível conectar ao BarberFlow. Verifique sua internet e tente novamente.')}
   let d={};try{d=await r.json()}catch{}
@@ -90,6 +90,7 @@ function renderShell(active){
     ['barbeiros','/pages/barbeiros.html','💈','Barbeiros',['dono','gerente']],
     ['servicos','/pages/servicos.html','✂️','Serviços',['dono','gerente']],
     ['pagina-publica','/pages/configuracoes.html?secao=pagina-publica','🌐','Página pública',['dono','gerente']],
+    ['loja','/pages/loja.html','🛍️','Loja',['dono','gerente'],'loja_publica'],
     ['financeiro','/pages/financeiro.html','💰','Financeiro',['dono','gerente'],'financeiro_basico'],
     ['gestao-pdv','/pages/gestao.html?secao=pdv','🧾','Caixa / PDV',['dono','gerente','recepcao'],'pdv_estoque'],
     ['gestao-produtos','/pages/gestao.html?secao=estoque','📦','Produtos e estoque',['dono','gerente','recepcao'],'pdv_estoque'],
@@ -125,7 +126,7 @@ function renderShell(active){
   };
   const menu=[
     linkHtml(byKey.dashboard),
-    groupHtml('barbearia','💈','Barbearia',['agendamentos','clientes','barbeiros','servicos','pagina-publica']),
+    groupHtml('barbearia','💈','Barbearia',['agendamentos','clientes','barbeiros','servicos','pagina-publica','loja']),
     linkHtml(byKey.financeiro),
     groupHtml('gestao','🧰','Gestão',['gestao-pdv','gestao-produtos','gestao-comissoes','gestao-fila','gestao-crm','gestao-fidelidade','gestao-avaliacoes','gestao-relatorios','gestao-dados']),
     groupHtml('configuracoes','⚙️','Configurações',['pagamentos','equipe','automacoes','seguranca','perfil']),

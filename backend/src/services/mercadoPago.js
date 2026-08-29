@@ -43,30 +43,33 @@ async function mpFetch(path, options = {}) {
   return data;
 }
 
-function precoPlano(plano) {
+function cicloValido(ciclo){return ciclo==='anual'?'anual':'mensal'}
+function precoPlano(plano,ciclo='mensal') {
   const key=['starter','pro','premium'].includes(plano)?plano:'pro';
-  const defaults={starter:CATALOGO.starter.preco_mensal,pro:CATALOGO.pro.preco_mensal,premium:CATALOGO.premium.preco_mensal};
-  const envKey={starter:'PLAN_STARTER_PRICE',pro:'PLAN_PRO_PRICE',premium:'PLAN_PREMIUM_PRICE'}[key];
+  const cycle=cicloValido(ciclo);
+  const defaults={starter:cycle==='anual'?CATALOGO.starter.preco_anual:CATALOGO.starter.preco_mensal,pro:cycle==='anual'?CATALOGO.pro.preco_anual:CATALOGO.pro.preco_mensal,premium:cycle==='anual'?CATALOGO.premium.preco_anual:CATALOGO.premium.preco_mensal};
+  const envKey=cycle==='anual'?{starter:'PLAN_STARTER_ANNUAL_PRICE',pro:'PLAN_PRO_ANNUAL_PRICE',premium:'PLAN_PREMIUM_ANNUAL_PRICE'}[key]:{starter:'PLAN_STARTER_PRICE',pro:'PLAN_PRO_PRICE',premium:'PLAN_PREMIUM_PRICE'}[key];
   const allowOverride=process.env.ALLOW_PLAN_PRICE_OVERRIDE==='true';
   const value=Number(allowOverride&&process.env[envKey]!=null?process.env[envKey]:defaults[key]);
   if(!Number.isFinite(value)||value<=0||value>100000)throw new Error(`Preço inválido para o plano ${key}`);
   return Math.round(value*100)/100;
 }
+function recurringFor(ciclo='mensal'){const c=cicloValido(ciclo);return {frequency:c==='anual'?12:1,frequency_type:'months',ciclo:c};}
 
 function tituloPlano(plano) {
   return ({starter:'BarberFlow Starter', pro:'BarberFlow Pro', premium:'BarberFlow Premium'})[plano] || 'BarberFlow Pro';
 }
 
-async function criarAssinatura({ barbeariaId, plano, email, idempotencyKey, cardTokenId=null }) {
+async function criarAssinatura({ barbeariaId, plano, ciclo='mensal', email, idempotencyKey, cardTokenId=null }) {
   const appUrl = process.env.APP_URL || 'http://localhost:3001';
   const body = {
     reason: tituloPlano(plano),
-    external_reference: `barberflow:${barbeariaId}:${plano}`,
+    external_reference: `barberflow:${barbeariaId}:${plano}:${cicloValido(ciclo)}`,
     payer_email: email,
     auto_recurring: {
-      frequency: 1,
-      frequency_type: 'months',
-      transaction_amount: precoPlano(plano),
+      frequency: recurringFor(ciclo).frequency,
+      frequency_type: recurringFor(ciclo).frequency_type,
+      transaction_amount: precoPlano(plano,ciclo),
       currency_id: 'BRL'
     },
     back_url: `${appUrl}/pages/assinatura.html?retorno=mercadopago`,
@@ -118,15 +121,35 @@ async function obterAssinatura(id) {
 
 async function atualizarStatusAssinatura(id, status) { return mpFetch(`/preapproval/${encodeURIComponent(id)}`, {method:'PUT',body:JSON.stringify({status})}); }
 async function atualizarValorAssinatura(id, valor) { return mpFetch(`/preapproval/${encodeURIComponent(id)}`, {method:'PUT',body:JSON.stringify({auto_recurring:{transaction_amount:Number(valor),currency_id:'BRL'}})}); }
-async function atualizarPlanoAssinatura(id,{plano,barbeariaId}){return mpFetch(`/preapproval/${encodeURIComponent(id)}`,{method:'PUT',body:JSON.stringify({reason:tituloPlano(plano),external_reference:`barberflow:${barbeariaId}:${plano}`,auto_recurring:{transaction_amount:precoPlano(plano),currency_id:'BRL'}})});}
-async function criarPagamentoPixAssinatura({barbeariaId,plano,paymentRowId,email,identificationType='CPF',identificationNumber,idempotencyKey}){
+async function atualizarPlanoAssinatura(id,{plano,ciclo='mensal',barbeariaId}){const r=recurringFor(ciclo);return mpFetch(`/preapproval/${encodeURIComponent(id)}`,{method:'PUT',body:JSON.stringify({reason:tituloPlano(plano),external_reference:`barberflow:${barbeariaId}:${plano}:${r.ciclo}`,auto_recurring:{frequency:r.frequency,frequency_type:r.frequency_type,transaction_amount:precoPlano(plano,r.ciclo),currency_id:'BRL'}})});}
+async function criarPagamentoPixAssinatura({barbeariaId,plano,ciclo='mensal',paymentRowId,email,identificationType='CPF',identificationNumber,idempotencyKey}){
   const appUrl=(process.env.APP_URL||'http://localhost:3001').replace(/\/$/,'');
   const digits=String(identificationNumber||'').replace(/\D/g,'');
   if(!/^\d{11,14}$/.test(digits))throw new Error('CPF/CNPJ inválido para o Pix');
-  const external_reference=`barberflow-subscription-pix:${barbeariaId}:${plano}:${paymentRowId}`;
-  const body={transaction_amount:precoPlano(plano),description:tituloPlano(plano),payment_method_id:'pix',external_reference,payer:{email,identification:{type:identificationType==='CNPJ'?'CNPJ':'CPF',number:digits}},notification_url:`${appUrl}/api/webhooks/mercadopago?scope=subscription&barbearia_id=${encodeURIComponent(barbeariaId)}&tenant_sig=${encodeURIComponent(mpTenantSignature(barbeariaId))}`,date_of_expiration:new Date(Date.now()+30*60*1000).toISOString()};
+  const external_reference=`barberflow-subscription-pix:${barbeariaId}:${plano}:${cicloValido(ciclo)}:${paymentRowId}`;
+  const body={transaction_amount:precoPlano(plano,ciclo),description:`${tituloPlano(plano)} - ${cicloValido(ciclo)==='anual'?'Anual':'Mensal'}`,payment_method_id:'pix',external_reference,payer:{email,identification:{type:identificationType==='CNPJ'?'CNPJ':'CPF',number:digits}},notification_url:`${appUrl}/api/webhooks/mercadopago?scope=subscription&barbearia_id=${encodeURIComponent(barbeariaId)}&tenant_sig=${encodeURIComponent(mpTenantSignature(barbeariaId))}`,date_of_expiration:new Date(Date.now()+30*60*1000).toISOString()};
   return mpFetch('/v1/payments',{method:'POST',body:JSON.stringify(body),idempotencyKey});
 }
+
+
+async function criarPagamentoLojaPix({barbeariaId,pedidoId,valor,email,documento,accessToken,idempotencyKey}){
+  const appUrl=(process.env.APP_URL||'http://localhost:3001').replace(/\/$/,'');
+  const digits=String(documento||'').replace(/\D/g,'');
+  if(!/^\d{11,14}$/.test(digits))throw new Error('CPF/CNPJ inválido para o Pix');
+  const body={transaction_amount:Number(Number(valor).toFixed(2)),description:`Pedido BarberFlow #${pedidoId}`,payment_method_id:'pix',external_reference:`barberflow-store:${pedidoId}`,payer:{email,identification:{type:digits.length>11?'CNPJ':'CPF',number:digits}},notification_url:`${appUrl}/api/webhooks/mercadopago?scope=store&barbearia_id=${encodeURIComponent(barbeariaId)}&tenant_sig=${encodeURIComponent(mpTenantSignature(barbeariaId))}`,date_of_expiration:new Date(Date.now()+30*60*1000).toISOString()};
+  return mpFetch('/v1/payments',{method:'POST',body:JSON.stringify(body),accessToken,idempotencyKey});
+}
+async function criarPagamentoLojaCartao({barbeariaId,pedidoId,valor,email,token,installments,paymentMethodId,issuerId,identification,accessToken,idempotencyKey}){
+  const appUrl=(process.env.APP_URL||'http://localhost:3001').replace(/\/$/,'');
+  const parcelas=Math.max(1,Math.min(12,Number(installments)||1));
+  const method=String(paymentMethodId||'').trim();if(!method)throw new Error('Meio de pagamento do cartão inválido');
+  const cardToken=String(token||'').trim();if(cardToken.length<10||cardToken.length>400)throw new Error('Token do cartão inválido');
+  const payer={email};const number=String(identification?.number||'').replace(/\D/g,'');const type=String(identification?.type||'').toUpperCase();if(number&&['CPF','CNPJ'].includes(type))payer.identification={type,number};
+  const body={transaction_amount:Number(Number(valor).toFixed(2)),description:`Pedido BarberFlow #${pedidoId}`,token:cardToken,installments:parcelas,payment_method_id:method,external_reference:`barberflow-store:${pedidoId}`,payer,notification_url:`${appUrl}/api/webhooks/mercadopago?scope=store&barbearia_id=${encodeURIComponent(barbeariaId)}&tenant_sig=${encodeURIComponent(mpTenantSignature(barbeariaId))}`};
+  if(issuerId)body.issuer_id=String(issuerId);
+  return mpFetch('/v1/payments',{method:'POST',body:JSON.stringify(body),accessToken,idempotencyKey});
+}
+async function reembolsarPagamento(id,accessToken){return mpFetch(`/v1/payments/${encodeURIComponent(id)}/refunds`,{method:'POST',body:'{}',accessToken,idempotencyKey:`refund-${id}`});}
 
 async function obterPagamentoAutorizado(id) {
   return mpFetch(`/authorized_payments/${encodeURIComponent(id)}`);
@@ -166,10 +189,14 @@ module.exports = {
   atualizarValorAssinatura,
   atualizarPlanoAssinatura,
   criarPagamentoPixAssinatura,
+  criarPagamentoLojaPix,
+  criarPagamentoLojaCartao,
+  reembolsarPagamento,
   obterPagamentoAutorizado,
   obterPagamento,
   validarWebhook,
   precoPlano,
+  cicloValido,
   mpTenantSignature,
   validarMpTenantSignature
 };

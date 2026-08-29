@@ -15,3 +15,5 @@ async function doLogin(){
 }
 mfaCode?.addEventListener('input',()=>{mfaCode.value=String(mfaCode.value||'').replace(/\D/g,'').slice(0,6)});
 form.addEventListener('submit',async e=>{e.preventDefault();try{submitBtn.disabled=true;await doLogin()}catch(err){flash(msg,err.message,'error')}finally{submitBtn.disabled=false}});
+
+document.getElementById('showPassword')?.addEventListener('change',e=>{senha.type=e.target.checked?'text':'password'});

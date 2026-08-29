@@ -108,3 +108,50 @@ CREATE TABLE IF NOT EXISTS platform_settings(
   criado_em TIMESTAMP NOT NULL DEFAULT NOW(),
   atualizado_em TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+
+-- BarberFlow 2.6: loja pública, retenção de exclusões e ciclo anual
+ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_ativa BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_titulo VARCHAR(160);
+ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_descricao TEXT;
+ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_logo_url TEXT;
+ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_banner_url TEXT;
+ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS exclusao_programada_em TIMESTAMP;
+ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS excluida_por INTEGER;
+ALTER TABLE produtos ADD COLUMN IF NOT EXISTS mostrar_na_loja BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE produtos ADD COLUMN IF NOT EXISTS destaque_pagina_publica BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE produtos ADD COLUMN IF NOT EXISTS descricao_publica TEXT;
+ALTER TABLE assinaturas ADD COLUMN IF NOT EXISTS ciclo_cobranca VARCHAR(20) NOT NULL DEFAULT 'mensal';
+ALTER TABLE assinaturas_pagamentos ADD COLUMN IF NOT EXISTS ciclo_cobranca VARCHAR(20) NOT NULL DEFAULT 'mensal';
+CREATE INDEX IF NOT EXISTS ix_produtos_loja ON produtos(barbearia_id,mostrar_na_loja,ativo);
+CREATE INDEX IF NOT EXISTS ix_barbearias_exclusao_programada ON barbearias(exclusao_programada_em) WHERE exclusao_programada_em IS NOT NULL;
+
+
+-- BarberFlow 2.7: e-commerce, checkout automático e entrega por distância
+ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_aceitar_retirada BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_aceitar_entrega BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_retirada_instrucao TEXT;
+ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_pedido_minimo NUMERIC(10,2) NOT NULL DEFAULT 0;
+ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_frete_taxa_base NUMERIC(10,2) NOT NULL DEFAULT 0;
+ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_frete_por_km NUMERIC(10,2) NOT NULL DEFAULT 2;
+ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_frete_minimo NUMERIC(10,2) NOT NULL DEFAULT 0;
+ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_frete_gratis_ate_km NUMERIC(10,2);
+ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_frete_gratis_acima NUMERIC(10,2);
+ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_frete_distancia_max_km NUMERIC(10,2) NOT NULL DEFAULT 20;
+ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_aceitar_pix BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_aceitar_cartao BOOLEAN NOT NULL DEFAULT true;
+CREATE TABLE IF NOT EXISTS loja_pedidos(
+  id BIGSERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,public_token TEXT NOT NULL UNIQUE,idempotency_key TEXT,
+  cliente_nome VARCHAR(160) NOT NULL,cliente_email VARCHAR(160) NOT NULL,cliente_telefone VARCHAR(30) NOT NULL,tipo_entrega VARCHAR(20) NOT NULL DEFAULT 'retirada',
+  cep VARCHAR(12),endereco TEXT,numero VARCHAR(40),complemento VARCHAR(160),bairro VARCHAR(120),cidade VARCHAR(120),estado VARCHAR(40),distancia_km NUMERIC(10,2),
+  subtotal NUMERIC(10,2) NOT NULL DEFAULT 0,frete NUMERIC(10,2) NOT NULL DEFAULT 0,total NUMERIC(10,2) NOT NULL DEFAULT 0,forma_pagamento VARCHAR(20),
+  status_pagamento VARCHAR(30) NOT NULL DEFAULT 'pendente',status_pedido VARCHAR(30) NOT NULL DEFAULT 'aguardando_pagamento',mp_payment_id TEXT,mp_status VARCHAR(40),
+  qr_code TEXT,qr_code_base64 TEXT,ticket_url TEXT,estoque_reservado BOOLEAN NOT NULL DEFAULT true,venda_id INTEGER REFERENCES vendas(id) ON DELETE SET NULL,
+  expira_em TIMESTAMP,criado_em TIMESTAMP NOT NULL DEFAULT NOW(),pago_em TIMESTAMP,atualizado_em TIMESTAMP NOT NULL DEFAULT NOW(),UNIQUE(barbearia_id,idempotency_key)
+);
+CREATE TABLE IF NOT EXISTS loja_pedido_itens(
+  id BIGSERIAL PRIMARY KEY,pedido_id BIGINT NOT NULL REFERENCES loja_pedidos(id) ON DELETE CASCADE,produto_id INTEGER REFERENCES produtos(id) ON DELETE SET NULL,
+  nome VARCHAR(200) NOT NULL,imagem_url TEXT,quantidade INTEGER NOT NULL,valor_unitario NUMERIC(10,2) NOT NULL,subtotal NUMERIC(10,2) NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_loja_pedidos_tenant_status ON loja_pedidos(barbearia_id,status_pedido,criado_em DESC);
+CREATE INDEX IF NOT EXISTS ix_loja_pedidos_expira ON loja_pedidos(status_pagamento,expira_em) WHERE status_pagamento='pendente';

@@ -715,7 +715,10 @@ router.post('/login', async (req, res) => {
                 usuario.papel,
 
             barbeiro_id:
-                usuario.barbeiro_id
+                usuario.barbeiro_id,
+
+            mfa_enabled:
+                !!usuario.mfa_enabled
         },
 
         barbearia: {
@@ -1516,144 +1519,20 @@ router.post(
     '/step-up',
     autenticar,
     async (req, res) => {
-
-        const r =
-            await pool.query(
-                `
-                SELECT
-                    senha_hash,
-                    papel,
-                    mfa_enabled,
-                    mfa_secret_enc
-                FROM usuarios
-                WHERE id = $1
-                `,
-                [
-                    req.usuario.id
-                ]
-            );
-
-
-        const usuario =
-            r.rows[0];
-
-
-        if (
-            !usuario ||
-            !(
-                await bcrypt.compare(
-                    String(
-                        req.body.senha ||
-                        ''
-                    ),
-
-                    usuario.senha_hash
-                )
-            )
-        ) {
-            return res
-                .status(401)
-                .json({
-                    erro:
-                        'Senha atual incorreta'
-                });
+        const r=await pool.query(`SELECT senha_hash,papel,COALESCE(mfa_enabled,false) AS mfa_enabled,mfa_secret_enc FROM usuarios WHERE id=$1`,[req.usuario.id]);
+        const usuario=r.rows[0];if(!usuario)return res.status(401).json({erro:'Usuário não encontrado'});
+        let metodo='senha';
+        if(usuario.mfa_enabled){
+            metodo='totp';let secret;try{secret=decrypt(usuario.mfa_secret_enc)}catch{return res.status(500).json({erro:'2FA indisponível'})}
+            if(!verifyTotp(secret,req.body?.mfa_code))return res.status(401).json({erro:'Código de autenticação inválido'});
+        }else{
+            if(!(await bcrypt.compare(String(req.body?.senha||''),usuario.senha_hash)))return res.status(401).json({erro:'Senha atual incorreta'});
         }
-
-
-        if (
-            usuario.papel ===
-            'super_admin'
-        ) {
-
-            if (
-                !usuario.mfa_enabled
-            ) {
-                return res
-                    .status(403)
-                    .json({
-                        erro:
-                            'MFA obrigatório'
-                    });
-            }
-
-
-            if (
-                !verifyTotp(
-                    decrypt(
-                        usuario.mfa_secret_enc
-                    ),
-
-                    req.body.mfa_code
-                )
-            ) {
-                return res
-                    .status(401)
-                    .json({
-                        erro:
-                            'Código MFA inválido'
-                    });
-            }
-        }
-
-
-        const token =
-            jwt.sign(
-                {
-                    purpose:
-                        'stepup',
-
-                    id:
-                        req.usuario.id,
-
-                    sv:
-                        Number(
-                            req.usuario.token_version ||
-                            0
-                        )
-                },
-
-                process.env.JWT_SECRET,
-
-                {
-                    expiresIn:
-                        '10m',
-
-                    algorithm:
-                        'HS256'
-                }
-            );
-
-
-        res.cookie(
-            'bf_stepup',
-            token,
-            {
-                httpOnly:
-                    true,
-
-                secure:
-                    process.env.NODE_ENV ===
-                    'production',
-
-                sameSite:
-                    'lax',
-
-                path:
-                    '/',
-
-                maxAge:
-                    10 * 60 * 1000
-            }
-        );
-
-
-        return res.json({
-            mensagem:
-                'Confirmação de segurança válida por 10 minutos'
-        });
+        const token=jwt.sign({purpose:'stepup',id:req.usuario.id,sv:Number(req.usuario.token_version||0),metodo},process.env.JWT_SECRET,{expiresIn:'10m',algorithm:'HS256'});
+        res.cookie('bf_stepup',token,{httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax',path:'/',maxAge:10*60*1000});
+        return res.json({mensagem:'Confirmação de segurança válida por 10 minutos',metodo});
     }
 );
-
 
 /* =========================================================
    LOGOUT

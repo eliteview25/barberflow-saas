@@ -102,7 +102,7 @@ check(!paymentsRoute.includes('res.json({secret_enc') && !paymentsRoute.includes
 check(/metas_financeiras/.test(financeAnalytics) && /barbearia_id=\$1/.test(financeAnalytics) && /exigirPapel\('dono'\).*financeiro\/metas/s.test(tenant), 'Metas financeiras são isoladas por tenant e edição exige dono');
 check(/NOT EXISTS\(SELECT 1 FROM vendas v WHERE v\.barbearia_id=a\.barbearia_id AND v\.agendamento_id=a\.id AND v\.status='finalizada'\)/.test(financeAnalytics), 'Analytics financeiro evita dupla contagem entre PDV e agendamento');
 
-const runtimeExternal = ['src/services/mercadoPago.js', 'src/services/mercadoPagoOAuth.js', 'src/services/whatsapp.js', 'src/services/whatsappQr.js', 'src/services/notifications.js', 'src/services/paymentGateways.js', 'src/routes/publico.js', 'src/routes/uploads.js'];
+const runtimeExternal = ['src/services/mercadoPago.js', 'src/services/mercadoPagoOAuth.js', 'src/services/whatsapp.js', 'src/services/whatsappQr.js', 'src/services/notifications.js', 'src/services/paymentGateways.js', 'src/routes/publico.js', 'src/routes/uploads.js', 'src/services/storeCommerce.js', 'src/routes/storePublic.js'];
 for (const file of runtimeExternal) { const s = read(file); if (/fetch\s*\(/.test(s)) check(/signal\s*:/.test(s), `${file} usa timeout/cancelamento em fetch externo`) }
 
 if (exists('.env')) aviso('.env existe localmente; confirme que continua ignorado pelo Git e não entra no ZIP');

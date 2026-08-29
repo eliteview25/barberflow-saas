@@ -1,7 +1,8 @@
 require('dotenv').config();
 const pool=require('./src/config/db');
+const {ensureTenantLifecycleSchema,purgeExpiredTenants}=require('./src/services/tenantLifecycle');
 (async()=>{try{
- const out={};let r;
+ const out={};let r;await ensureTenantLifecycleSchema();out.barbearias_expiradas_removidas=await purgeExpiredTenants();
  r=await pool.query(`UPDATE reservas_pagamento SET status='expirada',atualizado_em=NOW() WHERE status IN ('aguardando_pagamento','pagamento_pendente','aguardando_pix_manual') AND expira_em<NOW()`);out.reservas_expiradas=r.rowCount;
  r=await pool.query(`DELETE FROM oauth_states WHERE expira_em<NOW()-INTERVAL '1 day'`);out.oauth_states_removidos=r.rowCount;
  r=await pool.query(`DELETE FROM password_resets WHERE (usado=true OR expira_em<NOW()) AND criado_em<NOW()-INTERVAL '7 days'`);out.password_resets_removidos=r.rowCount;
