@@ -29,7 +29,7 @@ function showError(error){
   contentEl.innerHTML=`<div class="notice error"><strong>Não foi possível carregar esta área.</strong><br>${esc(error?.message || 'Erro inesperado')}</div>`;
 }
 function denied(){
-  contentEl.innerHTML='<div class="upgrade-card"><strong>🔒 Recurso Premium</strong><p>Esta ferramenta faz parte da gestão avançada do Premium.</p><a class="btn btn-primary" href="/pages/assinatura.html">Ver Premium</a></div>';
+  contentEl.innerHTML='<div class="upgrade-card"><strong>🔒 Recurso não incluído</strong><p>Esta ferramenta não faz parte do seu plano atual.</p><a class="btn btn-primary" href="/pages/assinatura.html">Comparar planos</a></div>';
 }
 
 if(requireAuth(['dono','gerente','recepcao'])){

@@ -724,3 +724,6 @@ button,.btn,.slot{touch-action:manipulation}
 .master-sidebar-v2 .master-side-link:hover{background:#f3f4f6!important;color:#111827!important}
 .master-sidebar-v2 .master-side-link:hover .master-side-icon{background:#e5e7eb!important;color:#111827!important}
 @media(max-width:760px){.sidebar .menu{overflow-y:auto!important;overflow-x:hidden!important;flex-direction:column!important;touch-action:pan-y}}
+
+/* Pricing 3.0.1 */
+.plan-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.plan-enterprise{border-style:dashed}.plan-enterprise .btn{display:inline-flex;justify-content:center;width:100%}@media(max-width:1180px){.plan-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:760px){.plan-grid{grid-template-columns:1fr}}

@@ -41,9 +41,12 @@ Nenhuma revisão estática garante ausência total de vulnerabilidades. Antes de
 
 
 ## Planos comerciais atuais
-- Starter — R$ 59,90/mês ou R$ 599/ano — até 2 profissionais, agenda, clientes, serviços e página pública.
-- Pro — R$ 109,90/mês ou R$ 1.099/ano — até 5 profissionais, equipe, financeiro, produtos/estoque, PDV, loja pública, comissões, fila, avaliações e Mercado Pago.
-- Premium — R$ 189,90/mês ou R$ 1.899/ano — profissionais ilimitados, loja pública, automações, WhatsApp, personalização, CRM, fidelidade, relatórios avançados e base preparada para IA.
+- Starter — R$ 69,90/mês ou R$ 699/ano — até 2 profissionais; agenda, clientes, serviços, página pública, financeiro, gráficos, produtos/estoque, PDV, comandas e comissões.
+- Pro — R$ 119,90/mês ou R$ 1.199/ano — até 5 profissionais; tudo do Starter + equipe, pagamentos online, WhatsApp/automações, CRM, fila, avaliações, fidelidade, clube, marketing inteligente e relatórios avançados.
+- Premium — R$ 199,90/mês ou R$ 1.999/ano — até 10 profissionais; tudo do Pro + página personalizada, BI avançado, exportação, NFS-e preparada e IA no WhatsApp com limite padrão de 500 atendimentos/mês quando configurada.
+- Enterprise — sob consulta — operações com 11+ profissionais; contratação comercial, sem checkout automático.
+
+O anual equivale a 10 mensalidades e libera 12 meses de uso. O trial permanece em 7 dias com recursos Premium.
 
 ### Próxima etapa: IA no WhatsApp
 A versão atual **não envia respostas por IA ainda**. Ela já contém configuração multi-tenant, política de ferramentas permitidas e contadores de uso sem dar acesso direto ao banco. A integração futura deve chamar somente ferramentas controladas do BarberFlow (consultar horários, criar/reagendar/cancelar agendamento, listar serviços/preços e gerar link de pagamento).

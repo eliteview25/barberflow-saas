@@ -2,7 +2,7 @@ if(requireAuth(['dono','gerente'])){
   document.getElementById('shell').innerHTML=renderShell('financeiro');
   const user=currentUser();
   if(!hasFeature('financeiro_basico')){
-    document.querySelector('main.main').innerHTML='<header class="topbar"><div><h1>Financeiro</h1></div></header><div class="upgrade-card"><strong>🔒 Recurso Pro</strong><p>Financeiro fica disponível nos planos Pro e Premium.</p><a class="btn btn-primary" href="/pages/assinatura.html">Ver planos</a></div>';
+    document.querySelector('main.main').innerHTML='<header class="topbar"><div><h1>Financeiro</h1></div></header><div class="upgrade-card"><strong>🔒 Financeiro indisponível</strong><p>O Financeiro faz parte de todos os planos comerciais ativos.</p><a class="btn btn-primary" href="/pages/assinatura.html">Ver planos</a></div>';
   }else{
     const localISO=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const monthKey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
@@ -42,7 +42,7 @@ if(requireAuth(['dono','gerente'])){
     }
 
     async function graficos(){
-      if(!hasFeature('financeiro_graficos')){graficosBox.innerHTML='<div class="upgrade-card"><strong>🔒 Gráficos financeiros</strong><p>Disponível a partir do Pro.</p><a class="btn btn-primary" href="/pages/assinatura.html">Ver planos</a></div>';return}
+      if(!hasFeature('financeiro_graficos')){graficosBox.innerHTML='<div class="upgrade-card"><strong>🔒 Gráficos indisponíveis</strong><p>Os gráficos financeiros fazem parte de todos os planos comerciais ativos.</p><a class="btn btn-primary" href="/pages/assinatura.html">Ver planos</a></div>';return}
       try{
         const mes=monthKey(new Date());const [g,m]=await Promise.all([api('/financeiro/graficos'),api(`/financeiro/metas?mes=${mes}`)]);
         graficosBox.innerHTML=`<div class="finance-analytics-grid">${renderMonthly(g)}${renderPayments(g)}${renderRanking(g)}${renderGoals(m)}</div>`;

@@ -1,21 +1,21 @@
 const CATALOGO=Object.freeze({
   starter:Object.freeze({
-    id:'starter',nome:'Starter',preco_mensal:59.90,preco_anual:599,preco_anual_referencia:599,limite_profissionais:2,badge:'ESSENCIAL',
-    descricao:'Para barbeiro autônomo ou barbearia pequena.',
-    destaques:['Agenda completa','Clientes e serviços','Página pública de agendamento','Até 2 profissionais'],
-    recursos:['agenda','clientes','barbeiros','servicos','pagina_publica_simples']
+    id:'starter',nome:'Starter',preco_mensal:69.90,preco_anual:699,preco_anual_referencia:699,limite_profissionais:2,badge:'ESSENCIAL',
+    descricao:'Operação completa para barbeiro autônomo ou barbearia pequena.',
+    destaques:['Agenda e página pública','Clientes e serviços','Financeiro e gráficos','Produtos, estoque e PDV','Comandas integradas','Comissões','Até 2 profissionais'],
+    recursos:['agenda','clientes','barbeiros','servicos','pagina_publica_simples','financeiro_basico','financeiro_graficos','pdv_estoque','comandas','comissoes']
   }),
   pro:Object.freeze({
-    id:'pro',nome:'Pro',preco_mensal:109.90,preco_anual:1099,preco_anual_referencia:1099,limite_profissionais:5,badge:'MAIS ESCOLHIDO',
-    descricao:'Gestão completa para barbearias com equipe e vendas.',
-    destaques:['Tudo do Starter','Equipe e permissões','Financeiro e gráficos','Produtos, estoque e PDV','Comandas integradas','Comissões, fila e avaliações','Mercado Pago','Até 5 profissionais','IA no WhatsApp elegível como adicional'],
-    recursos:['agenda','clientes','barbeiros','servicos','pagina_publica_simples','equipe','financeiro_basico','financeiro_graficos','pagamentos_online','pdv_estoque','comandas','comissoes','fila_espera','avaliacoes','ia_addon_elegivel']
+    id:'pro',nome:'Pro',preco_mensal:119.90,preco_anual:1199,preco_anual_referencia:1199,limite_profissionais:5,badge:'MAIS ESCOLHIDO',
+    descricao:'Crescimento, relacionamento e automação para barbearias com equipe.',
+    destaques:['Tudo do Starter','Equipe e permissões','Pagamentos online','WhatsApp e automações','CRM avançado','Fila de espera e avaliações','Fidelidade e pacotes','Clube de assinaturas','Marketing inteligente','Relatórios avançados','Até 5 profissionais'],
+    recursos:['agenda','clientes','barbeiros','servicos','pagina_publica_simples','financeiro_basico','financeiro_graficos','pdv_estoque','comandas','comissoes','equipe','pagamentos_online','fila_espera','avaliacoes','automacoes','whatsapp','crm_avancado','fidelidade','relatorios_avancados','marketing','marketing_inteligente','clube_assinaturas']
   }),
   premium:Object.freeze({
-    id:'premium',nome:'Premium',preco_mensal:189.90,preco_anual:1899,preco_anual_referencia:1899,limite_profissionais:null,badge:'IA + AUTOMAÇÃO',
-    descricao:'Operação avançada com WhatsApp, CRM, recorrência, inteligência e automações.',
-    destaques:['Tudo do Pro','Profissionais ilimitados','WhatsApp e automações','CRM avançado + fidelidade + pacotes','Clube de assinaturas','Fila inteligente','Marketing inteligente','BI gerencial','NFS-e preparada para integração','IA no WhatsApp quando configurada'],
-    recursos:['agenda','clientes','barbeiros','servicos','pagina_publica_simples','equipe','financeiro_basico','financeiro_graficos','pagamentos_online','pdv_estoque','comandas','comissoes','fila_espera','avaliacoes','automacoes','whatsapp','pagina_publica_completa','personalizacao_publica','crm_avancado','fidelidade','relatorios_avancados','exportacao_dados','marketing','marketing_inteligente','clube_assinaturas','bi_avancado','fiscal_nfse','ia_config','ia_whatsapp']
+    id:'premium',nome:'Premium',preco_mensal:199.90,preco_anual:1999,preco_anual_referencia:1999,limite_profissionais:10,badge:'IA + INTELIGÊNCIA',
+    descricao:'Automação avançada, IA, inteligência gerencial e recursos fiscais.',
+    destaques:['Tudo do Pro','Até 10 profissionais','Página pública personalizada','BI gerencial avançado','Exportação de dados','NFS-e preparada para integração','IA no WhatsApp — até 500 atendimentos/mês quando ativada'],
+    recursos:['agenda','clientes','barbeiros','servicos','pagina_publica_simples','financeiro_basico','financeiro_graficos','pdv_estoque','comandas','comissoes','equipe','pagamentos_online','fila_espera','avaliacoes','automacoes','whatsapp','crm_avancado','fidelidade','relatorios_avancados','marketing','marketing_inteligente','clube_assinaturas','pagina_publica_completa','personalizacao_publica','exportacao_dados','bi_avancado','fiscal_nfse','ia_config','ia_whatsapp']
   })
 });
 const MATRIZ=Object.fromEntries(Object.entries(CATALOGO).map(([k,v])=>[k,new Set(v.recursos)]));

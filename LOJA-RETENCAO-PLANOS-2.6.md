@@ -15,9 +15,10 @@
 - O dono/gerente escolhe quais produtos aparecem na loja e quais ficam em destaque na página pública.
 - A primeira versão da loja usa “Pedir no WhatsApp”; não há checkout de e-commerce de produtos nesta etapa.
 
-## Planos
+## Planos (histórico da versão 2.6)
+Os valores abaixo pertenciam à versão 2.6. Consulte o README para os preços comerciais atuais.
 - Starter: R$ 59,90/mês ou R$ 599/ano.
 - Pro: R$ 109,90/mês ou R$ 1.099/ano.
 - Premium: R$ 189,90/mês ou R$ 1.899/ano.
-- O anual equivale aproximadamente a 10 mensalidades.
+- O anual equivalia aproximadamente a 10 mensalidades.
 - Cartão anual usa recorrência anual; Pix anual é pré-pago por 12 meses.
