@@ -1322,3 +1322,88 @@ body:not(.public-bg):not(.auth-body):not(.legal-page) .agenda-table-wrap{max-wid
   .mobile-action-grid,.mobile-daily-summary>div,.premium-client-kpis{min-width:0}
   .mobile-action-grid>* ,.mobile-daily-summary article,.premium-client-kpis article{min-width:0}
 }
+
+/* =========================================================
+   BarberFlow 4.1.3 — superfícies escuras em todos os módulos
+   ========================================================= */
+body:not(.public-bg):not(.auth-body):not(.legal-page) .finance-chart-card,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .chart-card,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .provider-choice-card,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .provider-config,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .provider-webhook-box,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .provider-compat-grid>div,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .qr-provider-visual,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .gateway-card,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .payment-setting-card,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .payment-overview-card,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .flow-steps>span,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .upgrade-card,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .ai-roadmap-card,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .owner-profile-card,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .goal-empty,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .goal-input-row{
+  background:linear-gradient(145deg,#12151a,#0d1014)!important;
+  color:#f2f4f6!important;
+  border-color:#2a3037!important;
+  box-shadow:none!important;
+}
+body:not(.public-bg):not(.auth-body):not(.legal-page) .provider-choice-card:hover,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .provider-choice-card.selected{
+  background:linear-gradient(145deg,#171a1f,#101318)!important;
+  border-color:rgba(212,160,23,.58)!important;
+  box-shadow:0 0 0 1px rgba(212,160,23,.1)!important;
+}
+body:not(.public-bg):not(.auth-body):not(.legal-page) .provider-choice-icon,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .rank-position{
+  background:#191d22!important;
+  color:#e4a516!important;
+  border:1px solid #30363d!important;
+}
+body:not(.public-bg):not(.auth-body):not(.legal-page) .provider-choice-top small,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .provider-choice-card>small,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .provider-config-title p,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .provider-compat-grid span,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .provider-webhook-box code{color:#929ba6!important}
+body:not(.public-bg):not(.auth-body):not(.legal-page) .provider-webhook-box,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .qr-provider-visual{border-style:dashed!important}
+body:not(.public-bg):not(.auth-body):not(.legal-page) .qr-provider-visual img,
+.pix-qr-wrap{background:#fff!important;color:#111!important}
+
+/* Financeiro */
+body:not(.public-bg):not(.auth-body):not(.legal-page) .pix-highlight,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .goal-main{
+  background:linear-gradient(145deg,rgba(212,160,23,.12),rgba(212,160,23,.035))!important;
+  border-color:rgba(212,160,23,.38)!important;
+  color:#f5f6f7!important;
+}
+body:not(.public-bg):not(.auth-body):not(.legal-page) .pix-highlight span,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .pix-highlight small,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .pix-highlight strong,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .pix-highlight>b,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .goal-main span,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .goal-main>b{color:#f0b427!important}
+body:not(.public-bg):not(.auth-body):not(.legal-page) .payment-bar-track,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .goal-progress-track,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .mini-bar-track{background:#252b32!important}
+body:not(.public-bg):not(.auth-body):not(.legal-page) .finance-rank-row,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .finance-chart-note{border-color:#252b32!important}
+body:not(.public-bg):not(.auth-body):not(.legal-page) .payment-bar-row.is-pix>div:first-child strong{color:#62d67b!important}
+
+/* Outros componentes claros remanescentes no painel autenticado. */
+body:not(.public-bg):not(.auth-body):not(.legal-page) .agenda-mobile-card,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .client-card,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .appointment-contact-strip,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .table tbody tr{
+  background:#0f1216!important;
+  color:#eef1f4!important;
+  border-color:#292f36!important;
+}
+body:not(.public-bg):not(.auth-body):not(.legal-page) .agenda-view-switch{background:#171b20!important}
+body:not(.public-bg):not(.auth-body):not(.legal-page) .agenda-view-switch button.active{background:#242a31!important;color:#f0ad18!important}
+
+/* Prévia discreta da foto do dono nas Configurações. */
+.owner-profile-card{display:grid;grid-template-columns:56px minmax(0,1fr);gap:14px;align-items:start;padding:16px;border:1px solid #292f36;border-radius:12px}
+.owner-profile-avatar{width:56px!important;height:56px!important;min-width:56px!important;max-width:56px!important;border-radius:50%!important;overflow:hidden!important;display:grid!important;place-items:center!important;background:#191d22!important;color:#f0ad18!important;border:1px solid rgba(212,160,23,.4)!important;font-size:13px;font-weight:800}
+.owner-profile-avatar img{display:block!important;width:100%!important;height:100%!important;max-width:56px!important;max-height:56px!important;object-fit:cover!important}
+.owner-profile-copy{min-width:0}.owner-profile-copy>span{display:block;color:#dca217;font-size:9px;font-weight:800;letter-spacing:.09em;margin-bottom:10px}.owner-profile-fields{margin-bottom:12px}
+@media(max-width:600px){.owner-profile-card{grid-template-columns:42px minmax(0,1fr);gap:10px;padding:12px}.owner-profile-avatar{width:42px!important;height:42px!important;min-width:42px!important;max-width:42px!important}.owner-profile-avatar img{max-width:42px!important;max-height:42px!important}.owner-profile-card .actions{grid-column:1/-1}.owner-profile-card .actions .btn{flex:1 1 130px}}
