@@ -14,6 +14,17 @@ test('tenant importa e usa checkoutUrlAssinatura após criar a assinatura',()=>{
   assert.match(t,/obterAssinatura\(existing\.referencia_externa\)/);
 });
 
+test('lock do checkout usa parâmetros SQL contíguos',()=>{
+  const t=read('src/routes/tenant.js');
+  const lock=t.match(/const lock=await pool\.query\(`([^`]+)`\s*,\s*\[([^\]]+)\]\)/);
+  assert.ok(lock,'query de lock do checkout não encontrada');
+  assert.match(lock[1],/plano_pendente=\$1/);
+  assert.match(lock[1],/\$1\|\|':'\|\|\$2/);
+  assert.match(lock[1],/WHERE id=\$3/);
+  assert.doesNotMatch(lock[1],/\$4/);
+  assert.equal(lock[2].split(',').map(x=>x.trim()).join(','),'plano,ciclo,assinaturaId');
+});
+
 test('helper de checkout gera URL oficial a partir do preapproval id quando init_point não vem',()=>{
   const mp=read('src/services/mercadoPago.js');
   assert.match(mp,/subscriptions\/checkout\?preapproval_id=/);

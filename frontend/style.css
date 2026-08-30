@@ -1238,3 +1238,87 @@ body:not(.public-bg):not(.auth-body):not(.legal-page)::after{left:120px;bottom:-
 .dashboard-seven-days{min-height:230px}.dashboard-barber-performance{min-height:210px}
 @media(min-width:761px){.bf-sidebar-profile{display:none!important}.sidebar-bottom>a[data-click*="logout"]{font-size:10px!important;color:#7e8791!important;padding:8px 10px!important}.dashboard-premium-page .topbar-create{display:none!important}}
 @media(max-width:760px){.mobile-bottom-nav a,.mobile-bottom-nav button{gap:0!important}.mobile-bottom-nav a>span,.mobile-bottom-nav button>span{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}.mobile-bottom-nav svg{width:21px!important;height:21px!important}.mobile-bottom-nav .active svg{filter:drop-shadow(0 3px 8px rgba(212,160,23,.28))}.mobile-action-grid a{min-height:78px!important;aspect-ratio:auto!important}.mobile-action-grid a svg{width:24px!important;height:24px!important}.mobile-daily-summary article{min-height:72px!important}}
+
+/* =========================================================
+   BarberFlow 4.1.2 — revisão completa de contraste e viewport
+   ========================================================= */
+@media(min-width:761px){
+  body:not(.public-bg):not(.auth-body):not(.legal-page) .main{
+    width:auto!important;
+    max-width:none!important;
+    min-width:0!important;
+    margin-right:0!important;
+  }
+  .dashboard-premium-page{
+    width:auto!important;
+    max-width:none!important;
+  }
+  .dashboard-premium-grid{
+    width:100%!important;
+    grid-template-columns:minmax(480px,1.12fr) minmax(520px,1fr)!important;
+  }
+  .premium-kpi-grid{width:100%!important}
+  .premium-dashboard-panel,.dashboard-right-stack{min-width:0;width:100%}
+}
+
+/* Controles autenticados: nenhum campo branco com texto branco. */
+body:not(.public-bg):not(.auth-body):not(.legal-page){color-scheme:dark}
+body:not(.public-bg):not(.auth-body):not(.legal-page) input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]),
+body:not(.public-bg):not(.auth-body):not(.legal-page) select,
+body:not(.public-bg):not(.auth-body):not(.legal-page) textarea{
+  background-color:#0b0e12!important;
+  color:#f4f6f8!important;
+  border-color:#30353d!important;
+  caret-color:#f0ad18;
+}
+body:not(.public-bg):not(.auth-body):not(.legal-page) input::placeholder,
+body:not(.public-bg):not(.auth-body):not(.legal-page) textarea::placeholder{color:#7f8893!important;opacity:1}
+body:not(.public-bg):not(.auth-body):not(.legal-page) select option,
+body:not(.public-bg):not(.auth-body):not(.legal-page) select optgroup{background:#0b0e12!important;color:#f4f6f8!important}
+body:not(.public-bg):not(.auth-body):not(.legal-page) input:disabled,
+body:not(.public-bg):not(.auth-body):not(.legal-page) select:disabled,
+body:not(.public-bg):not(.auth-body):not(.legal-page) textarea:disabled{background:#14181d!important;color:#8d96a1!important;opacity:1}
+body:not(.public-bg):not(.auth-body):not(.legal-page) input:-webkit-autofill,
+body:not(.public-bg):not(.auth-body):not(.legal-page) input:-webkit-autofill:hover,
+body:not(.public-bg):not(.auth-body):not(.legal-page) input:-webkit-autofill:focus{
+  -webkit-text-fill-color:#f4f6f8!important;
+  -webkit-box-shadow:0 0 0 1000px #0b0e12 inset!important;
+  box-shadow:0 0 0 1000px #0b0e12 inset!important;
+  caret-color:#f0ad18!important;
+}
+
+/* Superfícies que ainda herdavam o tema claro em páginas secundárias. */
+body:not(.public-bg):not(.auth-body):not(.legal-page) .modal-box,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .card,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .panel{
+  background-color:#0f1216;
+  color:#f4f6f8;
+  border-color:#292f36;
+}
+body:not(.public-bg):not(.auth-body):not(.legal-page) .tab-btn,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .check-row,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .inline-row{
+  background:#111419!important;
+  color:#dfe3e7!important;
+  border-color:#2d333a!important;
+}
+body:not(.public-bg):not(.auth-body):not(.legal-page) .tab-btn.active{
+  background:rgba(212,160,23,.12)!important;
+  color:#f2b322!important;
+  border-color:rgba(212,160,23,.55)!important;
+}
+body:not(.public-bg):not(.auth-body):not(.legal-page) .table-wrap,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .client-premium-table-wrap,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .agenda-table-wrap{max-width:100%;min-width:0}
+
+@media(min-width:761px) and (max-width:1280px){
+  .dashboard-premium-grid{grid-template-columns:1fr!important}
+  .dashboard-right-stack{grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-rows:auto!important}
+}
+@media(max-width:760px){
+  body:not(.public-bg):not(.auth-body):not(.legal-page) .main{width:100%!important;overflow-x:clip}
+  body:not(.public-bg):not(.auth-body):not(.legal-page) .modal-box{color:#f4f6f8!important}
+  body:not(.public-bg):not(.auth-body):not(.legal-page) .modal-head{background:#0f1216!important}
+  .mobile-action-grid,.mobile-daily-summary>div,.premium-client-kpis{min-width:0}
+  .mobile-action-grid>* ,.mobile-daily-summary article,.premium-client-kpis article{min-width:0}
+}

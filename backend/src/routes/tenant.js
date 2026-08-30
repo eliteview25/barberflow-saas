@@ -148,7 +148,7 @@ router.post('/assinatura/checkout',exigirPapel('dono'),exigirStepUp,async(req,re
       if(Number.isFinite(ageMs)&&ageMs<90000)return res.status(409).json({erro:'O Mercado Pago ainda está processando a tentativa anterior. Aguarde alguns segundos e tente novamente.'});
       await pool.query(`UPDATE assinaturas SET billing_change_pending=false,billing_idempotency_key=NULL WHERE id=$1`,[assinaturaId]);
     }
-    const lock=await pool.query(`UPDATE assinaturas SET billing_change_pending=true,plano_pendente=$2,billing_idempotency_key=COALESCE(billing_idempotency_key,($2||':'||$3||':'||gen_random_uuid()::text)),atualizado_em=NOW() WHERE id=$4 AND COALESCE(billing_change_pending,false)=false RETURNING *`,[req.usuario.barbearia_id,plano,ciclo,assinaturaId]);
+    const lock=await pool.query(`UPDATE assinaturas SET billing_change_pending=true,plano_pendente=$1,billing_idempotency_key=COALESCE(billing_idempotency_key,($1||':'||$2||':'||gen_random_uuid()::text)),atualizado_em=NOW() WHERE id=$3 AND COALESCE(billing_change_pending,false)=false RETURNING *`,[plano,ciclo,assinaturaId]);
     if(!lock.rowCount)return res.status(409).json({erro:'Já existe uma alteração de assinatura em andamento. Aguarde e tente novamente.'});
     const atual=lock.rows[0];
     if(atual.referencia_externa&&String(atual.provedor_status||'')==='pending'&&atual.checkout_url){
