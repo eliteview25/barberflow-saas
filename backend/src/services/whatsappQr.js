@@ -84,10 +84,34 @@ async function disconnect(barbeariaId){
   await save(barbeariaId,{status:'desconectado',conectado_em:null,numero:null});
 }
 
+function normalizeWebhookConfig(d){
+  const w=d?.webhook||d?.data?.webhook||d?.data||d||{};
+  return {enabled:w.enabled!==false,url:String(w.url||''),webhookByEvents:w.webhookByEvents??w.byEvents??false,webhookBase64:w.webhookBase64??w.base64??false,events:Array.isArray(w.events)?w.events:[]};
+}
+async function findWebhook(barbeariaId){
+  const r=await row(barbeariaId);if(!r)throw new Error('Sessão Evolution ainda não criada');if(!configured())throw new Error('Conector Evolution não configurado na infraestrutura');
+  const d=await call(`/webhook/find/${encodeURIComponent(r.instance_name)}`,{allow404:true});
+  return d?normalizeWebhookConfig(d):null;
+}
 async function setWebhook(barbeariaId,url){
   const r=await row(barbeariaId);if(!r)throw new Error('Sessão Evolution ainda não criada');if(!configured())throw new Error('Conector Evolution não configurado na infraestrutura');
-  const payload={enabled:true,url:String(url||''),webhookByEvents:false,webhookBase64:false,events:['MESSAGES_UPSERT','CONNECTION_UPDATE']};
-  return call(`/webhook/set/${encodeURIComponent(r.instance_name)}`,{method:'POST',body:payload});
+  const target=String(url||'').trim();if(!target)throw new Error('URL de webhook Evolution inválida');
+  const events=['MESSAGES_UPSERT','CONNECTION_UPDATE'];
+  const attempts=[
+    {webhook:{enabled:true,url:target,byEvents:false,base64:false,events}},
+    {webhook:{enabled:true,url:target,webhookByEvents:false,webhookBase64:false,events}},
+    {enabled:true,url:target,webhookByEvents:false,webhookBase64:false,events}
+  ];
+  let last;
+  for(const body of attempts){
+    try{await call(`/webhook/set/${encodeURIComponent(r.instance_name)}`,{method:'POST',body});last=null;break}catch(e){last=e}
+  }
+  if(last)throw last;
+  const saved=await findWebhook(barbeariaId);
+  if(!saved)throw new Error('Evolution não retornou a configuração do webhook após salvar');
+  const hasMessages=saved.events.includes('MESSAGES_UPSERT');
+  if(saved.url!==target||saved.enabled===false||saved.webhookByEvents===true||!hasMessages)throw new Error('Evolution não persistiu o webhook de entrada corretamente');
+  return saved;
 }
 async function sendTextByInstance(name,to,text){
   if(!validPhone(to))throw new Error('Telefone inválido');
@@ -98,4 +122,4 @@ async function sendText(barbeariaId,to,text){
   const st=await stateByName(r.instance_name);if(st!=='open'){await save(barbeariaId,{status:'desconectado'});throw new Error('Sessão QR desconectada. Escaneie novamente.')}
   return sendTextByInstance(r.instance_name,to,text);
 }
-module.exports={configured,status,start,disconnect,setWebhook,sendText,sendTextByInstance,instanceName,validPhone};
+module.exports={configured,status,start,disconnect,setWebhook,findWebhook,sendText,sendTextByInstance,instanceName,validPhone};

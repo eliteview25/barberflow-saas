@@ -89,3 +89,18 @@ test('webhook Evolution prefere remoteJidAlt com número real em sessões LID',(
   assert.match(r,/remoteJidAlt/);
   assert.match(r,/@s\.whatsapp\.net/);
 });
+
+
+test('Evolution registra webhook v2 usando envelope webhook e valida persistencia',()=>{
+  const s=read('src/services/whatsappQr.js');
+  assert.match(s,/\{webhook:\{enabled:true,url:target,byEvents:false,base64:false,events\}\}/);
+  assert.match(s,/\/webhook\/find\/\$\{encodeURIComponent\(r\.instance_name\)\}/);
+  assert.match(s,/Evolution não persistiu o webhook de entrada corretamente/);
+});
+
+test('status Evolution repara webhook quando a sessao esta conectada',()=>{
+  const r=read('src/routes/whatsapp.js');
+  assert.match(r,/if\(d\.conectado\).*qr\.setWebhook\(tenant,url\)/s);
+  assert.match(r,/webhook_ok/);
+  assert.match(r,/webhook_error/);
+});
