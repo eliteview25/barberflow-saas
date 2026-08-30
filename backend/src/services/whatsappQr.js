@@ -86,7 +86,7 @@ async function disconnect(barbeariaId){
 
 async function setWebhook(barbeariaId,url){
   const r=await row(barbeariaId);if(!r)throw new Error('Sessão Evolution ainda não criada');if(!configured())throw new Error('Conector Evolution não configurado na infraestrutura');
-  const payload={enabled:true,url:String(url||''),webhookByEvents:true,webhookBase64:false,events:['MESSAGES_UPSERT','CONNECTION_UPDATE']};
+  const payload={enabled:true,url:String(url||''),webhookByEvents:false,webhookBase64:false,events:['MESSAGES_UPSERT','CONNECTION_UPDATE']};
   return call(`/webhook/set/${encodeURIComponent(r.instance_name)}`,{method:'POST',body:payload});
 }
 async function sendTextByInstance(name,to,text){

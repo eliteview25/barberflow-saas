@@ -75,3 +75,17 @@ test('Evolution 2.3.7 envia texto no formato exigido pela API',()=>{
   assert.doesNotMatch(s,/textMessage:\{text:/);
 });
 
+
+
+test('Evolution usa webhook único compatível com a rota BarberFlow',()=>{
+  const s=read('src/services/whatsappQr.js');
+  assert.match(s,/webhookByEvents:false/);
+  assert.doesNotMatch(s,/webhookByEvents:true/);
+  assert.match(s,/MESSAGES_UPSERT/);
+});
+
+test('webhook Evolution prefere remoteJidAlt com número real em sessões LID',()=>{
+  const r=read('src/routes/whatsapp.js');
+  assert.match(r,/remoteJidAlt/);
+  assert.match(r,/@s\.whatsapp\.net/);
+});

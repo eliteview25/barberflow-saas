@@ -43,7 +43,7 @@ router.post('/webhook/twilio/:token',async(req,res)=>{
 
 // Evolution/Baileys: endpoint privado por token configurado automaticamente na instância.
 router.post('/webhook/evolution/:token',async(req,res)=>{
-  try{const integ=await wp.byWebhookToken('evolution',req.params.token);if(!integ)return res.sendStatus(404);const body=req.body||{},event=String(body.event||'').toUpperCase();if(event.includes('CONNECTION'))return res.sendStatus(200);const data=body.data||body,keys=data.key||{},fromMe=keys.fromMe===true||data.fromMe===true;if(fromMe)return res.sendStatus(200);const id=keys.id||data.id,remote=keys.remoteJid||data.remoteJid||data.sender;if(id&&remote){const from=String(remote).split('@')[0];await enqueueGeneric(integ,id,from,messageTextEvolution(data));}return res.sendStatus(200)}catch(e){console.error('Webhook Evolution:',e.message);return res.sendStatus(500)}
+  try{const integ=await wp.byWebhookToken('evolution',req.params.token);if(!integ)return res.sendStatus(404);const body=req.body||{},event=String(body.event||'').toUpperCase();if(event.includes('CONNECTION'))return res.sendStatus(200);const data=body.data||body,keys=data.key||{},fromMe=keys.fromMe===true||data.fromMe===true;if(fromMe)return res.sendStatus(200);const id=keys.id||data.id,remoteAlt=keys.remoteJidAlt||data.remoteJidAlt,remote=(String(remoteAlt||'').endsWith('@s.whatsapp.net')?remoteAlt:null)||keys.remoteJid||data.remoteJid||data.sender;if(id&&remote){const from=String(remote).split('@')[0];await enqueueGeneric(integ,id,from,messageTextEvolution(data));}return res.sendStatus(200)}catch(e){console.error('Webhook Evolution:',e.message);return res.sendStatus(500)}
 });
 
 router.use(autenticar);
