@@ -17,11 +17,35 @@ async function ensurePlatformPaymentGatewaySchema(){
   )`);
 }
 
+function mercadoPagoCredentialEnvironment(value){const v=String(value||'').trim();if(/^TEST-/i.test(v))return 'sandbox';if(/^APP_USR-/i.test(v))return 'production';return null;}
+
 async function verifyMercadoPagoAccessToken(token){
   const r=await fetch('https://api.mercadopago.com/users/me',{headers:{Authorization:`Bearer ${token}`},signal:externalSignal()});
   let d={};try{d=await r.json()}catch{}
   if(!r.ok){const e=new Error('Access Token do Mercado Pago não foi aceito');e.status=400;throw e;}
-  return {provider_account_id:String(d.id||''),nickname:String(d.nickname||'').slice(0,120),email:String(d.email||'').slice(0,180)};
+  return {provider_account_id:String(d.id||''),nickname:String(d.nickname||'').slice(0,120),email:String(d.email||'').slice(0,180),site_id:String(d.site_id||'').slice(0,20)};
+}
+
+async function inspectMercadoPagoCapabilities(token){
+  const r=await fetch('https://api.mercadopago.com/v1/payment_methods',{headers:{Authorization:`Bearer ${token}`},signal:externalSignal()});
+  let d=[];try{d=await r.json()}catch{}
+  if(!r.ok)return {checked:false,pix_available:null,credit_card_available:null,error:String(d?.message||d?.error||`Mercado Pago respondeu ${r.status}`).slice(0,180)};
+  const methods=Array.isArray(d)?d:[];
+  const enabled=m=>!['inactive','disabled','unavailable'].includes(String(m?.status||'').toLowerCase());
+  const pix=methods.find(m=>m?.id==='pix'&&enabled(m));
+  const cards=methods.filter(m=>m?.payment_type_id==='credit_card'&&enabled(m));
+  return {checked:true,pix_available:!!pix,credit_card_available:cards.length>0,pix_status:pix?String(pix.status||'active'):null,credit_card_methods:cards.map(x=>String(x.id||'')).filter(Boolean).slice(0,12)};
+}
+
+async function diagnosePlatformMercadoPago(){
+  const c=await getPlatformGatewayCredentials('mercadopago');
+  const accessToken=String(c.secret?.access_token||'').trim();const publicKey=String(c.publicKey||'').trim();
+  if(!accessToken)return {configured:false,checked:false,pix_available:null,credit_card_available:null,key_environment_match:null};
+  const tokenEnv=mercadoPagoCredentialEnvironment(accessToken),keyEnv=mercadoPagoCredentialEnvironment(publicKey);
+  const caps=await inspectMercadoPagoCapabilities(accessToken);
+  const siteId=String(c.metadata?.site_id||'');const diag={configured:true,...caps,environment:tokenEnv||c.environment||'production',site_id:siteId||null,brazil_account:siteId?siteId==='MLB':null,key_environment_match:!publicKey||!tokenEnv||!keyEnv?null:tokenEnv===keyEnv};
+  if(caps.checked)await pool.query(`UPDATE platform_payment_gateways SET metadata=COALESCE(metadata,'{}'::jsonb) || $1::jsonb,atualizado_em=NOW() WHERE provedor='mercadopago'`,[JSON.stringify({checked:true,pix_available:caps.pix_available,credit_card_available:caps.credit_card_available,pix_status:caps.pix_status||null,credit_card_methods:caps.credit_card_methods||[]})]).catch(()=>{});
+  return diag;
 }
 
 async function savePlatformGatewayCredentials(userId,provedor,raw){
@@ -30,7 +54,9 @@ async function savePlatformGatewayCredentials(userId,provedor,raw){
   const c=credentialsFor(provedor,raw);
   let verified={};
   if(provedor==='mercadopago'){
-    verified=await verifyMercadoPagoAccessToken(c.accessToken);
+    const tokenEnv=mercadoPagoCredentialEnvironment(c.accessToken),keyEnv=mercadoPagoCredentialEnvironment(c.publicKey);
+    if(tokenEnv&&keyEnv&&tokenEnv!==keyEnv){const e=new Error('Access Token e Public Key do Mercado Pago pertencem a ambientes diferentes. Use as duas credenciais de Produção ou as duas de Teste.');e.status=400;throw e;}
+    verified={...(await verifyMercadoPagoAccessToken(c.accessToken)),...(await inspectMercadoPagoCapabilities(c.accessToken))};
     const atual=(await pool.query(`SELECT metadata,status FROM platform_payment_gateways WHERE provedor='mercadopago' LIMIT 1`)).rows[0];
     const currentAccount=String(atual?.metadata?.provider_account_id||'');
     const nextAccount=String(verified.provider_account_id||'');
@@ -54,7 +80,7 @@ async function listPlatformGateways(){
   await ensurePlatformPaymentGatewaySchema();
   const r=await pool.query(`SELECT provedor,public_key,environment,status,metadata,atualizado_em FROM platform_payment_gateways`);
   const by=new Map(r.rows.map(x=>[x.provedor,x]));
-  return Object.values(PROVIDERS).map(p=>{const x=by.get(p.id)||{},connected=x.status==='credenciais_salvas',meta=x.metadata||{};return {...p,descricao:p.id==='mercadopago'?'Conta central da plataforma. Todos os pagamentos Starter, Pro e Premium por Pix/cartão são recebidos nesta conta.':p.descricao,credenciais_salvas:connected,status:x.status||'sem_credenciais',ambiente:x.environment||'production',atualizado_em:x.atualizado_em||null,verificado:p.id==='mercadopago'&&connected&&!!meta.provider_account_id,recebe_assinaturas:p.id==='mercadopago'&&connected,conta_recebedora:p.id==='mercadopago'&&connected?{id:String(meta.provider_account_id||''),nome:String(meta.nickname||'').slice(0,120),email:String(meta.email||'').slice(0,180)}:null};});
+  return Object.values(PROVIDERS).map(p=>{const x=by.get(p.id)||{},connected=x.status==='credenciais_salvas',meta=x.metadata||{};return {...p,descricao:p.id==='mercadopago'?'Conta central da plataforma. Todos os pagamentos Starter, Pro e Premium por Pix/cartão são recebidos nesta conta.':p.descricao,credenciais_salvas:connected,status:x.status||'sem_credenciais',ambiente:x.environment||'production',atualizado_em:x.atualizado_em||null,verificado:p.id==='mercadopago'&&connected&&!!meta.provider_account_id,recebe_assinaturas:p.id==='mercadopago'&&connected,diagnostico:p.id==='mercadopago'&&connected?{checked:meta.checked===true,pix_available:meta.pix_available??null,credit_card_available:meta.credit_card_available??null,key_environment_match:true}:null,conta_recebedora:p.id==='mercadopago'&&connected?{id:String(meta.provider_account_id||''),nome:String(meta.nickname||'').slice(0,120),email:String(meta.email||'').slice(0,180)}:null};});
 }
 
 async function disconnectPlatformGateway(provedor){
@@ -82,8 +108,8 @@ async function getPlatformMercadoPagoCredentials(){
   const accessToken=String(c.secret?.access_token||'').trim()||null;
   const publicKey=String(c.publicKey||'').trim()||null;
   const webhookSecret=String(c.secret?.webhook_secret||'').trim()||null;
-  return {accessToken,publicKey,webhookSecret,configured:!!accessToken,cardConfigured:!!(accessToken&&publicKey),webhookConfigured:!!webhookSecret,source:c.source,account:{id:String(c.metadata?.provider_account_id||''),nome:String(c.metadata?.nickname||''),email:String(c.metadata?.email||'')}};
+  return {accessToken,publicKey,webhookSecret,configured:!!accessToken,cardConfigured:!!(accessToken&&publicKey),webhookConfigured:!!webhookSecret,source:c.source,environment:c.environment||'production',capabilities:{checked:c.metadata?.checked===true,pix_available:c.metadata?.pix_available??null,credit_card_available:c.metadata?.credit_card_available??null},account:{id:String(c.metadata?.provider_account_id||''),nome:String(c.metadata?.nickname||''),email:String(c.metadata?.email||''),site_id:String(c.metadata?.site_id||'')}};
 }
 async function platformWebhookSecret(){const c=await getPlatformMercadoPagoCredentials();return c.webhookSecret||String(process.env.MP_WEBHOOK_SECRET||'').trim()||null;}
 
-module.exports={ensurePlatformPaymentGatewaySchema,savePlatformGatewayCredentials,listPlatformGateways,disconnectPlatformGateway,getPlatformGatewayCredentials,getPlatformMercadoPagoCredentials,platformWebhookSecret};
+module.exports={ensurePlatformPaymentGatewaySchema,savePlatformGatewayCredentials,listPlatformGateways,disconnectPlatformGateway,getPlatformGatewayCredentials,getPlatformMercadoPagoCredentials,platformWebhookSecret,diagnosePlatformMercadoPago,inspectMercadoPagoCapabilities,mercadoPagoCredentialEnvironment};

@@ -1,7 +1,6 @@
 node_modules/
 .env
 *.log
-
-# Backups locais criptografados
-backups/
 *.bfbackup
+.DS_Store
+coverage/
