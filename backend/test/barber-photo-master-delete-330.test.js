@@ -38,6 +38,10 @@ test('página pública recebe e mostra foto do profissional',()=>{
   assert.match(css,/\.public-barber-grid\{/);
   assert.match(css,/\.public-barber-card\{[^}]*display:flex/);
   assert.match(css,/\.public-barber-photo\{[^}]*width:44px[^}]*height:44px/);
+  assert.match(css,/\.public-barber-copy strong\{[^}]*color:#18202b[^}]*font-size:14px/);
+  assert.match(css,/\.public-dark \.public-barber-copy,\.public-dark \.public-barber-copy strong\{color:#f9fafb/);
+  assert.match(css,/\.public-barber-card\{[^}]*background:#f8fafc/);
+  assert.match(css,/\.public-dark \.public-barber-card\{[^}]*background:#202733/);
 });
 
 test('cadastro de barbeiro permite enviar e remover foto',()=>{
