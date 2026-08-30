@@ -28,10 +28,10 @@ test('Produtos usam contexto operacional e não exibem publicação em loja',()=
   assert.doesNotMatch(gestao,/Mostrar na loja|produtoMostrarLoja|origemLoja/);
 });
 
-test('hover do menu lateral usa fonte preta e fundo claro',()=>{
+test('hover do menu lateral segue o visual premium escuro',()=>{
   const css=read('frontend/style.css');
-  assert.match(css,/\.sidebar \.menu a:hover[\s\S]*?background:#f3f4f6!important;color:#111827!important/);
-  assert.match(css,/\.sidebar \.menu-group-toggle:hover[\s\S]*?color:#111827!important/);
+  assert.match(css,/\.menu a:hover,\.menu-group-toggle:hover,\.master-side-link:hover\{background:#15191e!important;color:#fff!important/);
+  assert.match(css,/\.menu a\.active,\.menu-group-toggle\.active,\.master-side-link\.active[\s\S]*?rgba\(212,160,23/);
 });
 
 test('menu lateral aceita rolagem por wheel trackpad e toque',()=>{

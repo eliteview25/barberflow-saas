@@ -60,7 +60,7 @@ function tituloPlano(plano) {
   return ({starter:'BarberFlow Starter', pro:'BarberFlow Pro', premium:'BarberFlow Premium'})[plano] || 'BarberFlow Pro';
 }
 
-async function criarAssinatura({ barbeariaId, plano, ciclo='mensal', email, idempotencyKey, cardTokenId=null }) {
+async function criarAssinatura({ barbeariaId, plano, ciclo='mensal', email, idempotencyKey }) {
   const appUrl = process.env.APP_URL || 'http://localhost:3001';
   const body = {
     reason: tituloPlano(plano),
@@ -73,8 +73,7 @@ async function criarAssinatura({ barbeariaId, plano, ciclo='mensal', email, idem
       currency_id: 'BRL'
     },
     back_url: `${appUrl}/pages/assinatura.html?retorno=mercadopago`,
-    status: cardTokenId ? 'authorized' : 'pending',
-    ...(cardTokenId ? { card_token_id: cardTokenId } : {})
+    status: 'pending'
   };
   return mpFetch('/preapproval', { method: 'POST', body: JSON.stringify(body), idempotencyKey:idempotencyKey||`subscription-${barbeariaId}-${plano}` });
 }
