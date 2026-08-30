@@ -104,3 +104,17 @@ test('status Evolution repara webhook quando a sessao esta conectada',()=>{
   assert.match(r,/webhook_ok/);
   assert.match(r,/webhook_error/);
 });
+
+
+test('webhook Evolution autentica pelo token mesmo se status local estiver atrasado',()=>{
+  const providers=read('src/services/whatsappProviders.js');
+  assert.match(providers,/WHERE provedor=\$1 AND webhook_token_hash=\$2`/);
+  assert.doesNotMatch(providers,/webhook_token_hash=\$2 AND status='conectado'/);
+});
+
+test('status Evolution expõe diagnóstico da última entrada',()=>{
+  const routes=read('src/routes/whatsapp.js'),frontend=read('../frontend/js/automacoes.js');
+  assert.match(routes,/ultimo_webhook_em/);
+  assert.match(routes,/ultimo_webhook_evento/);
+  assert.match(frontend,/Nenhuma mensagem de entrada chegou ao BarberFlow ainda/);
+});

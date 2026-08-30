@@ -9,7 +9,7 @@ const LABELS={meta:'Meta Cloud API','360dialog':'360dialog',twilio:'Twilio',evol
 function digits(v){return String(v||'').replace(/\D/g,'').slice(-15)}
 function validPhone(v){const d=digits(v);return d.length>=10&&d.length<=15}
 function parseConfig(v){if(!v)return{};if(typeof v==='object')return v;try{return JSON.parse(v)}catch{return{}}}
-function publicRow(r){if(!r)return null;const c=parseConfig(r.config);return{id:r.id,provedor:r.provedor,status:r.status,numero:r.numero||c.numero||null,config:c,conectado_em:r.conectado_em,atualizado_em:r.atualizado_em}}
+function publicRow(r){if(!r)return null;const c=parseConfig(r.config);return{id:r.id,provedor:r.provedor,status:r.status,numero:r.numero||c.numero||null,config:c,conectado_em:r.conectado_em,atualizado_em:r.atualizado_em,ultimo_webhook_em:r.ultimo_webhook_em||null,ultimo_webhook_evento:r.ultimo_webhook_evento||null}}
 function secret(r){return r?.secret_enc?decrypt(r.secret_enc):null}
 function tokenHash(v){return crypto.createHash('sha256').update(String(v||'')).digest('hex')}
 function appBase(){return String(process.env.APP_URL||'').replace(/\/$/,'')}
@@ -27,8 +27,12 @@ async function ensureWhatsAppProviderSchema(){
     status VARCHAR(30) NOT NULL DEFAULT 'desconectado',
     conectado_em TIMESTAMP,
     atualizado_em TIMESTAMP NOT NULL DEFAULT NOW(),
+    ultimo_webhook_em TIMESTAMP,
+    ultimo_webhook_evento VARCHAR(80),
     UNIQUE(barbearia_id,provedor)
   )`);
+  await pool.query(`ALTER TABLE whatsapp_conexoes ADD COLUMN IF NOT EXISTS ultimo_webhook_em TIMESTAMP`);
+  await pool.query(`ALTER TABLE whatsapp_conexoes ADD COLUMN IF NOT EXISTS ultimo_webhook_evento VARCHAR(80)`);
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS ux_whatsapp_conexao_webhook_token ON whatsapp_conexoes(webhook_token_hash) WHERE webhook_token_hash IS NOT NULL`);
   await pool.query(`CREATE INDEX IF NOT EXISTS ix_whatsapp_conexoes_tenant_status ON whatsapp_conexoes(barbearia_id,status,provedor)`);
   await pool.query(`ALTER TABLE automacoes_config ADD COLUMN IF NOT EXISTS whatsapp_provedor VARCHAR(30)`);
@@ -63,7 +67,7 @@ async function save(barbeariaId,provider,{numero=null,config={},secretValue=null
     ON CONFLICT(barbearia_id,provedor) DO UPDATE SET numero=EXCLUDED.numero,config=EXCLUDED.config,secret_enc=COALESCE(EXCLUDED.secret_enc,whatsapp_conexoes.secret_enc),webhook_token_hash=COALESCE(EXCLUDED.webhook_token_hash,whatsapp_conexoes.webhook_token_hash),webhook_token_enc=COALESCE(EXCLUDED.webhook_token_enc,whatsapp_conexoes.webhook_token_enc),status=EXCLUDED.status,conectado_em=CASE WHEN EXCLUDED.status='conectado' THEN COALESCE(whatsapp_conexoes.conectado_em,NOW()) ELSE whatsapp_conexoes.conectado_em END,atualizado_em=NOW() RETURNING *`,[barbeariaId,provider,numero||null,JSON.stringify(config||{}),enc,whash,wenc,status]);return r.rows[0]
 }
 async function ensureWebhookToken(connection){if(connection.webhook_token_enc){try{return decrypt(connection.webhook_token_enc)}catch{}}const raw=crypto.randomBytes(32).toString('base64url'),hash=tokenHash(raw),enc=encrypt(raw);await pool.query(`UPDATE whatsapp_conexoes SET webhook_token_hash=$1,webhook_token_enc=$2,atualizado_em=NOW() WHERE id=$3`,[hash,enc,connection.id]);connection.webhook_token_hash=hash;connection.webhook_token_enc=enc;return raw}
-async function byWebhookToken(provider,raw){if(!PROVIDERS.includes(provider)||!raw)return null;const r=await pool.query(`SELECT * FROM whatsapp_conexoes WHERE provedor=$1 AND webhook_token_hash=$2 AND status='conectado'`,[provider,tokenHash(raw)]);return r.rows[0]||null}
+async function byWebhookToken(provider,raw){if(!PROVIDERS.includes(provider)||!raw)return null;const r=await pool.query(`SELECT * FROM whatsapp_conexoes WHERE provedor=$1 AND webhook_token_hash=$2`,[provider,tokenHash(raw)]);return r.rows[0]||null}
 async function findMetaByPhoneId(phoneId){const r=await pool.query(`SELECT * FROM whatsapp_conexoes WHERE provedor='meta' AND status='conectado' AND config->>'phone_number_id'=$1`,[String(phoneId)]);return r.rows[0]||null}
 function webhookUrl(connection,token){const base=appBase();if(!base||!connection||!token)return null;return `${base}/api/whatsapp/webhook/${encodeURIComponent(connection.provedor)}/${encodeURIComponent(token)}`}
 async function webhookUrlFor(connection){if(!connection||!['360dialog','twilio','evolution'].includes(connection.provedor))return connection?.provedor==='meta'&&appBase()?`${appBase()}/api/whatsapp/webhook`:null;const token=await ensureWebhookToken(connection);return webhookUrl(connection,token)}
