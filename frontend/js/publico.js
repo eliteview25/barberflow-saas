@@ -9,7 +9,7 @@ function safeUrl(v){try{const u=new URL(v);return ['http:','https:'].includes(u.
 function barberInitials(name){return String(name||'?').trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()||'?'}
 function renderBarberCards(items=[]){
   const box=document.getElementById('barbeiroCards');if(!box)return;
-  box.innerHTML=items.map(x=>{const photo=safeUrl(x.foto_url);return `<button type="button" class="public-barber-card" data-barber-id="${Number(x.id)}" aria-pressed="false"><span class="public-barber-photo">${photo?`<img src="${esc(photo)}" alt="Foto de ${esc(x.nome)}">`:`<span>${esc(barberInitials(x.nome))}</span>`}</span><strong>${esc(x.nome)}</strong><small>Ver horários</small></button>`}).join('');
+  box.innerHTML=items.map(x=>{const photo=safeUrl(x.foto_url);return `<button type="button" class="public-barber-card" data-barber-id="${Number(x.id)}" aria-pressed="false"><span class="public-barber-photo">${photo?`<img src="${esc(photo)}" alt="Foto de ${esc(x.nome)}">`:`<span>${esc(barberInitials(x.nome))}</span>`}</span><span class="public-barber-copy"><strong>${esc(x.nome)}</strong><small>Selecionar profissional</small></span><span class="public-barber-check" aria-hidden="true">✓</span></button>`}).join('');
   box.querySelectorAll('[data-barber-id]').forEach(btn=>btn.addEventListener('click',()=>{barbeiro.value=btn.dataset.barberId;syncBarberCards();slots()}));
 }
 function syncBarberCards(){const selected=String(barbeiro.value||'');document.querySelectorAll('[data-barber-id]').forEach(btn=>{const on=btn.dataset.barberId===selected;btn.classList.toggle('selected',on);btn.setAttribute('aria-pressed',on?'true':'false')})}

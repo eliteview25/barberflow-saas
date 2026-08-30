@@ -33,7 +33,11 @@ test('página pública recebe e mostra foto do profissional',()=>{
   assert.match(html,/id="barbeiroCards"/);
   assert.match(js,/renderBarberCards/);
   assert.match(js,/public-barber-photo/);
+  assert.match(js,/public-barber-copy/);
+  assert.match(html,/id="barbeiro" class="public-barber-select" hidden/);
   assert.match(css,/\.public-barber-grid\{/);
+  assert.match(css,/\.public-barber-card\{[^}]*display:flex/);
+  assert.match(css,/\.public-barber-photo\{[^}]*width:44px[^}]*height:44px/);
 });
 
 test('cadastro de barbeiro permite enviar e remover foto',()=>{
