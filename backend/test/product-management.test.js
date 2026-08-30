@@ -23,7 +23,7 @@ test('gestão de produtos oferece busca, filtros e ativação',()=>{
 
 test('backend permite editar produto somente dentro da barbearia',()=>{
   assert.match(route,/router\.put\('\/produtos\/:id'/);
-  assert.match(route,/WHERE id=\$9 AND barbearia_id=\$10 RETURNING \*/);
+  assert.match(route,/WHERE id=\$12 AND barbearia_id=\$13 RETURNING \*/);assert.match(route,/SELECT estoque FROM produtos WHERE id=\$1 AND barbearia_id=\$2 FOR UPDATE/);
 });
 
 test('produto permite foto opcional e exclusão controlada',()=>{

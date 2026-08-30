@@ -157,13 +157,18 @@ function renderShell(active){
     ['marketing-indicacoes','/pages/marketing.html?secao=indicacoes','🤝','Indicações',['dono','gerente'],'marketing'],
     ['marketing-links','/pages/marketing.html?secao=links','🔗','Links rastreáveis',['dono','gerente'],'marketing'],
     ['marketing-modelos','/pages/marketing.html?secao=modelos','💬','Modelos WhatsApp',['dono','gerente'],'marketing'],
+    ['marketing-oportunidades','/pages/gestao.html?secao=oportunidades','✨','Oportunidades',['dono','gerente'],'marketing_inteligente'],
     ['gestao-pdv','/pages/gestao.html?secao=pdv','🧾','Caixa / PDV',['dono','gerente','recepcao'],'pdv_estoque'],
     ['gestao-vendas','/pages/gestao.html?secao=vendas','🧾','Histórico de vendas',['dono','gerente','recepcao'],'pdv_estoque'],
+    ['gestao-comandas','/pages/gestao.html?secao=comandas','📋','Comandas',['dono','gerente','recepcao'],'comandas'],
     ['gestao-produtos','/pages/gestao.html?secao=estoque','📦','Produtos & Estoque',['dono','gerente','recepcao'],'pdv_estoque'],
     ['gestao-comissoes','/pages/gestao.html?secao=comissoes','💈','Comissões',['dono','gerente'],'comissoes'],
     ['gestao-fila','/pages/gestao.html?secao=fila','⏱️','Fila de espera',['dono','gerente'],'fila_espera'],
     ['gestao-crm','/pages/gestao.html?secao=crm','👤','CRM',['dono','gerente'],'crm_avancado'],
-    ['gestao-fidelidade','/pages/gestao.html?secao=fidelidade','🎁','Fidelidade',['dono','gerente'],'fidelidade'],
+    ['gestao-fidelidade','/pages/gestao.html?secao=fidelidade','🎁','Fidelidade & Pacotes',['dono','gerente'],'fidelidade'],
+    ['gestao-clube','/pages/gestao.html?secao=clube','♻️','Clube de Assinaturas',['dono','gerente'],'clube_assinaturas'],
+    ['gestao-fiscal','/pages/gestao.html?secao=fiscal','🧾','Fiscal / NFS-e',['dono','gerente'],'fiscal_nfse'],
+    ['gestao-bi','/pages/gestao.html?secao=bi','📊','BI Gerencial',['dono','gerente'],'bi_avancado'],
     ['gestao-avaliacoes','/pages/gestao.html?secao=avaliacoes','⭐','Avaliações',['dono','gerente'],'avaliacoes'],
     ['gestao-relatorios','/pages/gestao.html?secao=relatorios','📊','Relatórios',['dono','gerente'],'relatorios_avancados'],
     ['gestao-dados','/pages/gestao.html?secao=dados','⬇️','Exportar dados',['dono','gerente'],'exportacao_dados'],
@@ -179,7 +184,7 @@ function renderShell(active){
   const byKey=Object.fromEntries(allowed.map(x=>[x[0],x]));
   const marketingKeys={resumo:'marketing-resumo',campanhas:'marketing-campanhas',publicos:'marketing-publicos',cupons:'marketing-cupons',indicacoes:'marketing-indicacoes',links:'marketing-links',modelos:'marketing-modelos'};
   const marketingActive=active==='marketing'?(marketingKeys[section||'resumo']||'marketing-resumo'):'';
-  const gestaoKeys={pdv:'gestao-pdv',vendas:'gestao-vendas',estoque:'gestao-produtos',comissoes:'gestao-comissoes',fila:'gestao-fila',crm:'gestao-crm',fidelidade:'gestao-fidelidade',avaliacoes:'gestao-avaliacoes',relatorios:'gestao-relatorios',dados:'gestao-dados'};
+  const gestaoKeys={pdv:'gestao-pdv',vendas:'gestao-vendas',comandas:'gestao-comandas',estoque:'gestao-produtos',comissoes:'gestao-comissoes',fila:'gestao-fila',crm:'gestao-crm',fidelidade:'gestao-fidelidade',clube:'gestao-clube',fiscal:'gestao-fiscal',bi:'gestao-bi',oportunidades:'marketing-oportunidades',avaliacoes:'gestao-avaliacoes',relatorios:'gestao-relatorios',dados:'gestao-dados'};
   const gestaoActive=active==='gestao'?(gestaoKeys[section||'pdv']||'gestao-pdv'):'';
   const isActive=k=>active===k||k===gestaoActive||k===marketingActive||(active==='config'&&((k==='pagina-publica'&&section==='pagina-publica')||(k==='seguranca'&&section==='seguranca')||(k==='perfil'&&(!section||section==='perfil'))));
   const linkHtml=x=>x?`<a class="${isActive(x[0])?'active':''}" href="${x[1]}"><span class="menu-icon">${x[2]}</span><span>${x[3]}</span></a>`:'';
@@ -197,11 +202,11 @@ function renderShell(active){
     groupHtml('barbearia','💈','Barbearia',['agendamentos','clientes','servicos','pagina-publica']),
     groupHtml('equipe','👥','Equipe',['barbeiros','gestao-comissoes','equipe']),
     linkHtml(byKey.automacoes),
-    groupHtml('vendas','🧾','Vendas / PDV',['gestao-pdv','gestao-vendas']),
+    groupHtml('vendas','🧾','Vendas / PDV',['gestao-pdv','gestao-comandas','gestao-vendas']),
     linkHtml(byKey['gestao-produtos']),
     linkHtml(byKey.financeiro),
-    groupHtml('marketing','📣','Marketing',['marketing-resumo','marketing-campanhas','marketing-publicos','marketing-cupons','marketing-indicacoes','marketing-links','marketing-modelos']),
-    groupHtml('gestao','🧰','Gestão',['gestao-fila','gestao-crm','gestao-fidelidade','gestao-avaliacoes','gestao-relatorios','gestao-dados']),
+    groupHtml('marketing','📣','Marketing',['marketing-resumo','marketing-oportunidades','marketing-campanhas','marketing-publicos','marketing-cupons','marketing-indicacoes','marketing-links','marketing-modelos']),
+    groupHtml('gestao','🧰','Gestão',['gestao-fila','gestao-crm','gestao-clube','gestao-fidelidade','gestao-fiscal','gestao-bi','gestao-avaliacoes','gestao-relatorios','gestao-dados']),
     groupHtml('configuracoes','⚙️','Configurações',['pagamentos','seguranca','perfil']),
     linkHtml(byKey.suporte),
     linkHtml(byKey.assinatura)

@@ -8,14 +8,14 @@ const CATALOGO=Object.freeze({
   pro:Object.freeze({
     id:'pro',nome:'Pro',preco_mensal:109.90,preco_anual:1099,preco_anual_referencia:1099,limite_profissionais:5,badge:'MAIS ESCOLHIDO',
     descricao:'Gestão completa para barbearias com equipe e vendas.',
-    destaques:['Tudo do Starter','Equipe e permissões','Financeiro e gráficos','Produtos, estoque e PDV','Comissões, fila e avaliações','Mercado Pago','Até 5 profissionais','IA no WhatsApp elegível como adicional futuro'],
-    recursos:['agenda','clientes','barbeiros','servicos','pagina_publica_simples','equipe','financeiro_basico','financeiro_graficos','pagamentos_online','pdv_estoque','comissoes','fila_espera','avaliacoes','ia_addon_elegivel']
+    destaques:['Tudo do Starter','Equipe e permissões','Financeiro e gráficos','Produtos, estoque e PDV','Comandas integradas','Comissões, fila e avaliações','Mercado Pago','Até 5 profissionais','IA no WhatsApp elegível como adicional'],
+    recursos:['agenda','clientes','barbeiros','servicos','pagina_publica_simples','equipe','financeiro_basico','financeiro_graficos','pagamentos_online','pdv_estoque','comandas','comissoes','fila_espera','avaliacoes','ia_addon_elegivel']
   }),
   premium:Object.freeze({
     id:'premium',nome:'Premium',preco_mensal:189.90,preco_anual:1899,preco_anual_referencia:1899,limite_profissionais:null,badge:'IA + AUTOMAÇÃO',
-    descricao:'Operação avançada, loja, automações e base pronta para atendimento com IA.',
-    destaques:['Tudo do Pro','Profissionais ilimitados','Automações e WhatsApp','Página pública personalizada','CRM e fidelidade','Marketing com campanhas, cupons e indicações','Relatórios avançados e exportação','IA no WhatsApp incluída na próxima etapa','Franquia planejada: 500 atendimentos de IA/mês'],
-    recursos:['agenda','clientes','barbeiros','servicos','pagina_publica_simples','equipe','financeiro_basico','financeiro_graficos','pagamentos_online','pdv_estoque','comissoes','fila_espera','avaliacoes','automacoes','whatsapp','pagina_publica_completa','personalizacao_publica','crm_avancado','fidelidade','relatorios_avancados','exportacao_dados','marketing','ia_config','ia_whatsapp']
+    descricao:'Operação avançada com WhatsApp, CRM, recorrência, inteligência e automações.',
+    destaques:['Tudo do Pro','Profissionais ilimitados','WhatsApp e automações','CRM avançado + fidelidade + pacotes','Clube de assinaturas','Fila inteligente','Marketing inteligente','BI gerencial','NFS-e preparada para integração','IA no WhatsApp quando configurada'],
+    recursos:['agenda','clientes','barbeiros','servicos','pagina_publica_simples','equipe','financeiro_basico','financeiro_graficos','pagamentos_online','pdv_estoque','comandas','comissoes','fila_espera','avaliacoes','automacoes','whatsapp','pagina_publica_completa','personalizacao_publica','crm_avancado','fidelidade','relatorios_avancados','exportacao_dados','marketing','marketing_inteligente','clube_assinaturas','bi_avancado','fiscal_nfse','ia_config','ia_whatsapp']
   })
 });
 const MATRIZ=Object.fromEntries(Object.entries(CATALOGO).map(([k,v])=>[k,new Set(v.recursos)]));

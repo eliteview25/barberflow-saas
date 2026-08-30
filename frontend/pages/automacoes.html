@@ -1,4 +1,4 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Automações - BarberFlow</title><link rel="stylesheet" href="/style.css?v=20260829-op210"></head><body class="auth-checking"><div id="shell"></div><main class="main"><header class="topbar"><div><h1>Automações</h1><p>WhatsApp, IA, lembretes e relacionamento com clientes.</p></div></header><div id="msg" class="notice hidden"></div>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Automações - BarberFlow</title><link rel="stylesheet" href="/style.css?v=20260829-v300"></head><body class="auth-checking"><div id="shell"></div><main class="main"><header class="topbar"><div><h1>Automações</h1><p>WhatsApp, IA, lembretes e relacionamento com clientes.</p></div></header><div id="msg" class="notice hidden"></div>
 
 <section class="panel whatsapp-provider-center"><div class="panel-head"><div><h2>WhatsApp — escolha como conectar</h2><p class="muted">Configure uma ou mais opções e escolha qual o BarberFlow deve usar. Você pode trocar depois sem apagar as outras conexões.</p></div><span id="activeProviderBadge" class="badge">Carregando...</span></div>
 <div id="providerCards" class="provider-choice-grid"></div>
@@ -44,18 +44,19 @@
 <p id="templateHelp" class="muted"></p><button id="salvarAuto" class="btn btn-primary">Salvar automações</button></section>
 
 <section class="panel ai-settings-panel" id="iaWhatsapp">
-  <div class="panel-head"><div><h2>🤖 Inteligência Artificial no WhatsApp</h2><p class="muted">Configure o comportamento do futuro atendente virtual junto das automações do WhatsApp.</p></div><span id="aiStatus" class="badge">Verificando...</span></div>
+  <div class="panel-head"><div><h2>🤖 Inteligência Artificial no WhatsApp</h2><p class="muted">Configure o atendente inteligente com fallback seguro para o fluxo clássico do BarberFlow.</p></div><span id="aiStatus" class="badge">Verificando...</span></div>
   <div id="aiPlanHint" class="notice">Carregando disponibilidade do plano...</div>
   <div id="aiConfigForm" class="ai-config-grid">
     <div class="ai-config-main">
+      <label class="check-row"><input id="aiAtivo" type="checkbox"> Ativar IA para entender mensagens livres no WhatsApp</label>
       <div class="form-grid"><div class="field"><label>Nome do assistente</label><input id="aiNome" maxlength="60" placeholder="Sofia"></div><div class="field"><label>Tom de atendimento</label><select id="aiTom"><option value="profissional">Profissional</option><option value="amigavel">Amigável</option><option value="descontraido">Descontraído</option></select></div></div>
       <div class="field"><label>Mensagem inicial</label><textarea id="aiMensagemInicial" rows="3" maxlength="500" placeholder="Olá! Sou a assistente virtual..."></textarea></div>
       <div class="field"><label>Mensagem ao transferir para humano</label><textarea id="aiMensagemFallback" rows="3" maxlength="500"></textarea></div>
       <h3>O que a IA poderá fazer</h3><div class="toggle-grid ai-toggle-grid"><label class="check-row"><input id="aiConsultarHorarios" type="checkbox"> Consultar horários disponíveis</label><label class="check-row"><input id="aiCriarAgendamento" type="checkbox"> Criar agendamentos</label><label class="check-row"><input id="aiReagendar" type="checkbox"> Reagendar</label><label class="check-row"><input id="aiCancelar" type="checkbox"> Cancelar agendamentos</label><label class="check-row"><input id="aiInformarPrecos" type="checkbox"> Informar serviços e preços</label><label class="check-row"><input id="aiEnviarPagamento" type="checkbox"> Enviar link de pagamento</label></div>
       <h3>Transferir para uma pessoa quando</h3><div class="toggle-grid ai-toggle-grid"><label class="check-row"><input id="aiTransferirSolicitacao" type="checkbox"> O cliente pedir atendimento humano</label><label class="check-row"><input id="aiTransferirReclamacao" type="checkbox"> Houver reclamação</label><label class="check-row"><input id="aiTransferirPagamento" type="checkbox"> Houver problema de pagamento</label></div>
-      <button id="salvarIa" type="button" class="btn btn-dark">Salvar preparação da IA</button>
+      <button id="salvarIa" type="button" class="btn btn-dark">Salvar IA</button>
     </div>
-    <aside class="ai-roadmap-card"><span class="ai-coming-badge">PRÓXIMA ETAPA</span><h3>Atendimento automático 24h</h3><p>A integração será feita por ferramentas controladas do BarberFlow. A IA não terá acesso direto ao PostgreSQL.</p><ul><li>Consulta de agenda real</li><li>Agendamento e reagendamento</li><li>Preços e serviços</li><li>Pagamentos</li><li>Transferência para humano</li></ul><div class="ai-quota"><strong>Premium</strong><span>Franquia planejada: 500 atendimentos/mês</span></div><small>No Pro, a IA está prevista como adicional. No Premium, ficará incluída.</small></aside>
+    <aside class="ai-roadmap-card"><span class="ai-coming-badge">GUARDRAILS</span><h3>IA + fluxo seguro</h3><p>A IA interpreta intenção e linguagem natural. Ações continuam passando pelas regras do BarberFlow; ela não acessa PostgreSQL diretamente.</p><ul><li>Entende pedidos de agendamento</li><li>Consulta horários permitidos</li><li>Reagenda com validação de vaga</li><li>Cancela agendamentos do próprio número</li><li>Informa serviços e preços</li><li>Fallback automático para o fluxo clássico</li></ul><div class="ai-quota"><strong>Premium</strong><span>Limite configurável de atendimentos/mês</span></div><small>A ativação exige OPENAI_API_KEY no ambiente.</small></aside>
   </div>
 </section>
 
@@ -63,4 +64,4 @@
 
 
 <section class="panel"><h2>Compatibilidade dos provedores</h2><div class="provider-compat-grid"><div><strong>Meta Cloud API</strong><span>Atendimento, templates, Marketing, entrega/leitura</span></div><div><strong>360dialog</strong><span>Atendimento, templates Meta, Marketing, entrega/leitura</span></div><div><strong>Twilio</strong><span>Atendimento, Content SID, Marketing e status</span></div><div><strong>Evolution / QR</strong><span>Atendimento e mensagens livres; sem templates oficiais</span></div></div><p class="muted">Fora da janela de atendimento, provedores oficiais exigem templates aprovados. No Evolution, a barbearia assume o risco operacional da conexão não oficial.</p></section>
-</main><script src="/js/common.js?v=20260829-op210"></script><script src="/js/automacoes.js?v=20260829-op210"></script></body></html>
+</main><script src="/js/common.js?v=20260829-v300"></script><script src="/js/automacoes.js?v=20260829-v300"></script></body></html>

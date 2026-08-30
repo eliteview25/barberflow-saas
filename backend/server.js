@@ -17,6 +17,7 @@ const {ensureTenantLifecycleSchema,purgeExpiredTenants}=require('./src/services/
 const {notifyOps}=require('./src/services/opsAlerts');
 const {ensureMarketingSchema,processMarketingCampaigns}=require('./src/services/marketing');
 const {ensureWhatsAppProviderSchema}=require('./src/services/whatsappProviders');
+const {ensureAdvancedOpsSchema}=require('./src/services/advancedOps');
 const PORT=Number(process.env.PORT||3001);
 let server;
 let encerrando=false;
@@ -64,6 +65,7 @@ async function iniciar(){
     await ensureTenantLifecycleSchema();
     await ensureMarketingSchema();
     await ensureWhatsAppProviderSchema();
+    await ensureAdvancedOpsSchema();
     const purged=await purgeExpiredTenants();
     if(purged)console.log(`Barbearias expiradas eliminadas permanentemente: ${purged}`);
     console.log('Base de pré-lançamento preparada.');
@@ -75,16 +77,16 @@ async function iniciar(){
     console.log('Segurança da conta preparada.');
     console.log('Configurações da plataforma preparadas.');
     console.log('Metas e analytics financeiros preparados.');
-    console.log('Loja pública preparada.');
-    console.log('E-commerce e frete preparados.');
+    if(process.env.ENABLE_PUBLIC_STORE==='true')console.log('Vitrine online opcional preparada.');
     console.log('Ciclo de exclusão de 30 dias preparado.');
     console.log('Marketing, cupons, públicos e indicações preparados.');
     console.log('Provedores WhatsApp preparados (Meta, 360dialog, Twilio e Evolution).');
+    console.log('Comandas, clube, CRM avançado, pacotes, fila inteligente, BI e fiscal preparados.');
     console.log('PostgreSQL conectado!');
     server=app.listen(PORT,()=>{
       console.log(`BarberFlow SaaS: http://localhost:${PORT}`);
       console.log(`Agendamento público: http://localhost:${PORT}/agendar/SEU-SLUG`);
-      console.log(`Loja pública: http://localhost:${PORT}/loja/SEU-SLUG`);
+      if(process.env.ENABLE_PUBLIC_STORE==='true')console.log(`Vitrine opcional: http://localhost:${PORT}/loja/SEU-SLUG`);
     });
     const purgeTimer=setInterval(()=>purgeExpiredTenants().catch(e=>console.error('tenant_purge_interval',e.message)),15*60*1000);purgeTimer.unref();
     const storeTimer=setInterval(()=>releaseExpiredStoreOrders().catch(e=>console.error('store_order_expiry',e.message)),5*60*1000);storeTimer.unref();
