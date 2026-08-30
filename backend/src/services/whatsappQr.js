@@ -91,7 +91,7 @@ async function setWebhook(barbeariaId,url){
 }
 async function sendTextByInstance(name,to,text){
   if(!validPhone(to))throw new Error('Telefone inválido');
-  return call(`/message/sendText/${encodeURIComponent(name)}`,{method:'POST',body:{number:digits(to),textMessage:{text:String(text).slice(0,4000)},delay:400,linkPreview:true}});
+  return call(`/message/sendText/${encodeURIComponent(name)}`,{method:'POST',body:{number:digits(to),text:String(text).slice(0,4000),delay:400,linkPreview:true}});
 }
 async function sendText(barbeariaId,to,text){
   const r=await row(barbeariaId);if(!r||r.status!=='conectado')throw new Error('WhatsApp por QR não conectado');

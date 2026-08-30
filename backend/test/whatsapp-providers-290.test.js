@@ -68,3 +68,10 @@ test('rotas legadas principais continuam disponíveis para frontend em cache',()
   const r=read('src/routes/whatsapp.js');
   for(const route of ["'/conectar'","'/conexao'","'/qr/status'","'/qr/iniciar'","'/qr/conexao'","'/qr/teste'"])assert.ok(r.includes(route),route);
 });
+
+test('Evolution 2.3.7 envia texto no formato exigido pela API',()=>{
+  const s=read('src/services/whatsappQr.js');
+  assert.match(s,/body:\{number:digits\(to\),text:String\(text\)\.slice\(0,4000\),delay:400,linkPreview:true\}/);
+  assert.doesNotMatch(s,/textMessage:\{text:/);
+});
+
