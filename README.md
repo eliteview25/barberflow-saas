@@ -98,3 +98,14 @@ Gateways e checkout agora ficam totalmente centralizados em **Pagamentos**. A ab
 ## BarberFlow 3.2
 
 Dashboards por perfil e revisão de responsividade/mobile. Consulte `BARBERFLOW-3.2.md`.
+
+## BarberFlow 3.3 — fotos dos profissionais e exclusão por 2FA
+
+- Dono e gerente podem adicionar ou remover foto no cadastro do barbeiro.
+- O upload reutiliza o pipeline seguro de imagens e salva em Cloudinary; JPG/PNG de até 5 MB, com recorte quadrado e remoção de metadados.
+- A página pública mostra os profissionais em cards com foto; quando não houver foto, exibe as iniciais.
+- O banco recebe `barbeiros.foto_url` de forma idempotente durante o boot/migração.
+- Exclusão de barbearia no Supermaster não exige mais digitar o nome. Cada exclusão normal ou permanente exige código TOTP do 2FA no próprio modal e possui rate limit dedicado.
+- A exclusão normal continua recuperável por 30 dias; a permanente continua irreversível.
+
+Para upload real das fotos, configure `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` e `CLOUDINARY_API_SECRET` no ambiente de produção. Não armazene imagens no disco efêmero do Render.

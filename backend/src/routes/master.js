@@ -2,6 +2,8 @@ const express=require('express');
 const bcrypt=require('bcryptjs');
 const pool=require('../config/db');
 const {autenticar,exigirPapel,exigirStepUp}=require('../middlewares/auth');
+const {decrypt}=require('../services/secrets');
+const {verifyTotp}=require('../utils/totp');
 const {atualizarValorAssinatura,atualizarStatusAssinatura,precoPlano}=require('../services/mercadoPago');
 const {strongPassword,validEmail,normalizePhone}=require('../utils/security');
 const {intId,cleanText,isoDate}=require('../utils/validation');
@@ -17,6 +19,7 @@ function mensalidade(plano,ciclo='mensal'){try{const valor=precoPlano(plano,cicl
 function validarPlano(p){return ['starter','pro','premium'].includes(p)}
 function validarStatus(s){return ['trial','ativa','inadimplente','atrasada','cancelada'].includes(s)}
 async function cancelarCobrancaAntesDeExcluir(id){const ext=(await pool.query(`SELECT provedor,referencia_externa,status FROM assinaturas WHERE barbearia_id=$1 ORDER BY id DESC LIMIT 1`,[id])).rows[0];if(ext?.provedor==='mercadopago'&&ext.referencia_externa&&ext.status!=='cancelada')await atualizarStatusAssinatura(ext.referencia_externa,'canceled');}
+async function exigir2FAExclusao(req,res,next){try{const row=(await pool.query(`SELECT COALESCE(mfa_enabled,false) mfa_enabled,mfa_secret_enc FROM usuarios WHERE id=$1 AND papel='super_admin'`,[req.usuario.id])).rows[0];if(!row?.mfa_enabled||!row.mfa_secret_enc)return res.status(403).json({erro:'Ative o 2FA do Supermaster antes de excluir barbearias',mfa_required:true});let secret;try{secret=decrypt(row.mfa_secret_enc)}catch{return res.status(503).json({erro:'2FA indisponível no momento'})}if(!verifyTotp(secret,req.body?.mfa_code))return res.status(400).json({erro:'Código 2FA inválido'});next()}catch(e){console.error('master_delete_mfa',e.message);res.status(500).json({erro:'Não foi possível validar o 2FA'})}}
 
 router.get('/dashboard',async(req,res)=>{
   try{
@@ -160,22 +163,21 @@ router.patch('/barbearias/:id/status',exigirStepUp,async(req,res)=>{
   catch(e){res.status(500).json({erro:'Erro ao alterar barbearia'});}
 });
 
-router.delete('/barbearias/:id',exigirStepUp,async(req,res)=>{
-  const id=intId(req.params.id),confirmacao=String(req.body?.confirmacao||'').trim();
+router.delete('/barbearias/:id',exigir2FAExclusao,async(req,res)=>{
+  const id=intId(req.params.id);
   if(!id)return res.status(400).json({erro:'Barbearia inválida'});
   try{
     await ensureTenantLifecycleSchema();
     const pre=(await pool.query(`SELECT id,nome,excluido_em FROM barbearias WHERE id=$1 AND COALESCE(is_system,false)=false`,[id])).rows[0];
     if(!pre)return res.status(404).json({erro:'Barbearia não encontrada'});if(pre.excluido_em)return res.status(409).json({erro:'Barbearia já está na lixeira'});
-    if(confirmacao!==pre.nome)return res.status(400).json({erro:'Digite exatamente o nome da barbearia'});
     try{await cancelarCobrancaAntesDeExcluir(id)}catch(e){console.error('cancel_subscription_before_delete',e.data||e.message);return res.status(502).json({erro:'Não foi possível cancelar a cobrança recorrente. A barbearia não foi excluída.'})}
     const c=await pool.connect();try{await c.query('BEGIN');const b=(await c.query(`SELECT id,nome,excluido_em FROM barbearias WHERE id=$1 AND COALESCE(is_system,false)=false FOR UPDATE`,[id])).rows[0];if(!b){await c.query('ROLLBACK');return res.status(404).json({erro:'Barbearia não encontrada'})}if(b.excluido_em){await c.query('ROLLBACK');return res.status(409).json({erro:'Barbearia já está na lixeira'})}await c.query(`UPDATE barbearias SET ativo=false,excluido_em=NOW(),exclusao_programada_em=NOW()+INTERVAL '30 days',excluida_por=$2 WHERE id=$1`,[id,req.usuario.id]);await c.query(`UPDATE usuarios SET desativado_por_exclusao=true,ativo=false WHERE barbearia_id=$1 AND papel<>'super_admin' AND ativo=true`,[id]);await c.query(`UPDATE assinaturas SET status_antes_exclusao=status,status='cancelada',provedor_status=CASE WHEN provedor='mercadopago' THEN 'canceled' ELSE provedor_status END,atualizado_em=NOW() WHERE id=(SELECT id FROM assinaturas WHERE barbearia_id=$1 ORDER BY id DESC LIMIT 1)`,[id]);await audit(req,{acao:'master.barbearia.excluida',barbeariaId:id,alvoTipo:'barbearia',alvoId:id,detalhes:{nome:b.nome,retencao_dias:30,exclusao_permanente:false}},c);await c.query('COMMIT');res.json({mensagem:'Barbearia enviada para a lixeira por 30 dias.',exclusao_em_dias:30});}catch(e){await c.query('ROLLBACK').catch(()=>{});throw e}finally{c.release()}
   }catch(e){console.error(e);res.status(500).json({erro:'Erro ao excluir barbearia'})}
 });
 
-router.delete('/barbearias/:id/permanente',exigirStepUp,async(req,res)=>{
-  const id=intId(req.params.id),confirmacao=String(req.body?.confirmacao||'').trim();if(!id)return res.status(400).json({erro:'Barbearia inválida'});
-  try{const pre=(await pool.query(`SELECT id,nome FROM barbearias WHERE id=$1 AND COALESCE(is_system,false)=false`,[id])).rows[0];if(!pre)return res.status(404).json({erro:'Barbearia não encontrada'});if(confirmacao!==pre.nome)return res.status(400).json({erro:'Digite exatamente o nome da barbearia'});try{await cancelarCobrancaAntesDeExcluir(id)}catch(e){return res.status(502).json({erro:'Não foi possível cancelar a cobrança recorrente. A exclusão permanente foi interrompida.'})}const out=await purgeTenantPermanent(id);if(!out)return res.status(404).json({erro:'Barbearia não encontrada'});await audit(req,{acao:'master.barbearia.excluida_permanente',barbeariaId:null,alvoTipo:'barbearia',alvoId:id,detalhes:{nome:pre.nome,exclusao_permanente:true}}).catch(e=>console.error('audit_permanent_tenant_delete',e.message));res.json({mensagem:'Barbearia e dados relacionados excluídos permanentemente.'});}catch(e){console.error('permanent_tenant_delete',e);res.status(500).json({erro:'Erro ao excluir permanentemente a barbearia'})}
+router.delete('/barbearias/:id/permanente',exigir2FAExclusao,async(req,res)=>{
+  const id=intId(req.params.id);if(!id)return res.status(400).json({erro:'Barbearia inválida'});
+  try{const pre=(await pool.query(`SELECT id,nome FROM barbearias WHERE id=$1 AND COALESCE(is_system,false)=false`,[id])).rows[0];if(!pre)return res.status(404).json({erro:'Barbearia não encontrada'});try{await cancelarCobrancaAntesDeExcluir(id)}catch(e){return res.status(502).json({erro:'Não foi possível cancelar a cobrança recorrente. A exclusão permanente foi interrompida.'})}const out=await purgeTenantPermanent(id);if(!out)return res.status(404).json({erro:'Barbearia não encontrada'});await audit(req,{acao:'master.barbearia.excluida_permanente',barbeariaId:null,alvoTipo:'barbearia',alvoId:id,detalhes:{nome:pre.nome,exclusao_permanente:true}}).catch(e=>console.error('audit_permanent_tenant_delete',e.message));res.json({mensagem:'Barbearia e dados relacionados excluídos permanentemente.'});}catch(e){console.error('permanent_tenant_delete',e);res.status(500).json({erro:'Erro ao excluir permanentemente a barbearia'})}
 });
 
 router.post('/barbearias/:id/restaurar',exigirStepUp,async(req,res)=>{const id=intId(req.params.id);if(!id)return res.status(400).json({erro:'Barbearia inválida'});const c=await pool.connect();try{await c.query('BEGIN');const r=await c.query(`UPDATE barbearias SET ativo=true,excluido_em=NULL,exclusao_programada_em=NULL,excluida_por=NULL WHERE id=$1 AND COALESCE(is_system,false)=false AND (exclusao_programada_em IS NULL OR exclusao_programada_em>NOW()) RETURNING id,nome,ativo`,[id]);if(!r.rowCount){await c.query('ROLLBACK');return res.status(404).json({erro:'Barbearia não encontrada ou prazo de recuperação expirado'})}await c.query(`UPDATE usuarios SET ativo=true,desativado_por_exclusao=false WHERE barbearia_id=$1 AND desativado_por_exclusao=true AND papel<>'super_admin'`,[id]);await audit(req,{acao:'master.barbearia.restaurada',barbeariaId:id,alvoTipo:'barbearia',alvoId:id,detalhes:{nome:r.rows[0].nome}},c);await c.query('COMMIT');res.json({...r.rows[0],assinatura_reativacao_necessaria:true,mensagem:'Barbearia restaurada. Reative a assinatura antes de liberar cobrança recorrente.'})}catch(e){await c.query('ROLLBACK');res.status(500).json({erro:'Erro ao restaurar barbearia'})}finally{c.release()}});
@@ -245,7 +247,7 @@ router.get('/system/health',async(req,res)=>{
       pool.query(`SELECT status,destino,criado_em FROM backup_runs ORDER BY id DESC LIMIT 1`)
     ]);
     const mem=process.memoryUsage();
-    res.json({ok:true,db_latency_ms:dbLatency,uptime_seconds:Math.round(process.uptime()),memory_mb:Math.round(mem.rss/1024/1024),errors_24h:errors.rows[0].n,support_open:support.rows[0].n,webhook_errors:webhooks.rows[0].n,automation_errors:autos.rows[0].n,stale_payments:payments.rows[0].n,backup:backup.rows[0]||null,backup_remote_configured:!!(process.env.BACKUP_UPLOAD_URL&&process.env.BACKUP_ENCRYPTION_KEY),release:process.env.RELEASE_VERSION||'2.9.0'});
+    res.json({ok:true,db_latency_ms:dbLatency,uptime_seconds:Math.round(process.uptime()),memory_mb:Math.round(mem.rss/1024/1024),errors_24h:errors.rows[0].n,support_open:support.rows[0].n,webhook_errors:webhooks.rows[0].n,automation_errors:autos.rows[0].n,stale_payments:payments.rows[0].n,backup:backup.rows[0]||null,backup_remote_configured:!!(process.env.BACKUP_UPLOAD_URL&&process.env.BACKUP_ENCRYPTION_KEY),release:process.env.RELEASE_VERSION||'3.3.0'});
   }catch(e){res.status(503).json({ok:false,erro:'Diagnóstico indisponível'})}
 });
 

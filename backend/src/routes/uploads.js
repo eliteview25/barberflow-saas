@@ -1,6 +1,6 @@
 const express = require('express');
 const crypto = require('crypto');
-const { autenticar, exigirPapel } = require('../middlewares/auth');
+const { autenticar, exigirPapel, exigirAssinatura } = require('../middlewares/auth');
 const { exigirRecurso } = require('../services/planos');
 const { externalSignal } = require('../utils/http');
 
@@ -65,6 +65,7 @@ async function uploadImage(req,res,{folderSuffix='',transformation='c_limit,w_24
 const rawImage=express.raw({ type: ['image/png', 'image/jpeg'], limit: '5mb' });
 router.post('/imagem',autenticar,exigirPapel('dono','gerente'),exigirRecurso('personalizacao_publica'),rawImage,(req,res)=>uploadImage(req,res));
 router.post('/produto-imagem',autenticar,exigirPapel('dono','gerente'),exigirRecurso('pdv_estoque'),rawImage,(req,res)=>uploadImage(req,res,{folderSuffix:'produtos',transformation:'c_fill,w_1000,h_1000,g_auto/f_webp,q_86/fl_strip_profile'}));
+router.post('/barbeiro-imagem',autenticar,exigirPapel('dono','gerente'),exigirAssinatura,rawImage,(req,res)=>uploadImage(req,res,{folderSuffix:'barbeiros',transformation:'c_fill,w_900,h_900,g_auto/f_webp,q_88/fl_strip_profile'}));
 router.post('/loja-imagem',autenticar,exigirPapel('dono','gerente'),exigirRecurso('loja_publica'),rawImage,(req,res)=>uploadImage(req,res,{folderSuffix:'loja',transformation:'c_limit,w_2200,h_1400/f_webp,q_88/fl_strip_profile'}));
 
 module.exports = router;

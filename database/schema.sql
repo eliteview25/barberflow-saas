@@ -250,3 +250,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_agendamentos_tracking_code ON agendamentos(
 CREATE OR REPLACE FUNCTION bf_fill_tracking_code() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.tracking_code IS NULL OR btrim(NEW.tracking_code)='' THEN NEW.tracking_code=UPPER(encode(gen_random_bytes(6),'hex')); END IF; RETURN NEW; END $$;
 DROP TRIGGER IF EXISTS trg_bf_ag_tracking_code ON agendamentos;
 CREATE TRIGGER trg_bf_ag_tracking_code BEFORE INSERT ON agendamentos FOR EACH ROW EXECUTE FUNCTION bf_fill_tracking_code();
+
+
+-- BarberFlow 3.3 — perfil visual dos profissionais
+ALTER TABLE barbeiros ADD COLUMN IF NOT EXISTS foto_url TEXT;

@@ -883,3 +883,22 @@ body[data-role="barbeiro"] .dashboard-topbar .topbar-create{background:#111827;c
     outline-offset:2px;
   }
 }
+
+/* BarberFlow 3.3 — perfis visuais dos barbeiros */
+.barber-photo-editor{display:flex;align-items:center;gap:18px;padding:16px;margin:4px 0 18px;border:1px solid var(--line);border-radius:16px;background:#fafafa}
+.barber-photo-preview{width:104px;height:104px;border-radius:22px;overflow:hidden;display:grid;place-items:center;flex:0 0 104px;background:#111827;color:#fff;border:3px solid #fff;box-shadow:0 0 0 1px var(--line)}
+.barber-photo-preview img,.barber-avatar img,.public-barber-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.barber-photo-initials{font-size:30px;font-weight:900;letter-spacing:-.04em}
+.barber-photo-controls{min-width:0;display:grid;gap:7px}.barber-photo-controls>strong{font-size:15px}.barber-photo-controls .actions{margin-top:3px}
+.barber-list-person{display:flex;align-items:center;gap:10px;min-width:0}.barber-list-person>div{min-width:0}.barber-list-person strong,.barber-list-person small{display:block}.barber-list-person small{color:var(--muted);font-size:11px;margin-top:2px}
+.barber-avatar{overflow:hidden;border-radius:999px;display:grid;place-items:center;background:#111827;color:#fff;font-weight:900;flex:none;border:1px solid rgba(17,24,39,.08)}.barber-avatar-sm{width:40px;height:40px;font-size:12px}
+.public-barber-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px;margin-top:7px}
+.public-barber-card{appearance:none;border:1px solid var(--line);background:#fff;border-radius:16px;padding:12px 10px;min-width:0;display:grid;justify-items:center;gap:7px;text-align:center;color:inherit;cursor:pointer;transition:border-color .16s ease,box-shadow .16s ease,transform .16s ease}
+.public-barber-card:hover{border-color:color-mix(in srgb,var(--public-primary,#f59e0b) 60%,var(--line));transform:translateY(-1px)}
+.public-barber-card.selected{border-color:var(--public-primary,#f59e0b);box-shadow:0 0 0 2px color-mix(in srgb,var(--public-primary,#f59e0b) 22%,transparent)}
+.public-barber-card:focus-visible{outline:3px solid color-mix(in srgb,var(--public-primary,#f59e0b) 32%,transparent);outline-offset:2px}
+.public-barber-photo{width:68px;height:68px;border-radius:999px;overflow:hidden;display:grid;place-items:center;background:var(--public-secondary,#111827);color:#fff;font-size:18px;font-weight:900}
+.public-barber-card strong{font-size:13px;line-height:1.2;max-width:100%;overflow-wrap:anywhere}.public-barber-card small{font-size:10px;color:var(--muted)}
+.public-barber-select{margin-top:10px}
+@media(max-width:520px){.barber-photo-editor{align-items:flex-start;gap:12px;padding:13px}.barber-photo-preview{width:82px;height:82px;flex-basis:82px;border-radius:18px}.barber-photo-controls .actions{display:grid;grid-template-columns:1fr}.public-barber-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.public-barber-card{padding:10px 7px}.public-barber-photo{width:58px;height:58px}}
+@media(max-width:340px){.barber-photo-editor{display:grid}.public-barber-grid{grid-template-columns:1fr 1fr}.public-barber-photo{width:52px;height:52px}}

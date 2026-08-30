@@ -8,7 +8,7 @@ function source(name){return fs.readFileSync(path.join(__dirname,'..','src','rou
 test('APIs CRUD principais aplicam escopo de barbearia',()=>{
   const checks={
     'clientes.js':[/clientes WHERE barbearia_id=\$1/,/WHERE id=\$7 AND barbearia_id=\$8/,/WHERE id=\$1 AND barbearia_id=\$2/],
-    'barbeiros.js':[/barbeiros WHERE barbearia_id=\$1/,/WHERE id=\$4 AND barbearia_id=\$5/,/barbeiro_id=\$1 AND barbearia_id=\$2/],
+    'barbeiros.js':[/barbeiros WHERE barbearia_id=\$1/,/WHERE id=\$5 AND barbearia_id=\$6/,/barbeiro_id=\$1 AND barbearia_id=\$2/],
     'servicos.js':[/servicos WHERE barbearia_id=\$1/,/WHERE id=\$5 AND barbearia_id=\$6/,/WHERE id=\$1 AND barbearia_id=\$2/],
     'agendamentos.js':[/a\.barbearia_id=\$1/,/WHERE id=\$1 AND barbearia_id=\$2 FOR UPDATE/,/WHERE id=\$3 AND barbearia_id=\$4/]
   };
