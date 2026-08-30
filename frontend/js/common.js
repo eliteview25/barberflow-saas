@@ -23,7 +23,7 @@ function ensureSecurityChallengeModal(){
   root.setAttribute('aria-modal','true');
   root.setAttribute('aria-labelledby','bfSecurityTitle');
   root.innerHTML=`<div class="security-challenge-card">
-    <div class="security-challenge-head"><div class="security-challenge-icon">🔐</div><div><span>VERIFICAÇÃO DE SEGURANÇA</span><h2 id="bfSecurityTitle">Confirme sua identidade</h2><p id="bfSecuritySubtitle"></p></div><button type="button" class="modal-close" id="bfSecurityClose" aria-label="Fechar">×</button></div>
+    <div class="security-challenge-head"><div class="security-challenge-icon">${iconSVG('shield',20)}</div><div><span>VERIFICAÇÃO DE SEGURANÇA</span><h2 id="bfSecurityTitle">Confirme sua identidade</h2><p id="bfSecuritySubtitle"></p></div><button type="button" class="modal-close" id="bfSecurityClose" aria-label="Fechar">×</button></div>
     <form id="bfSecurityForm" novalidate>
       <div id="bfSecuritySecretBox" class="security-secret-box hidden"><small>CHAVE DO AUTENTICADOR</small><div><code id="bfSecuritySecret"></code><button type="button" class="btn btn-secondary" id="bfSecurityCopySecret">Copiar</button></div><p>Adicione esta chave no Google Authenticator, Microsoft Authenticator, Authy, 1Password, Bitwarden, Aegis ou outro app TOTP.</p></div>
       <div id="bfSecurityError" class="notice error hidden"></div>
@@ -113,7 +113,8 @@ function enhanceResponsiveTable(table){
   if(tbody)new MutationObserver(apply).observe(tbody,{childList:true,subtree:true});
 }
 function initResponsiveTables(){document.querySelectorAll('.table').forEach(enhanceResponsiveTable)}
-document.addEventListener('DOMContentLoaded',()=>setTimeout(initResponsiveTables,0));
+function hydrateIcons(root=document){root.querySelectorAll('[data-bf-icon]').forEach(el=>{if(el.dataset.bfIconReady==='1')return;el.innerHTML=iconSVG(el.dataset.bfIcon||'home',Number(el.dataset.bfIconSize||18));el.dataset.bfIconReady='1'})}
+document.addEventListener('DOMContentLoaded',()=>{setTimeout(initResponsiveTables,0);hydrateIcons()});
 
 function renderShell(active){
   const u=currentUser();const role=u.papel;
@@ -125,13 +126,13 @@ function renderShell(active){
       <div class="master-brand-v2 desktop-logo"><div class="master-brand-mark">BF</div><div><strong>BarberFlow</strong><span>SUPERMASTER</span></div></div>
       <div class="master-sidebar-label">NAVEGAÇÃO</div>
       <nav class="menu master-side-menu">
-        <button type="button" class="master-side-link master-tab active" data-section="visao" data-click="closeMobileMenu()"><span class="master-side-icon">⌂</span><span>Visão geral</span></button>
-        <button type="button" class="master-side-link master-tab" data-section="barbearias-sec" data-click="closeMobileMenu()"><span class="master-side-icon">▦</span><span>Barbearias</span></button>
-        <button type="button" class="master-side-link master-tab" data-section="financeiro-sec" data-click="closeMobileMenu()"><span class="master-side-icon">↗</span><span>Financeiro SaaS</span></button>
-        <button type="button" class="master-side-link master-tab" data-section="pagamentos-master-sec" data-click="closeMobileMenu()"><span class="master-side-icon">💳</span><span>Pagamentos</span></button>
-        <button type="button" class="master-side-link master-tab" data-section="suporte-sec" data-click="closeMobileMenu()"><span class="master-side-icon">🛟</span><span>Suporte</span></button>
-        <button type="button" class="master-side-link master-tab" data-section="seguranca-master-sec" data-click="closeMobileMenu()"><span class="master-side-icon">🔐</span><span>Segurança / 2FA</span></button>
-        <button type="button" class="master-side-link master-tab" data-section="perfil-sec" data-click="closeMobileMenu()"><span class="master-side-icon">◎</span><span>Meu perfil</span></button>
+        <button type="button" class="master-side-link master-tab active" data-section="visao" data-click="closeMobileMenu()"><span class="master-side-icon">${iconSVG('home',16)}</span><span>Visão geral</span></button>
+        <button type="button" class="master-side-link master-tab" data-section="barbearias-sec" data-click="closeMobileMenu()"><span class="master-side-icon">${iconSVG('building',16)}</span><span>Barbearias</span></button>
+        <button type="button" class="master-side-link master-tab" data-section="financeiro-sec" data-click="closeMobileMenu()"><span class="master-side-icon">${iconSVG('trend',16)}</span><span>Financeiro SaaS</span></button>
+        <button type="button" class="master-side-link master-tab" data-section="pagamentos-master-sec" data-click="closeMobileMenu()"><span class="master-side-icon">${iconSVG('card',16)}</span><span>Pagamentos</span></button>
+        <button type="button" class="master-side-link master-tab" data-section="suporte-sec" data-click="closeMobileMenu()"><span class="master-side-icon">${iconSVG('support',16)}</span><span>Suporte</span></button>
+        <button type="button" class="master-side-link master-tab" data-section="seguranca-master-sec" data-click="closeMobileMenu()"><span class="master-side-icon">${iconSVG('shield',16)}</span><span>Segurança / 2FA</span></button>
+        <button type="button" class="master-side-link master-tab" data-section="perfil-sec" data-click="closeMobileMenu()"><span class="master-side-icon">${iconSVG('user',16)}</span><span>Meu perfil</span></button>
       </nav>
       <div class="master-sidebar-label master-sidebar-system-label">SISTEMA</div>
       <div class="master-system-card"><div><i></i><span>Ambiente</span></div><strong>Produção</strong></div>

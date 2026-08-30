@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0b1220">
   <title>Supermaster - BarberFlow</title>
-  <link rel="stylesheet" href="/style.css?v=20260829-v310">
+  <link rel="stylesheet" href="/style.css?v=20260830-v320">
 </head>
 <body class="auth-checking master-body master-v2">
   <div id="shell"></div>
@@ -38,12 +38,18 @@
       </section>
 
       <section class="cards master-kpis master-kpis-v2">
-        <article class="card master-kpi"><div class="master-kpi-icon">🏪</div><div><div class="label">Barbearias</div><div class="value" id="mTotal">0</div><small>Total cadastradas</small></div></article>
+        <article class="card master-kpi"><div class="master-kpi-icon" data-bf-icon="building" data-bf-icon-size="18"></div><div><div class="label">Barbearias</div><div class="value" id="mTotal">0</div><small>Total cadastradas</small></div></article>
         <article class="card master-kpi"><div class="master-kpi-icon master-kpi-green">✓</div><div><div class="label">Ativas</div><div class="value" id="mAtivas">0</div><small>Operando agora</small></div></article>
         <article class="card master-kpi"><div class="master-kpi-icon master-kpi-amber">7d</div><div><div class="label">Trials</div><div class="value" id="mTrials">0</div><small>Testando Premium</small></div></article>
         <article class="card master-kpi"><div class="master-kpi-icon master-kpi-blue">★</div><div><div class="label">Assinaturas</div><div class="value" id="mAssinaturas">0</div><small>Assinaturas ativas</small></div></article>
         <article class="card master-kpi master-kpi-featured"><div class="master-kpi-icon master-kpi-green">R$</div><div><div class="label">MRR</div><div class="value" id="mMrr">R$ 0</div><small>Receita mensal</small></div></article>
-        <article class="card master-kpi"><div class="master-kpi-icon master-kpi-purple">📅</div><div><div class="label">Agendamentos</div><div class="value" id="mAgenda">0</div><small>No mês atual</small></div></article>
+        <article class="card master-kpi"><div class="master-kpi-icon master-kpi-purple" data-bf-icon="calendar" data-bf-icon-size="18"></div><div><div class="label">Agendamentos</div><div class="value" id="mAgenda">0</div><small>No mês atual</small></div></article>
+      </section>
+
+      <section class="master-attention-grid" aria-label="Saúde comercial">
+        <article class="master-attention-card"><span class="master-attention-icon" data-bf-icon="shield" data-bf-icon-size="17"></span><div><small>Inadimplentes</small><strong id="mInadimplentes">0</strong><p>Contas que precisam de atenção financeira.</p></div></article>
+        <article class="master-attention-card"><span class="master-attention-icon" data-bf-icon="trend" data-bf-icon-size="17"></span><div><small>Canceladas</small><strong id="mCanceladas">0</strong><p>Carteira cancelada no estado atual.</p></div></article>
+        <article class="master-plan-distribution"><div><small>Mix de planos ativos</small><strong id="mPlanMixTitle">Carteira</strong></div><div id="mPlanMixMini" class="master-plan-mini"></div></article>
       </section>
 
       <div class="master-dashboard-grid">
@@ -63,9 +69,9 @@
           <span class="master-section-kicker">ATALHOS</span>
           <h2>Ações rápidas</h2>
           <div class="master-quick-actions">
-            <button class="master-quick-card master-tab" data-section="barbearias-sec"><span>🏪</span><div><strong>Gerenciar barbearias</strong><small>Planos, bloqueios e exclusões</small></div><b>→</b></button>
-            <button class="master-quick-card master-tab" data-section="financeiro-sec"><span>📈</span><div><strong>Ver financeiro SaaS</strong><small>Histórico e projeções</small></div><b>→</b></button>
-            <button class="master-quick-card master-tab" data-section="perfil-sec"><span>👤</span><div><strong>Minha conta</strong><small>Perfil e segurança</small></div><b>→</b></button>
+            <button class="master-quick-card master-tab" data-section="barbearias-sec"><span data-bf-icon="building" data-bf-icon-size="18"></span><div><strong>Gerenciar barbearias</strong><small>Planos, bloqueios e exclusões</small></div><b>→</b></button>
+            <button class="master-quick-card master-tab" data-section="financeiro-sec"><span data-bf-icon="trend" data-bf-icon-size="18"></span><div><strong>Ver financeiro SaaS</strong><small>Histórico e projeções</small></div><b>→</b></button>
+            <button class="master-quick-card master-tab" data-section="perfil-sec"><span data-bf-icon="user" data-bf-icon-size="18"></span><div><strong>Minha conta</strong><small>Perfil e segurança</small></div><b>→</b></button>
           </div>
         </section>
       </div>
@@ -142,7 +148,7 @@
 
       <div class="master-security-grid">
         <section class="panel master-security-card">
-          <div class="master-profile-card-head"><div class="master-profile-icon master-lock">🔐</div><div><h2>2FA obrigatório</h2><p>O Supermaster sempre exige um segundo fator no login e nas ações sensíveis.</p></div></div>
+          <div class="master-profile-card-head"><div class="master-profile-icon master-lock" data-bf-icon="shield" data-bf-icon-size="20"></div><div><h2>2FA obrigatório</h2><p>O Supermaster sempre exige um segundo fator no login e nas ações sensíveis.</p></div></div>
           <div id="masterMfaMsg" class="notice hidden"></div>
           <div class="master-security-status-box">
             <div><span>Status atual</span><strong id="masterMfaStatusText">Carregando…</strong></div>
@@ -153,7 +159,7 @@
         </section>
 
         <section class="panel master-security-card">
-          <div class="master-profile-card-head"><div class="master-profile-icon">📱</div><div><h2>Aplicativos compatíveis</h2><p>Você não fica preso ao Google Authenticator.</p></div></div>
+          <div class="master-profile-card-head"><div class="master-profile-icon" data-bf-icon="shield" data-bf-icon-size="20"></div><div><h2>Aplicativos compatíveis</h2><p>Você não fica preso ao Google Authenticator.</p></div></div>
           <div class="master-authenticator-grid">
             <div class="master-authenticator-option"><b>G</b><span><strong>Google Authenticator</strong><small>Android e iOS</small></span></div>
             <div class="master-authenticator-option"><b>M</b><span><strong>Microsoft Authenticator</strong><small>Android e iOS</small></span></div>
@@ -193,15 +199,15 @@
     <section id="perfil-sec" class="master-section hidden">
       <div class="master-section-heading"><div><span class="master-section-kicker">CONTA MASTER</span><h2>Perfil e segurança</h2><p>Gerencie exclusivamente os seus dados de Supermaster.</p></div></div>
       <div class="master-profile-grid master-profile-grid-v2">
-        <section class="panel master-profile-card master-profile-card-v2"><div class="master-profile-card-head"><div class="master-profile-icon">👤</div><div><h2>Dados pessoais</h2><p>Nome, e-mail e contato administrativo.</p></div></div><div id="perfilMsg" class="notice hidden"></div><div class="form-grid"><div class="field"><label>Nome</label><input id="perfilNome"></div><div class="field"><label>E-mail</label><input id="perfilEmail" type="email"></div><div class="field"><label>Telefone</label><input id="perfilTelefone"></div></div><button id="salvarPerfil" class="btn btn-primary master-save-btn">Salvar dados</button></section>
-        <section class="panel master-profile-card master-profile-card-v2"><div class="master-profile-card-head"><div class="master-profile-icon master-lock">🔐</div><div><h2>Senha de acesso</h2><p>Atualize a senha do Supermaster e acesse as opções avançadas de 2FA.</p></div></div><div id="senhaMsg" class="notice hidden"></div><div class="field"><label>Senha atual</label><input id="senhaAtual" type="password"></div><div class="field"><label>Nova senha</label><input id="senhaNova" type="password" minlength="12"></div><div class="field"><label>Confirmar nova senha</label><input id="senhaConfirmar" type="password" minlength="12"></div><div class="actions" style="margin-top:14px"><button id="salvarSenha" class="btn btn-dark master-save-btn">Alterar senha</button><button type="button" class="btn btn-secondary master-tab" data-section="seguranca-master-sec">Gerenciar 2FA</button></div></section>
+        <section class="panel master-profile-card master-profile-card-v2"><div class="master-profile-card-head"><div class="master-profile-icon" data-bf-icon="user" data-bf-icon-size="20"></div><div><h2>Dados pessoais</h2><p>Nome, e-mail e contato administrativo.</p></div></div><div id="perfilMsg" class="notice hidden"></div><div class="form-grid"><div class="field"><label>Nome</label><input id="perfilNome"></div><div class="field"><label>E-mail</label><input id="perfilEmail" type="email"></div><div class="field"><label>Telefone</label><input id="perfilTelefone"></div></div><button id="salvarPerfil" class="btn btn-primary master-save-btn">Salvar dados</button></section>
+        <section class="panel master-profile-card master-profile-card-v2"><div class="master-profile-card-head"><div class="master-profile-icon master-lock" data-bf-icon="shield" data-bf-icon-size="20"></div><div><h2>Senha de acesso</h2><p>Atualize a senha do Supermaster e acesse as opções avançadas de 2FA.</p></div></div><div id="senhaMsg" class="notice hidden"></div><div class="field"><label>Senha atual</label><input id="senhaAtual" type="password"></div><div class="field"><label>Nova senha</label><input id="senhaNova" type="password" minlength="12"></div><div class="field"><label>Confirmar nova senha</label><input id="senhaConfirmar" type="password" minlength="12"></div><div class="actions" style="margin-top:14px"><button id="salvarSenha" class="btn btn-dark master-save-btn">Alterar senha</button><button type="button" class="btn btn-secondary master-tab" data-section="seguranca-master-sec">Gerenciar 2FA</button></div></section>
       </div>
     </section>
   </main>
 
-  <div id="masterGatewayModal" class="modal master-gateway-modal hidden"><div class="modal-box gateway-modal-card"><div class="modal-head"><div><h2 id="masterGatewayModalTitle">Gateway</h2><p id="masterGatewayModalDesc" class="muted"></p></div><button id="masterGatewayClose" class="close" type="button">×</button></div><form id="masterGatewayForm"><div id="masterGatewayFields" class="master-gateway-form-fields"></div><div class="gateway-secret-warning">🔐 As credenciais privadas são criptografadas e não serão exibidas novamente.</div><div class="actions"><button type="button" id="masterGatewayCancel" class="btn btn-secondary">Cancelar</button><button type="submit" id="masterGatewaySave" class="btn btn-primary">Salvar credenciais</button></div></form></div></div>
+  <div id="masterGatewayModal" class="modal master-gateway-modal hidden"><div class="modal-box gateway-modal-card"><div class="modal-head"><div><h2 id="masterGatewayModalTitle">Gateway</h2><p id="masterGatewayModalDesc" class="muted"></p></div><button id="masterGatewayClose" class="close" type="button">×</button></div><form id="masterGatewayForm"><div id="masterGatewayFields" class="master-gateway-form-fields"></div><div class="gateway-secret-warning"><span data-bf-icon="shield" data-bf-icon-size="15"></span> As credenciais privadas são criptografadas e não serão exibidas novamente.</div><div class="actions"><button type="button" id="masterGatewayCancel" class="btn btn-secondary">Cancelar</button><button type="submit" id="masterGatewaySave" class="btn btn-primary">Salvar credenciais</button></div></form></div></div>
   <div id="masterModal" class="modal hidden"><div class="modal-box master-modal-box"><div class="modal-head"><h2 id="masterTitulo">Barbearia</h2><button id="masterFechar" class="close">×</button></div><div id="masterDetalhes"></div></div></div>
-  <script src="/js/common.js?v=20260829-v310"></script>
-  <script src="/js/master.js?v=20260829-v310"></script>
+  <script src="/js/common.js?v=20260830-v320"></script>
+  <script src="/js/master.js?v=20260830-v320"></script>
 </body>
 </html>

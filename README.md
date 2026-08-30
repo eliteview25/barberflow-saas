@@ -94,3 +94,7 @@ Gateways e checkout agora ficam totalmente centralizados em **Pagamentos**. A ab
 - Meta, 360dialog e Twilio são apresentados como opções oficiais; Evolution/QR é alternativa com aviso de estabilidade.
 - Segredos ficam criptografados; webhooks e mudanças de provedor possuem proteções próprias.
 - Conexões Meta/Evolution anteriores são migradas automaticamente no boot.
+
+## BarberFlow 3.2
+
+Dashboards por perfil e revisão de responsividade/mobile. Consulte `BARBERFLOW-3.2.md`.
