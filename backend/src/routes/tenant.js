@@ -28,12 +28,14 @@ router.get('/dashboard',exigirAssinatura,async(req,res)=>{
     `,vals);
     const resumo=r.rows[0];
     resumo.ocupacao_hoje=Number(resumo.minutos_disponiveis)>0?Math.min(100,Math.round(Number(resumo.minutos_ocupados)*100/Number(resumo.minutos_disponiveis))):0;
+    if(req.usuario.papel==='recepcao')for(const key of ['receita_prevista_hoje','faturamento_hoje','ticket_medio','faturamento_mes','comissao_hoje','comissao_mes'])delete resumo[key];
+    if(req.usuario.papel==='barbeiro')for(const key of ['receita_prevista_hoje','faturamento_hoje','ticket_medio','faturamento_mes'])delete resumo[key];
     const pvals=[b];let pown='';
     if(barber){pvals.push(barber);pown=' AND a.barbeiro_id=$2';}
     const prox=await pool.query(`SELECT a.id,a.data,a.horario,a.status,a.tracking_code,c.nome cliente,c.telefone,b.nome barbeiro,b.foto_url barbeiro_foto,s.nome servico,s.duracao,COALESCE(a.valor_final,a.valor_servico,s.preco) preco FROM agendamentos a JOIN clientes c ON c.id=a.cliente_id AND c.barbearia_id=a.barbearia_id JOIN barbeiros b ON b.id=a.barbeiro_id AND b.barbearia_id=a.barbearia_id JOIN servicos s ON s.id=a.servico_id AND s.barbearia_id=a.barbearia_id WHERE a.barbearia_id=$1 ${pown} AND a.status NOT IN ('cancelado','concluido','nao_compareceu') AND (a.data>CURRENT_DATE OR (a.data=CURRENT_DATE AND a.horario>=CURRENT_TIME)) ORDER BY a.data,a.horario LIMIT 8`,pvals);
     const trendAg=await pool.query(`WITH dias AS (SELECT generate_series(CURRENT_DATE-6,CURRENT_DATE,INTERVAL '1 day')::date dia) SELECT to_char(d.dia,'DD/MM') label,COUNT(a.id)::int total FROM dias d LEFT JOIN agendamentos a ON a.data=d.dia AND a.barbearia_id=$1 ${barber?'AND a.barbeiro_id=$2':''} AND a.status NOT IN ('cancelado','nao_compareceu') GROUP BY d.dia ORDER BY d.dia`,vals);
     const trendClientes=await pool.query(`WITH dias AS (SELECT generate_series(CURRENT_DATE-6,CURRENT_DATE,INTERVAL '1 day')::date dia) SELECT to_char(d.dia,'DD/MM') label,COUNT(c.id)::int total FROM dias d LEFT JOIN clientes c ON c.barbearia_id=$1 AND c.criado_em::date=d.dia GROUP BY d.dia ORDER BY d.dia`,[b]);
-    res.json({resumo,proximos:prox.rows,perfil:req.usuario.papel,tendencias:{agendamentos:trendAg.rows,clientes:trendClientes.rows}});
+    res.json({resumo,proximos:prox.rows,perfil:req.usuario.papel,tendencias:{agendamentos:trendAg.rows,clientes:req.usuario.papel==='barbeiro'?[]:trendClientes.rows}});
   }catch(e){console.error(e);res.status(500).json({erro:'Erro ao carregar dashboard'});}
 });
 router.get('/onboarding',exigirPapel('dono','gerente'),exigirAssinatura,async(req,res)=>{try{res.json(await onboardingStatus(req.usuario.barbearia_id))}catch(e){console.error(e);res.status(500).json({erro:'Erro ao carregar configuração inicial'})}});

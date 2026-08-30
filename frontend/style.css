@@ -1407,3 +1407,164 @@ body:not(.public-bg):not(.auth-body):not(.legal-page) .agenda-view-switch button
 .owner-profile-avatar img{display:block!important;width:100%!important;height:100%!important;max-width:56px!important;max-height:56px!important;object-fit:cover!important}
 .owner-profile-copy{min-width:0}.owner-profile-copy>span{display:block;color:#dca217;font-size:9px;font-weight:800;letter-spacing:.09em;margin-bottom:10px}.owner-profile-fields{margin-bottom:12px}
 @media(max-width:600px){.owner-profile-card{grid-template-columns:42px minmax(0,1fr);gap:10px;padding:12px}.owner-profile-avatar{width:42px!important;height:42px!important;min-width:42px!important;max-width:42px!important}.owner-profile-avatar img{max-width:42px!important;max-height:42px!important}.owner-profile-card .actions{grid-column:1/-1}.owner-profile-card .actions .btn{flex:1 1 130px}}
+
+/* BarberFlow 4.1.4 — logout sempre acessível no drawer mobile */
+@media(max-width:760px){
+  body.menu-open .sidebar{z-index:2100!important}
+  body.menu-open .sidebar-backdrop{z-index:2050!important}
+  body.menu-open .mobile-bottom-nav{z-index:1800!important}
+  .sidebar{
+    height:100dvh!important;
+    max-height:100dvh!important;
+    overflow:hidden!important;
+    padding-bottom:max(12px,env(safe-area-inset-bottom))!important;
+  }
+  .sidebar .menu{
+    flex:1 1 auto!important;
+    min-height:0!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain!important;
+    padding-bottom:12px!important;
+  }
+  .sidebar .sidebar-bottom{
+    display:flex!important;
+    flex:0 0 auto!important;
+    flex-direction:column!important;
+    margin-top:0!important;
+    padding:9px 2px 0!important;
+    background:#0b0e12!important;
+    border-top:1px solid #292f36!important;
+  }
+  .sidebar .sidebar-bottom>a[data-click*="logout"]{
+    display:flex!important;
+    visibility:visible!important;
+    opacity:1!important;
+    min-height:46px!important;
+    align-items:center!important;
+    gap:10px!important;
+    padding:10px 11px!important;
+    border:1px solid rgba(239,68,68,.22)!important;
+    border-radius:8px!important;
+    background:rgba(239,68,68,.06)!important;
+    color:#fca5a5!important;
+    font-size:11px!important;
+  }
+  .sidebar .sidebar-bottom>a[data-click*="logout"] .menu-icon{color:#f87171!important}
+}
+
+/* =========================================================
+   BarberFlow 4.1.5 — revisão de perfis e Supermaster
+   ========================================================= */
+/* Identidade visual consistente nos quatro perfis autenticados. */
+body[data-role="gerente"],
+body[data-role="recepcao"],
+body[data-role="barbeiro"],
+body[data-role="super_admin"]{color-scheme:dark}
+body[data-role="gerente"] .bf-topbar-account,
+body[data-role="recepcao"] .bf-topbar-account,
+body[data-role="barbeiro"] .bf-topbar-account{
+  background:#0b0e12!important;
+  color:#f4f6f8!important;
+  border-color:#292f36!important;
+}
+body[data-role="gerente"] .bf-topbar-account small,
+body[data-role="recepcao"] .bf-topbar-account small,
+body[data-role="barbeiro"] .bf-topbar-account small{color:#8f98a3!important}
+body[data-role="recepcao"] .dashboard-kpi-icon{background:#111b25!important;color:#93c5fd!important;border-color:rgba(59,130,246,.27)!important}
+body[data-role="barbeiro"] .dashboard-kpi-icon{background:#102018!important;color:#86efac!important;border-color:rgba(34,197,94,.25)!important}
+body[data-role="barbeiro"] .dashboard-topbar .topbar-create{background:#15191e!important;color:#f4f6f8!important;border-color:#343941!important}
+@media(min-width:761px){
+  body[data-role="recepcao"] .dashboard-premium-grid,
+  body[data-role="barbeiro"] .dashboard-premium-grid{grid-template-columns:1fr!important}
+  body[data-role="recepcao"] .dashboard-right-stack,
+  body[data-role="barbeiro"] .dashboard-right-stack{display:none!important}
+}
+
+/* Cards internos do Supermaster que ainda conservavam o tema claro antigo. */
+.master-attention-card,
+.master-plan-distribution,
+.health-card,
+.master-quick-card,
+.master-fin-summary-modern>div,
+.master-support-ticket,
+.master-gateway-card,
+.master-security-status-box>div,
+.master-authenticator-option,
+.master-mfa-secret-box,
+.master-search-box,
+.master-status-filter{
+  background:linear-gradient(145deg,#12151a,#0d1014)!important;
+  color:#f2f4f6!important;
+  border-color:#2a3037!important;
+  box-shadow:none!important;
+}
+.master-attention-card strong,
+.master-plan-distribution>div:first-child strong,
+.health-card strong,
+.master-quick-card strong,
+.master-security-status-box strong,
+.master-authenticator-option strong,
+.master-gateway-card .gateway-title strong{color:#f5f6f7!important}
+.master-attention-card small,
+.master-attention-card p,
+.master-plan-distribution small,
+.health-card span,
+.master-quick-card small,
+.master-support-ticket .support-ticket-head small,
+.master-gateway-card p,
+.master-gateway-card .gateway-title span,
+.master-gateway-card .gateway-required-fields,
+.master-gateway-card .gateway-account,
+.master-security-status-box span,
+.master-authenticator-option small,
+.master-mfa-secret-box>span{color:#9099a4!important}
+.master-attention-icon,
+.master-quick-card>span,
+.master-kpi-icon{
+  background:#191d22!important;
+  color:#efb11f!important;
+  border:1px solid rgba(212,160,23,.27)!important;
+}
+.master-quick-card:hover{
+  background:linear-gradient(145deg,#181c21,#101318)!important;
+  border-color:rgba(212,160,23,.48)!important;
+}
+.master-fin-summary-modern>div:first-child strong{color:#86efac!important}
+.master-fin-summary-modern>div:last-child strong{color:#93c5fd!important}
+.health-ok{color:#86efac!important}.health-warn{color:#fdba74!important}
+.master-plan-mini-row{color:#9099a4!important}.master-plan-mini-row>div{background:#242930!important}.master-plan-mini-row strong{color:#f4f6f8!important}
+.master-support-ticket textarea{background:#0b0e12!important;color:#f4f6f8!important;border-color:#30353d!important}
+.master-support-ticket .support-reply{
+  background:#0b0e12!important;
+  color:#dfe3e7!important;
+  border-left-color:#d4a017!important;
+}
+.master-gateway-card.connected{border-color:rgba(212,160,23,.48)!important;box-shadow:0 0 0 1px rgba(212,160,23,.08)!important}
+.master-mfa-secret-box{border-style:dashed!important}
+.master-mfa-secret-box code{color:#f1b326!important}
+.master-search-box input,.master-status-filter{background:#0b0e12!important;color:#f4f6f8!important}
+.master-search-box:focus-within,.master-status-filter:focus{border-color:#d4a017!important;box-shadow:0 0 0 3px rgba(212,160,23,.1)!important}
+.master-tabs-modern{background:rgba(12,15,19,.9)!important;border-color:#2a3037!important;box-shadow:0 8px 28px rgba(0,0,0,.18)!important}
+.master-tabs-modern .master-tab{background:transparent!important;color:#9ca5af!important}
+.master-tabs-modern .master-tab.active{background:#191d22!important;color:#f2b322!important;border-color:rgba(212,160,23,.35)!important}
+.master-table-wrap-v2{border-color:#2a3037!important;background:#0d1014!important}
+.master-table-wrap-v2 .master-table th{background:#0b0e12!important}
+.master-table-wrap-v2 .master-table td{background:#0f1216!important}
+
+/* O painel Supermaster ocupa exatamente a área restante ao lado da barra. */
+@media(min-width:1181px){
+  .master-sidebar-v2{width:236px!important}
+  .master-main-v2{width:auto!important;max-width:none!important;min-width:0!important;margin-left:236px!important;margin-right:0!important}
+}
+@media(min-width:761px) and (max-width:1180px){
+  .master-sidebar-v2{width:198px!important}
+  .master-main-v2{width:auto!important;max-width:none!important;min-width:0!important;margin-left:198px!important;margin-right:0!important}
+}
+@media(max-width:760px){
+  .master-main-v2{width:100%!important;max-width:100%!important;margin-left:0!important;overflow-x:clip!important}
+  .master-table-wrap-v2{background:transparent!important;border:0!important}
+  .master-table-wrap-v2 .master-table tr{background:#111419!important;border-color:#2a3037!important}
+  .master-table-wrap-v2 .master-table td{background:transparent!important}
+  .master-sidebar-bottom-v2{display:flex!important;flex:0 0 auto!important}
+  .master-sidebar-bottom-v2 .master-logout-v2{display:flex!important;visibility:visible!important;opacity:1!important}
+}
