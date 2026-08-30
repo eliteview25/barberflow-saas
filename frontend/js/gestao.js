@@ -1,13 +1,11 @@
 const tabsEl = document.getElementById('tabs');
 const contentEl = document.getElementById('content');
 const msgEl = document.getElementById('msg');
-const gestaoParams=new URLSearchParams(location.search);
-const origemLoja=gestaoParams.get('origem')==='loja';
 
-const GESTAO_TABS = origemLoja ? [
-  ['estoque','📦 Produtos da loja']
-] : [
+const GESTAO_TABS = [
   ['pdv','🧾 Caixa/PDV'],
+  ['vendas','📋 Histórico'],
+  ['estoque','📦 Produtos & Estoque'],
   ['comissoes','💈 Comissões'],
   ['fila','⏱️ Fila'],
   ['crm','👤 CRM'],
@@ -31,27 +29,14 @@ function denied(){
 
 if(requireAuth(['dono','gerente','recepcao'])){
   const requested=new URLSearchParams(location.search).get('secao');
-  if(requested==='estoque'&&!origemLoja){
-    location.replace('/pages/gestao.html?secao=estoque&origem=loja');
-  }else{
-    byId('shell').innerHTML=renderShell('gestao');
-    if(origemLoja){
-      document.title='Produtos da Loja - BarberFlow';
-      const h1=document.querySelector('.topbar h1');
-      const p=document.querySelector('.topbar p');
-      if(h1)h1.textContent='Produtos da loja';
-      if(p)p.textContent='Catálogo, preços, estoque e publicação dos produtos vendidos na loja.';
-      tabsEl.classList.add('hidden');
-    }else{
-      tabsEl.innerHTML=GESTAO_TABS.map(([id,label])=>`<button type="button" class="tab-btn" data-tab="${id}">${label}</button>`).join('');
-      tabsEl.addEventListener('click',e=>{
-        const button=e.target.closest('[data-tab]');
-        if(button) openTab(button.dataset.tab);
-      });
-    }
-    const initial=origemLoja?'estoque':(GESTAO_TABS.some(([id])=>id===requested)?requested:'pdv');
-    openTab(initial,false);
-  }
+  byId('shell').innerHTML=renderShell('gestao');
+  tabsEl.innerHTML=GESTAO_TABS.map(([id,label])=>`<button type="button" class="tab-btn" data-tab="${id}">${label}</button>`).join('');
+  tabsEl.addEventListener('click',e=>{const button=e.target.closest('[data-tab]');if(button)openTab(button.dataset.tab)});
+  const initial=GESTAO_TABS.some(([id])=>id===requested)?requested:'pdv';
+  const h1=document.querySelector('.topbar h1'),sub=document.querySelector('.topbar p');
+  if(initial==='estoque'){document.title='Produtos & Estoque - BarberFlow';if(h1)h1.textContent='Produtos & Estoque';if(sub)sub.textContent='Produtos, preços, margens e controle de estoque da barbearia.'}
+  else if(initial==='pdv'||initial==='vendas'){document.title='Vendas / PDV - BarberFlow';if(h1)h1.textContent='Vendas / PDV';if(sub)sub.textContent='Venda serviços e produtos e acompanhe o histórico do caixa.'}
+  openTab(initial,false);
 }
 
 async function base(){
@@ -64,9 +49,11 @@ async function openTab(tab,syncUrl=true){
   document.querySelectorAll('.tab-btn').forEach(x=>x.classList.toggle('active',x.dataset.tab===tab));
   loading();
   try{
-    if(tab==='pdv'||tab==='estoque'){
+    if(['pdv','vendas','estoque'].includes(tab)){
       if(!hasFeature('pdv_estoque')) return denied();
-      return tab==='pdv'?pdv():estoque();
+      if(tab==='pdv')return pdv();
+      if(tab==='vendas')return vendas();
+      return estoque();
     }
     if(tab==='comissoes'){ if(!hasFeature('comissoes'))return denied(); return comissoes(); }
     if(tab==='fila'){ if(!hasFeature('fila_espera'))return denied(); return fila(); }
@@ -102,11 +89,10 @@ function renderEstoque(){
   const baixos=ativos.filter(p=>{const n=productNumbers(p);return n.estoque<=n.minimo});
   const unidades=ativos.reduce((t,p)=>t+productNumbers(p).estoque,0);
   const valor=ativos.reduce((t,p)=>{const n=productNumbers(p);return t+n.custo*n.estoque},0);
-  const canManage=hasRole('dono','gerente'),storeAvailable=hasFeature('loja_publica');
-  const cols=(canManage?6:5)+(storeAvailable?1:0);
+  const canManage=hasRole('dono','gerente');
+  const cols=canManage?6:5;
   contentEl.innerHTML=`
-    <div class="section-head product-head"><div><h2>Produtos e estoque</h2><p>Controle catálogo, preços, margem, estoque e publicação na loja online.</p></div>${canManage?'<button class="btn btn-primary" id="novoProduto">+ Novo produto</button>':''}</div>
-    ${origemLoja?'<div class="notice store-product-origin"><strong>🛍️ Produtos da loja</strong><span>Marque “Mostrar na loja” nos produtos que deseja vender online. O mesmo cadastro continua sendo usado no PDV e no estoque.</span><a href="/pages/loja.html?secao=configuracoes">Voltar às configurações da loja</a></div>':''}
+    <div class="section-head product-head"><div><h2>Produtos e estoque</h2><p>Controle produtos, preços, margem e estoque usados no PDV da barbearia.</p></div>${canManage?'<button class="btn btn-primary" id="novoProduto">+ Novo produto</button>':''}</div>
     ${!canManage?'<div class="notice">Você pode consultar o estoque. Alterações são permitidas para Dono e Gerente.</div>':''}
     <div class="cards compact-cards product-kpis">
       <div class="card"><div class="label">Produtos ativos</div><div class="value">${ativos.length}</div><small>${estoqueState.produtos.length} cadastrados</small></div>
@@ -119,8 +105,8 @@ function renderEstoque(){
       <select id="produtoStatus" aria-label="Filtrar por status"><option value="todos" ${estoqueState.status==='todos'?'selected':''}>Todos os status</option><option value="ativos" ${estoqueState.status==='ativos'?'selected':''}>Ativos</option><option value="inativos" ${estoqueState.status==='inativos'?'selected':''}>Inativos</option></select>
       <select id="produtoNivel" aria-label="Filtrar por estoque"><option value="todos" ${estoqueState.nivel==='todos'?'selected':''}>Todo o estoque</option><option value="baixo" ${estoqueState.nivel==='baixo'?'selected':''}>Estoque baixo</option><option value="zerado" ${estoqueState.nivel==='zerado'?'selected':''}>Sem estoque</option></select>
     </div>
-    <div class="table-wrap product-table-wrap"><table class="table product-table"><thead><tr><th>Produto</th><th>Venda</th><th>Custo / margem</th><th>Estoque</th><th>Status</th>${storeAvailable?'<th>Loja</th>':''}${canManage?'<th>Ações</th>':''}</tr></thead><tbody>
-      ${produtos.map(p=>{const n=productNumbers(p);const storeCell=storeAvailable?`<td><div class="product-store-cell">${canManage?`<label class="product-store-toggle"><input type="checkbox" data-prod-store="${p.id}" ${p.mostrar_na_loja?'checked':''}><span>Mostrar na loja</span></label>`:`<span class="badge ${p.mostrar_na_loja?'product-active':'product-inactive'}">${p.mostrar_na_loja?'Na loja':'Oculto'}</span>`}${p.destaque_pagina_publica?'<small>⭐ Destaque público</small>':''}</div></td>`:'';return `<tr class="${p.ativo?'':'product-inactive-row'}"><td><div class="product-name product-name-photo"><div class="product-thumb">${p.imagem_url?`<img src="${esc(p.imagem_url)}" alt="" loading="lazy">`:'📦'}</div><div><strong>${esc(p.nome)}</strong><small>SKU: ${esc(p.sku||'sem SKU')}</small></div></div></td><td><strong>${money(n.preco)}</strong></td><td>${money(n.custo)}<small class="product-margin">Margem ${productMargin(p).toFixed(0)}%</small></td><td><div class="product-stock"><strong>${n.estoque.toLocaleString('pt-BR')}</strong><small>Mín. ${n.minimo.toLocaleString('pt-BR')}</small>${productStockBadge(p)}</div></td><td><span class="badge ${p.ativo?'product-active':'product-inactive'}">${p.ativo?'Ativo':'Inativo'}</span></td>${storeCell}${canManage?`<td><div class="product-actions"><button type="button" class="btn btn-secondary" data-prod-edit="${p.id}">Editar</button><button type="button" class="btn btn-secondary" data-prod-stock="${p.id}">Estoque</button><button type="button" class="btn ${p.ativo?'btn-danger':'btn-success'}" data-prod-toggle="${p.id}">${p.ativo?'Desativar':'Ativar'}</button><button type="button" class="btn btn-danger btn-outline-danger" data-prod-delete="${p.id}">Excluir</button></div></td>`:''}</tr>`}).join('')||`<tr><td colspan="${cols}"><div class="product-empty"><strong>Nenhum produto encontrado</strong><span>${estoqueState.produtos.length?'Ajuste os filtros para ver outros itens.':'Cadastre o primeiro produto para começar a controlar o estoque.'}</span></div></td></tr>`}
+    <div class="table-wrap product-table-wrap"><table class="table product-table"><thead><tr><th>Produto</th><th>Venda</th><th>Custo / margem</th><th>Estoque</th><th>Status</th>${canManage?'<th>Ações</th>':''}</tr></thead><tbody>
+      ${produtos.map(p=>{const n=productNumbers(p);return `<tr class="${p.ativo?'':'product-inactive-row'}"><td><div class="product-name product-name-photo"><div class="product-thumb">${p.imagem_url?`<img src="${esc(p.imagem_url)}" alt="" loading="lazy">`:'📦'}</div><div><strong>${esc(p.nome)}</strong><small>SKU: ${esc(p.sku||'sem SKU')}</small></div></div></td><td><strong>${money(n.preco)}</strong></td><td>${money(n.custo)}<small class="product-margin">Margem ${productMargin(p).toFixed(0)}%</small></td><td><div class="product-stock"><strong>${n.estoque.toLocaleString('pt-BR')}</strong><small>Mín. ${n.minimo.toLocaleString('pt-BR')}</small>${productStockBadge(p)}</div></td><td><span class="badge ${p.ativo?'product-active':'product-inactive'}">${p.ativo?'Ativo':'Inativo'}</span></td>${canManage?`<td><div class="product-actions"><button type="button" class="btn btn-secondary" data-prod-edit="${p.id}">Editar</button><button type="button" class="btn btn-secondary" data-prod-stock="${p.id}">Estoque</button><button type="button" class="btn ${p.ativo?'btn-danger':'btn-success'}" data-prod-toggle="${p.id}">${p.ativo?'Desativar':'Ativar'}</button><button type="button" class="btn btn-danger btn-outline-danger" data-prod-delete="${p.id}">Excluir</button></div></td>`:''}</tr>`}).join('')||`<tr><td colspan="${cols}"><div class="product-empty"><strong>Nenhum produto encontrado</strong><span>${estoqueState.produtos.length?'Ajuste os filtros para ver outros itens.':'Cadastre o primeiro produto para começar a controlar o estoque.'}</span></div></td></tr>`}
     </tbody></table></div>`;
 
   byId('produtoBusca').addEventListener('input',e=>{estoqueState.busca=e.target.value;renderEstoque();byId('produtoBusca')?.focus()});
@@ -132,7 +118,6 @@ function renderEstoque(){
     contentEl.querySelectorAll('[data-prod-stock]').forEach(b=>b.addEventListener('click',()=>openStockModal(findProduct(b.dataset.prodStock))));
     contentEl.querySelectorAll('[data-prod-toggle]').forEach(b=>b.addEventListener('click',()=>toggleProduct(findProduct(b.dataset.prodToggle))));
     contentEl.querySelectorAll('[data-prod-delete]').forEach(b=>b.addEventListener('click',()=>deleteProduct(findProduct(b.dataset.prodDelete))));
-    contentEl.querySelectorAll('[data-prod-store]').forEach(input=>input.addEventListener('change',async()=>{const p=findProduct(input.dataset.prodStore);input.disabled=true;try{await api(`/loja/produtos/${p.id}`,{method:'PATCH',body:JSON.stringify({mostrar_na_loja:input.checked,destaque_pagina_publica:input.checked&&!!p.destaque_pagina_publica,descricao_publica:p.descricao_publica||''})});await estoque();flash(msgEl,input.checked?'Produto publicado na loja.':'Produto removido da loja.')}catch(error){input.checked=!input.checked;input.disabled=false;flash(msgEl,error.message,'error')}}));
   }
   initResponsiveTables();
 }
@@ -163,7 +148,6 @@ function openProductModal(produto=null){
         <div class="field"><label>Estoque mínimo</label><input id="produtoMinimo" type="number" min="0" step="1" required value="${p.estoque_minimo}"></div>
       </div>
       <div class="product-form-footer"><label class="check-row"><input id="produtoAtivo" type="checkbox" ${p.ativo?'checked':''}> Produto ativo para venda</label><div id="produtoResumo" class="product-profit-preview"></div></div>
-      ${hasFeature('loja_publica')?`<div class="product-store-editor"><div><strong>🛍️ Loja online</strong><small>Estas opções controlam a publicação do produto no e-commerce.</small></div><label class="check-row"><input id="produtoMostrarLoja" type="checkbox" ${produto?.mostrar_na_loja?'checked':''}> Mostrar na loja</label><label class="check-row"><input id="produtoDestaquePublico" type="checkbox" ${produto?.destaque_pagina_publica?'checked':''} ${produto?.mostrar_na_loja?'':'disabled'}> Destacar também na página pública</label><div class="field"><label>Descrição na loja <small>(opcional)</small></label><textarea id="produtoDescricaoPublica" rows="3" maxlength="1200" placeholder="Descrição que o cliente verá na loja">${esc(produto?.descricao_publica||'')}</textarea></div></div>`:''}
       <div id="produtoModalMsg" class="notice error hidden"></div>
       <div class="actions product-modal-actions"><button type="button" class="btn btn-secondary" id="cancelarProduto">Cancelar</button><button type="submit" class="btn btn-primary" id="salvarProduto">${editing?'Salvar alterações':'Cadastrar produto'}</button></div>
     </form></div>`;
@@ -174,14 +158,13 @@ function openProductModal(produto=null){
   uploadPhotoBtn.addEventListener('click',()=>photoFile.click());
   photoFile.addEventListener('change',async()=>{const file=photoFile.files?.[0];if(!file)return;const err=byId('produtoModalMsg');try{if(!['image/png','image/jpeg'].includes(file.type))throw new Error('Use uma foto JPG ou PNG.');if(file.size>5*1024*1024)throw new Error('A foto deve ter no máximo 5 MB.');uploadPhotoBtn.disabled=true;uploadPhotoBtn.textContent='Enviando...';const r=await fetch('/api/uploads/produto-imagem',{method:'POST',credentials:'same-origin',headers:{'Content-Type':file.type,'X-CSRF-Token':csrfToken()},body:file});let d={};try{d=await r.json()}catch{}if(!r.ok)throw new Error(d.erro||'Não foi possível enviar a foto');photoUrl.value=d.url;renderPhoto()}catch(error){err.textContent=error.message;err.classList.remove('hidden')}finally{uploadPhotoBtn.disabled=false;uploadPhotoBtn.textContent='Enviar foto';photoFile.value=''}});
   removePhotoBtn.addEventListener('click',()=>{photoUrl.value='';renderPhoto()});
-  const storeShow=byId('produtoMostrarLoja'),storeFeature=byId('produtoDestaquePublico');if(storeShow&&storeFeature)storeShow.addEventListener('change',()=>{storeFeature.disabled=!storeShow.checked;if(!storeShow.checked)storeFeature.checked=false});
   const refreshPreview=()=>{const preco=Number(byId('produtoPreco').value||0),custo=Number(byId('produtoCusto').value||0),lucro=preco-custo,margem=preco>0?(lucro/preco)*100:0;byId('produtoResumo').innerHTML=`<span>Lucro unitário <strong>${money(lucro)}</strong></span><span>Margem <strong>${Math.max(0,margem).toFixed(1)}%</strong></span>`};
   ['produtoPreco','produtoCusto'].forEach(id=>byId(id).addEventListener('input',refreshPreview));refreshPreview();
   byId('fecharProduto').addEventListener('click',closeProductModal);byId('cancelarProduto').addEventListener('click',closeProductModal);modal.addEventListener('click',e=>{if(e.target===modal)closeProductModal()});
   byId('produtoForm').addEventListener('submit',async e=>{e.preventDefault();const btn=byId('salvarProduto'),err=byId('produtoModalMsg');btn.disabled=true;err.classList.add('hidden');try{
     const body={nome:byId('produtoNome').value.trim(),sku:byId('produtoSku').value.trim(),preco:byId('produtoPreco').value,custo:byId('produtoCusto').value,estoque:byId('produtoEstoque').value,estoque_minimo:byId('produtoMinimo').value,imagem_url:byId('produtoImagemUrl').value.trim(),ativo:byId('produtoAtivo').checked};
     if(!body.nome)throw new Error('Informe o nome do produto.');
-    const saved=await api(editing?`/operacao/produtos/${produto.id}`:'/operacao/produtos',{method:editing?'PUT':'POST',body:JSON.stringify(body)});const storeShow=byId('produtoMostrarLoja'),storeFeature=byId('produtoDestaquePublico'),storeDesc=byId('produtoDescricaoPublica');if(storeShow){const desired={mostrar_na_loja:storeShow.checked,destaque_pagina_publica:storeShow.checked&&storeFeature.checked,descricao_publica:storeDesc.value};const changed=!editing||desired.mostrar_na_loja!==!!produto.mostrar_na_loja||desired.destaque_pagina_publica!==!!produto.destaque_pagina_publica||desired.descricao_publica!==(produto.descricao_publica||'');if(changed&&(desired.mostrar_na_loja||desired.destaque_pagina_publica||desired.descricao_publica||editing))await api(`/loja/produtos/${saved.id}`,{method:'PATCH',body:JSON.stringify(desired)});}closeProductModal();await estoque();flash(msgEl,editing?'Produto atualizado.':'Produto cadastrado.');
+    await api(editing?`/operacao/produtos/${produto.id}`:'/operacao/produtos',{method:editing?'PUT':'POST',body:JSON.stringify(body)});closeProductModal();await estoque();flash(msgEl,editing?'Produto atualizado.':'Produto cadastrado.');
   }catch(error){err.textContent=error.message;err.classList.remove('hidden');btn.disabled=false}});
   byId('produtoNome').focus();
 }
@@ -190,6 +173,13 @@ function openStockModal(produto){if(!produto)return;closeProductModal();const n=
 }
 async function toggleProduct(produto){if(!produto)return;const action=produto.ativo?'desativar':'ativar';if(!confirm(`Deseja ${action} "${produto.nome}"?`))return;try{await api(`/operacao/produtos/${produto.id}`,{method:'PUT',body:JSON.stringify(productPayload(produto,{ativo:!produto.ativo}))});await estoque();flash(msgEl,`Produto ${produto.ativo?'desativado':'ativado'}.`)}catch(error){flash(msgEl,error.message,'error')}}
 async function deleteProduct(produto){if(!produto)return;if(!confirm(`Excluir permanentemente "${produto.nome}"?\n\nAs vendas antigas continuarão preservadas no histórico, mas o produto sairá do catálogo.`))return;try{await api(`/operacao/produtos/${produto.id}`,{method:'DELETE'});await estoque();flash(msgEl,'Produto excluído com sucesso.')}catch(error){flash(msgEl,error.message,'error')}}
+
+async function vendas(){
+  const rows=await api('/operacao/vendas');
+  contentEl.innerHTML=`<div class="section-head"><div><h2>Histórico de vendas</h2><p>Últimas vendas finalizadas no caixa, com cliente, profissional e forma de pagamento.</p></div></div>
+  <div class="table-wrap"><table class="table"><thead><tr><th>Data</th><th>Cliente</th><th>Barbeiro</th><th>Serviços</th><th>Produtos</th><th>Pagamento</th><th>Total</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${new Date(x.criado_em).toLocaleString('pt-BR')}</td><td>${esc(x.cliente||'Avulso')}</td><td>${esc(x.barbeiro||'—')}</td><td>${money(x.subtotal_servicos)}</td><td>${money(x.subtotal_produtos)}</td><td>${esc(String(x.forma_pagamento||'').replace('_',' '))}</td><td><strong>${money(x.total)}</strong></td></tr>`).join('')||'<tr><td colspan="7">Nenhuma venda registrada.</td></tr>'}</tbody></table></div>`;
+  initResponsiveTables();
+}
 
 async function pdv(){
   const [{cs,bs,ss},produtos]=await Promise.all([base(),api('/operacao/produtos')]);

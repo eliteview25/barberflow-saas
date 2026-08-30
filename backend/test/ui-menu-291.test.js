@@ -5,28 +5,27 @@ const path=require('node:path');
 const root=path.join(__dirname,'../..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 
-test('Produtos aparece somente dentro da Loja no menu lateral',()=>{
+test('Produtos e estoque aparecem como módulo próprio, sem Loja no menu',()=>{
   const common=read('frontend/js/common.js');
-  assert.match(common,/\['loja-produtos',[^\n]+Produtos/);
-  assert.doesNotMatch(common,/\['gestao-produtos'/);
-  assert.match(common,/groupHtml\('gestao'[^\n]+gestao-pdv[^\n]+gestao-comissoes/);
-  const gestaoGroup=common.match(/groupHtml\('gestao'[^\n]+/)[0];
-  assert.doesNotMatch(gestaoGroup,/produtos|estoque/i);
+  assert.match(common,/\['gestao-produtos',[^\n]+Produtos & Estoque/);
+  assert.doesNotMatch(common,/lojaGroupHtml|loja-config|loja-pedidos/);
+  assert.match(common,/groupHtml\('vendas'[^\n]+gestao-pdv[^\n]+gestao-vendas/);
 });
 
-test('Gestão normal não oferece aba Produtos e links antigos vão para Loja',()=>{
+test('Gestão oferece PDV, histórico e Produtos & Estoque como áreas reais',()=>{
   const gestao=read('frontend/js/gestao.js');
-  const normalTabs=gestao.match(/: \[\n([\s\S]*?)\n\];/)[1];
-  assert.doesNotMatch(normalTabs,/Produtos|estoque/);
-  assert.match(gestao,/requested==='estoque'&&!origemLoja/);
-  assert.match(gestao,/location\.replace\('\/pages\/gestao\.html\?secao=estoque&origem=loja'\)/);
+  assert.match(gestao,/\['pdv','🧾 Caixa\/PDV'\]/);
+  assert.match(gestao,/\['vendas','📋 Histórico'\]/);
+  assert.match(gestao,/\['estoque','📦 Produtos & Estoque'\]/);
+  assert.match(gestao,/async function vendas\(\)/);
+  assert.match(gestao,/api\('\/operacao\/vendas'\)/);
 });
 
-test('Produtos acessados pela Loja usam contexto visual da Loja',()=>{
+test('Produtos usam contexto operacional e não exibem publicação em loja',()=>{
   const gestao=read('frontend/js/gestao.js');
-  assert.match(gestao,/document\.title='Produtos da Loja - BarberFlow'/);
-  assert.match(gestao,/h1\.textContent='Produtos da loja'/);
-  assert.match(gestao,/tabsEl\.classList\.add\('hidden'\)/);
+  assert.match(gestao,/document.title='Produtos & Estoque - BarberFlow'/);
+  assert.match(gestao,/h1\.textContent='Produtos & Estoque'/);
+  assert.doesNotMatch(gestao,/Mostrar na loja|produtoMostrarLoja|origemLoja/);
 });
 
 test('hover do menu lateral usa fonte preta e fundo claro',()=>{

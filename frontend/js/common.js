@@ -149,11 +149,6 @@ function renderShell(active){
     ['barbeiros','/pages/barbeiros.html','💈','Barbeiros',['dono','gerente']],
     ['servicos','/pages/servicos.html','✂️','Serviços',['dono','gerente']],
     ['pagina-publica','/pages/configuracoes.html?secao=pagina-publica','🌐','Página pública',['dono','gerente']],
-    ['loja-config','/pages/loja.html?secao=configuracoes','🎨','Configurações',['dono','gerente'],'loja_publica'],
-    ['loja-produtos','/pages/gestao.html?secao=estoque&origem=loja','📦','Produtos',['dono','gerente'],'loja_publica'],
-    ['loja-frete','/pages/loja.html?secao=frete','🚚','Frete e retirada',['dono','gerente'],'loja_publica'],
-    ['loja-checkout','/pages/loja.html?secao=checkout','💳','Checkout',['dono','gerente'],'loja_publica'],
-    ['loja-pedidos','/pages/loja.html?secao=pedidos','🧾','Pedidos',['dono','gerente'],'loja_publica'],
     ['financeiro','/pages/financeiro.html','💰','Financeiro',['dono','gerente'],'financeiro_basico'],
     ['marketing-resumo','/pages/marketing.html?secao=resumo','📈','Visão geral',['dono','gerente'],'marketing'],
     ['marketing-campanhas','/pages/marketing.html?secao=campanhas','📣','Campanhas',['dono','gerente'],'marketing'],
@@ -163,6 +158,8 @@ function renderShell(active){
     ['marketing-links','/pages/marketing.html?secao=links','🔗','Links rastreáveis',['dono','gerente'],'marketing'],
     ['marketing-modelos','/pages/marketing.html?secao=modelos','💬','Modelos WhatsApp',['dono','gerente'],'marketing'],
     ['gestao-pdv','/pages/gestao.html?secao=pdv','🧾','Caixa / PDV',['dono','gerente','recepcao'],'pdv_estoque'],
+    ['gestao-vendas','/pages/gestao.html?secao=vendas','🧾','Histórico de vendas',['dono','gerente','recepcao'],'pdv_estoque'],
+    ['gestao-produtos','/pages/gestao.html?secao=estoque','📦','Produtos & Estoque',['dono','gerente','recepcao'],'pdv_estoque'],
     ['gestao-comissoes','/pages/gestao.html?secao=comissoes','💈','Comissões',['dono','gerente'],'comissoes'],
     ['gestao-fila','/pages/gestao.html?secao=fila','⏱️','Fila de espera',['dono','gerente'],'fila_espera'],
     ['gestao-crm','/pages/gestao.html?secao=crm','👤','CRM',['dono','gerente'],'crm_avancado'],
@@ -171,8 +168,8 @@ function renderShell(active){
     ['gestao-relatorios','/pages/gestao.html?secao=relatorios','📊','Relatórios',['dono','gerente'],'relatorios_avancados'],
     ['gestao-dados','/pages/gestao.html?secao=dados','⬇️','Exportar dados',['dono','gerente'],'exportacao_dados'],
     ['pagamentos','/pages/pagamentos.html','💳','Pagamentos',['dono','gerente']],
-    ['equipe','/pages/equipe.html','🔐','Equipe',['dono','gerente'],'equipe'],
-    ['automacoes','/pages/automacoes.html','🤖','Automações',['dono','gerente'],'automacoes'],
+    ['equipe','/pages/equipe.html','🔐','Permissões',['dono','gerente'],'equipe'],
+    ['automacoes','/pages/automacoes.html','💬','WhatsApp & Automações',['dono','gerente'],'automacoes'],
     ['seguranca','/pages/configuracoes.html?secao=seguranca','🛡️','Segurança',['dono','gerente']],
     ['perfil','/pages/configuracoes.html?secao=perfil','👤','Perfil',['dono','gerente']],
     ['suporte','/pages/suporte.html','🛟','Suporte',['dono','gerente','recepcao','barbeiro']],
@@ -182,11 +179,9 @@ function renderShell(active){
   const byKey=Object.fromEntries(allowed.map(x=>[x[0],x]));
   const marketingKeys={resumo:'marketing-resumo',campanhas:'marketing-campanhas',publicos:'marketing-publicos',cupons:'marketing-cupons',indicacoes:'marketing-indicacoes',links:'marketing-links',modelos:'marketing-modelos'};
   const marketingActive=active==='marketing'?(marketingKeys[section||'resumo']||'marketing-resumo'):'';
-  const gestaoKeys={pdv:'gestao-pdv',comissoes:'gestao-comissoes',fila:'gestao-fila',crm:'gestao-crm',fidelidade:'gestao-fidelidade',avaliacoes:'gestao-avaliacoes',relatorios:'gestao-relatorios',dados:'gestao-dados'};
-  const lojaKeys={configuracoes:'loja-config',frete:'loja-frete',checkout:'loja-checkout',pedidos:'loja-pedidos'};
-  const lojaActive=active==='loja'?(lojaKeys[section||'configuracoes']||'loja-config'):(active==='gestao'&&section==='estoque'&&origin==='loja'?'loja-produtos':'');
-  const gestaoActive=active==='gestao'&&origin!=='loja'?(gestaoKeys[section||'pdv']||'gestao-pdv'):'';
-  const isActive=k=>active===k||k===gestaoActive||k===lojaActive||k===marketingActive||(active==='config'&&((k==='pagina-publica'&&section==='pagina-publica')||(k==='seguranca'&&section==='seguranca')||(k==='perfil'&&(!section||section==='perfil'))));
+  const gestaoKeys={pdv:'gestao-pdv',vendas:'gestao-vendas',estoque:'gestao-produtos',comissoes:'gestao-comissoes',fila:'gestao-fila',crm:'gestao-crm',fidelidade:'gestao-fidelidade',avaliacoes:'gestao-avaliacoes',relatorios:'gestao-relatorios',dados:'gestao-dados'};
+  const gestaoActive=active==='gestao'?(gestaoKeys[section||'pdv']||'gestao-pdv'):'';
+  const isActive=k=>active===k||k===gestaoActive||k===marketingActive||(active==='config'&&((k==='pagina-publica'&&section==='pagina-publica')||(k==='seguranca'&&section==='seguranca')||(k==='perfil'&&(!section||section==='perfil'))));
   const linkHtml=x=>x?`<a class="${isActive(x[0])?'active':''}" href="${x[1]}"><span class="menu-icon">${x[2]}</span><span>${x[3]}</span></a>`:'';
   const groupHtml=(id,icon,label,keys)=>{
     const items=keys.map(k=>byKey[k]).filter(Boolean);
@@ -197,31 +192,17 @@ function renderShell(active){
       <div class="menu-submenu">${items.map(linkHtml).join('')}</div>
     </div>`;
   };
-  const lojaGroupHtml=()=>{
-    const items=['loja-config','loja-produtos','loja-frete','loja-checkout','loja-pedidos'].map(k=>byKey[k]).filter(Boolean);
-    if(!items.length)return '';
-    const open=items.some(x=>isActive(x[0]));
-    return `<div class="menu-group nested-menu-group ${open?'open':''}" data-menu-group="loja">
-      <button class="menu-group-toggle ${open?'active':''}" type="button" aria-expanded="${open?'true':'false'}"><span class="menu-icon">🛍️</span><span>Loja</span><span class="menu-group-chevron">⌄</span></button>
-      <div class="menu-submenu">${items.map(linkHtml).join('')}</div>
-    </div>`;
-  };
-  const barbeariaGroupHtml=()=>{
-    const direct=['agendamentos','clientes','barbeiros','servicos','pagina-publica'].map(k=>byKey[k]).filter(Boolean);
-    const store=['loja-config','loja-produtos','loja-frete','loja-checkout','loja-pedidos'].map(k=>byKey[k]).filter(Boolean);
-    const open=[...direct,...store].some(x=>isActive(x[0]));
-    return `<div class="menu-group ${open?'open':''}" data-menu-group="barbearia">
-      <button class="menu-group-toggle ${open?'active':''}" type="button" aria-expanded="${open?'true':'false'}"><span class="menu-icon">💈</span><span>Barbearia</span><span class="menu-group-chevron">⌄</span></button>
-      <div class="menu-submenu">${direct.map(linkHtml).join('')}${lojaGroupHtml()}</div>
-    </div>`;
-  };
   const menu=[
     linkHtml(byKey.dashboard),
-    barbeariaGroupHtml(),
+    groupHtml('barbearia','💈','Barbearia',['agendamentos','clientes','servicos','pagina-publica']),
+    groupHtml('equipe','👥','Equipe',['barbeiros','gestao-comissoes','equipe']),
+    linkHtml(byKey.automacoes),
+    groupHtml('vendas','🧾','Vendas / PDV',['gestao-pdv','gestao-vendas']),
+    linkHtml(byKey['gestao-produtos']),
     linkHtml(byKey.financeiro),
     groupHtml('marketing','📣','Marketing',['marketing-resumo','marketing-campanhas','marketing-publicos','marketing-cupons','marketing-indicacoes','marketing-links','marketing-modelos']),
-    groupHtml('gestao','🧰','Gestão',['gestao-pdv','gestao-comissoes','gestao-fila','gestao-crm','gestao-fidelidade','gestao-avaliacoes','gestao-relatorios','gestao-dados']),
-    groupHtml('configuracoes','⚙️','Configurações',['pagamentos','equipe','automacoes','seguranca','perfil']),
+    groupHtml('gestao','🧰','Gestão',['gestao-fila','gestao-crm','gestao-fidelidade','gestao-avaliacoes','gestao-relatorios','gestao-dados']),
+    groupHtml('configuracoes','⚙️','Configurações',['pagamentos','seguranca','perfil']),
     linkHtml(byKey.suporte),
     linkHtml(byKey.assinatura)
   ].join('');

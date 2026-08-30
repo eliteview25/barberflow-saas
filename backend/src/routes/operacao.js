@@ -22,6 +22,8 @@ FROM barbeiros br LEFT JOIN agendamentos a ON a.barbeiro_id=br.id AND a.barbeari
 WHERE br.barbearia_id=$1 GROUP BY br.id ORDER BY br.nome`,[b(req),inicio,fim]);res.json(r.rows)}catch(e){console.error(e);res.status(500).json({erro:'Erro ao calcular comissões'})}});
 router.put('/comissoes/barbeiros/:id',exigirPapel('dono'),exigirRecurso('comissoes'),exigirStepUp,async(req,res)=>{try{const id=intId(req.params.id),a=finitePercent(req.body.comissao_servico_pct??0),p=finitePercent(req.body.comissao_produto_pct??0);if(!id||a===null||p===null)return res.status(400).json({erro:'Comissão deve ficar entre 0 e 100%'});const r=await pool.query(`UPDATE barbeiros SET comissao_servico_pct=$1,comissao_produto_pct=$2 WHERE id=$3 AND barbearia_id=$4 RETURNING id,nome,comissao_servico_pct,comissao_produto_pct`,[a,p,id,b(req)]);if(!r.rowCount)return res.status(404).json({erro:'Barbeiro não encontrado'});res.json(r.rows[0])}catch(e){res.status(500).json({erro:'Erro ao salvar comissões'})}});
 
+router.get('/vendas',...staff,exigirRecurso('pdv_estoque'),async(req,res)=>{try{const r=await pool.query(`SELECT v.id,v.criado_em,v.total,v.subtotal_servicos,v.subtotal_produtos,v.desconto,v.forma_pagamento,v.status,c.nome cliente,br.nome barbeiro FROM vendas v LEFT JOIN clientes c ON c.id=v.cliente_id AND c.barbearia_id=v.barbearia_id LEFT JOIN barbeiros br ON br.id=v.barbeiro_id AND br.barbearia_id=v.barbearia_id WHERE v.barbearia_id=$1 ORDER BY v.criado_em DESC LIMIT 300`,[b(req)]);res.json(r.rows)}catch(e){console.error(e);res.status(500).json({erro:'Erro ao carregar histórico de vendas'})}});
+
 router.post('/vendas',...staff,exigirRecurso('pdv_estoque'),async(req,res)=>{
   const c=await pool.connect();
   try{

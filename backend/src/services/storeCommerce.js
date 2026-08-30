@@ -39,6 +39,7 @@ async function ensureStoreCommerceSchema(db=pool){
 }
 
 async function storeTenantBySlug(slug){
+  if(process.env.ENABLE_PUBLIC_STORE!=='true')return null;
   await ensureStoreCommerceSchema();
   const r=await pool.query(`SELECT b.*,a.plano,a.status assinatura_status,a.fim_trial,
     EXISTS(SELECT 1 FROM integracoes_pagamento ip WHERE ip.barbearia_id=b.id AND ip.provedor='mercadopago' AND ip.status='conectado' AND ip.access_token_enc IS NOT NULL AND ip.public_key IS NOT NULL) mp_conectado,

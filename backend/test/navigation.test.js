@@ -22,8 +22,8 @@ test('menu lateral usa links nativos sem data-click',()=>{
   assert.match(common,/const linkHtml=x=>x\?`<a class=/);
   const line=common.split('\n').find(x=>x.includes('const linkHtml='))||'';
   assert.ok(!line.includes('data-click='),'links de navegação não podem depender do dispatcher data-click');
-  assert.match(common,/barbeariaGroupHtml/);
-  assert.match(common,/lojaGroupHtml/);
+  assert.match(common,/groupHtml\('barbearia'/);
+  assert.match(common,/Produtos & Estoque/);
   assert.match(common,/groupHtml\('configuracoes'/);
   assert.match(common,/closest\('\.sidebar \.menu a\[href\]'\)/);
 });
