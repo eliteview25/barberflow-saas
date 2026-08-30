@@ -18,6 +18,33 @@ if(currentUser().papel==='super_admin'){location.href='/master.html'}else if(req
   function sparkline(values){const nums=(values||[]).map(x=>Number(x?.total ?? x ?? 0)),w=92,h=30,p=2,max=Math.max(1,...nums),min=Math.min(0,...nums),range=Math.max(1,max-min);if(!nums.length)return '';const pts=nums.map((v,i)=>`${p+(i*(w-p*2)/Math.max(1,nums.length-1))},${h-p-((v-min)/range)*(h-p*2)}`).join(' ');return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}"/></svg>`}
   function compactMoney(v){const n=Number(v||0);return n>=1000?`R$ ${(n/1000).toLocaleString('pt-BR',{maximumFractionDigits:1})}k`:money(n)}
 
+  function renderMobileStatus(d){
+    const r=d.resumo||{},items=[['Aguardando',r.aguardando_confirmacao||0,'waiting'],['Confirmados',r.confirmados_hoje||0,'confirmed'],['Atendendo',r.em_atendimento_hoje||0,'serving'],['Concluídos',r.concluidos_hoje||0,'done']];
+    E('mobileStatusGrid').innerHTML=items.map(([label,value,state])=>`<article class="mobile-status-item ${state}"><i></i><strong>${Number(value)||0}</strong><span>${label}</span></article>`).join('');
+    const late=Number(r.atrasados_hoje||0),waiting=Number(r.aguardando_confirmacao||0),serving=Number(r.em_atendimento_hoje||0),alert=E('mobileOperationAlert');
+    if(late){alert.className='mobile-operation-alert danger';alert.innerHTML=`<strong>${late} ${late===1?'atendimento atrasado':'atendimentos atrasados'}</strong><span>Abra a agenda para reorganizar o atendimento.</span>`}
+    else if(waiting){alert.className='mobile-operation-alert warning';alert.innerHTML=`<strong>${waiting} ${waiting===1?'confirmação pendente':'confirmações pendentes'}</strong><span>Confirme os próximos clientes para reduzir faltas.</span>`}
+    else if(serving){alert.className='mobile-operation-alert success';alert.innerHTML=`<strong>${serving} em atendimento agora</strong><span>A operação está fluindo normalmente.</span>`}
+    else{alert.className='mobile-operation-alert neutral';alert.innerHTML='<strong>Operação em dia</strong><span>Nenhuma pendência urgente neste momento.</span>'}
+  }
+
+  function renderMobileHighlights(d){
+    const r=d.resumo||{};let title='Indicadores importantes',items=[];
+    if(['dono','gerente'].includes(role)){title='Saúde do negócio';items=[['Faturamento no mês',compactMoney(r.faturamento_mes||0),'Consolidado'],['Previsto hoje',compactMoney(r.receita_prevista_hoje||0),'Agenda ativa'],['Ocupação',`${Number(r.ocupacao_hoje||0)}%`,'Capacidade da equipe']]}
+    else if(role==='recepcao'){title='Estrutura da recepção';items=[['Clientes',Number(r.clientes||0),'Cadastrados'],['Profissionais',Number(r.barbeiros||0),'Ativos'],['Serviços',Number(r.servicos||0),'Disponíveis']]}
+    else{title='Meu desempenho';items=[['Comissão hoje',compactMoney(r.comissao_hoje||0),'Concluídos'],['Comissão no mês',compactMoney(r.comissao_mes||0),'Acumulada'],['Minha ocupação',`${Number(r.ocupacao_hoje||0)}%`,'Agenda de hoje']]}
+    E('mobileHighlightsTitle').textContent=title;E('mobileRoleHighlights').innerHTML=items.map(([label,value,hint])=>`<article><span>${esc(label)}</span><strong>${esc(value)}</strong><small>${esc(hint)}</small></article>`).join('');
+  }
+
+  function renderMobileWeek(d){
+    const items=d.tendencias?.agendamentos||[],values=items.map(x=>Number(x.total||0)),max=Math.max(1,...values),total=values.reduce((sum,x)=>sum+x,0);E('mobileWeekTotal').textContent=`${total} agend.`;
+    E('mobileWeekChart').innerHTML=items.length?items.map((x,i)=>`<div class="mobile-week-day"><b>${values[i]}</b><div><i style="height:${Math.max(5,Math.round(values[i]*100/max))}%"></i></div><span>${esc(x.label||'')}</span></div>`).join(''):'<div class="mobile-home-empty">Sem movimento registrado nesta semana.</div>';
+  }
+
+  function renderMobileUpcoming(d){
+    const rows=(d.proximos||[]).slice(0,4);E('mobileUpcomingList').innerHTML=rows.length?rows.map(x=>`<a class="mobile-upcoming-row" href="/pages/agendamentos.html"><div class="mobile-upcoming-time"><strong>${timeBR(x.horario)}</strong><span>${dateBR(x.data)}</span></div>${avatar(x.barbeiro,x.barbeiro_foto,'mobile-upcoming')}<div class="mobile-upcoming-copy"><strong>${esc(x.cliente||'Cliente')}</strong><span>${esc(x.servico||'Serviço')} · ${role==='barbeiro'?'Você':esc(x.barbeiro||'Profissional')}</span></div><b class="mobile-upcoming-status status-${esc(x.status)}">${esc(String(x.status||'agendado').replaceAll('_',' '))}</b></a>`).join(''):'<div class="mobile-home-empty"><strong>Agenda livre</strong><span>Nenhum próximo atendimento marcado.</span></div>';
+  }
+
   function appointmentCard(x){return `<article class="premium-appointment-row"><div class="premium-appointment-time"><strong>${timeBR(x.horario)}</strong><span>${Number(x.duracao||0)}min</span></div>${avatar(x.barbeiro,x.barbeiro_foto,'appointment')}<div class="premium-appointment-client"><strong>${esc(x.cliente)}</strong><span>${esc(x.servico||'Serviço')}</span></div><div class="premium-appointment-barber">${role==='barbeiro'?'Você':esc(x.barbeiro||'')}</div><span class="premium-status status-${esc(x.status)}">${esc(String(x.status||'').replaceAll('_',' '))}</span><a class="appointment-wa" href="${waHref(x)}" target="_blank" rel="noopener" aria-label="WhatsApp de ${esc(x.cliente)}">${iconSVG('whatsapp',17)}</a></article>`}
   function mobileActions(){const items=role==='barbeiro'?[['/pages/agendamentos.html','calendar','Minha agenda'],['/pages/suporte.html','support','Suporte']]:role==='recepcao'?[['/pages/agendamentos.html','calendar','Agenda'],['/pages/clientes.html','users','Clientes'],['/pages/gestao.html?secao=comandas','clipboard','Comandas'],['/pages/suporte.html','support','Suporte']]:[['/pages/agendamentos.html','calendar','Agenda'],['/pages/clientes.html','users','Clientes'],['/pages/servicos.html','scissors','Serviços'],['/pages/financeiro.html','wallet','Financeiro'],['/pages/gestao.html?secao=relatorios','chart','Relatórios'],['/pages/automacoes.html','whatsapp','WhatsApp']];E('mobileActionGrid').innerHTML=items.map(([href,ic,label])=>`<a href="${href}">${iconSVG(ic,22)}<span>${label}</span></a>`).join('')}
   mobileActions();
@@ -47,6 +74,7 @@ if(currentUser().papel==='super_admin'){location.href='/master.html'}else if(req
     if(role==='recepcao'){E('mobileSummaryClients').textContent=d.resumo?.confirmados_hoje||0;E('mobileSummarySecondLabel').textContent='Confirmados';E('mobileSummaryRevenue').textContent=d.resumo?.atrasados_hoje||0;E('mobileSummaryThirdLabel').textContent='Atrasados'}
     else if(role==='barbeiro'){E('mobileSummaryClients').textContent=d.resumo?.concluidos_hoje||0;E('mobileSummarySecondLabel').textContent='Concluídos';E('mobileSummaryRevenue').textContent=money(d.resumo?.comissao_hoje||0);E('mobileSummaryThirdLabel').textContent='Comissão'}
     else{E('mobileSummaryClients').textContent=d.resumo?.clientes||0;E('mobileSummaryRevenue').textContent=compactMoney((revenue?.totais?.hoje ?? d.resumo?.faturamento_hoje ?? 0))}
+    renderMobileStatus(d);renderMobileHighlights(d);renderMobileWeek(d);renderMobileUpcoming(d);
     if(revenue){renderRevenueChart(revenue);renderBarberPerformance(revenue)}else{E('dashboardRevenue').classList.add('dashboard-no-finance');E('barberPerformance').innerHTML='<div class="premium-empty">Dados financeiros disponíveis para gestão.</div>'}
     await loadOnboarding();
   }catch(e){console.error('dashboard',e)}})();
