@@ -1589,3 +1589,262 @@ body[data-role="barbeiro"] .dashboard-topbar .topbar-create{background:#15191e!i
   .mobile-status-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mobile-status-item span{font-size:7px}
   .mobile-role-highlights{grid-template-columns:1fr}.mobile-role-highlights span{min-height:0}.mobile-upcoming-row{grid-template-columns:40px 26px minmax(0,1fr)}.mobile-upcoming-status{display:none}
 }
+
+/* =========================================================
+   BarberFlow 4.1.7 — contraste final e tipografia legível
+   ========================================================= */
+
+/* Login, cadastro e recuperação: elimina caixas claras e o autofill branco. */
+.auth-body{color-scheme:dark}
+.auth-body .auth-card,
+.auth-body .login-mfa-box,
+.auth-body .legal-consent,
+.auth-body .notice{
+  background:linear-gradient(145deg,#12161b,#0c0f13)!important;
+  color:#e7eaed!important;
+  border-color:#2c3239!important;
+}
+.auth-body .login-mfa-box small,
+.auth-body .legal-consent,
+.auth-body .show-password-check,
+.auth-body .auth-legal-links{color:#aeb5bd!important}
+.auth-body .legal-consent{padding:10px 11px;border:1px solid #2c3239;border-radius:8px}
+.auth-body .legal-consent a,
+.auth-body .auth-legal-links a{color:#e7aa18!important}
+.auth-body input,
+.auth-body select,
+.auth-body textarea{
+  background:#0b0e12!important;
+  color:#f4f6f8!important;
+  border-color:#343a42!important;
+}
+.auth-body input::placeholder,
+.auth-body textarea::placeholder{color:#737d88!important}
+.auth-body input:-webkit-autofill,
+.auth-body input:-webkit-autofill:hover,
+.auth-body input:-webkit-autofill:focus,
+.auth-body input:-webkit-autofill:active{
+  -webkit-text-fill-color:#f4f6f8!important;
+  -webkit-box-shadow:0 0 0 1000px #0b0e12 inset!important;
+  box-shadow:0 0 0 1000px #0b0e12 inset!important;
+  caret-color:#f4f6f8!important;
+  transition:background-color 9999s ease-out 0s;
+}
+.auth-body input:autofill{
+  color:#f4f6f8!important;
+  box-shadow:0 0 0 1000px #0b0e12 inset!important;
+}
+.auth-body .notice.error{
+  background:rgba(239,68,68,.08)!important;
+  color:#fca5a5!important;
+  border-color:rgba(239,68,68,.24)!important;
+}
+.auth-body .notice.success{
+  background:rgba(34,197,94,.08)!important;
+  color:#86efac!important;
+  border-color:rgba(34,197,94,.24)!important;
+}
+.auth-body .login-mfa-box .totp-input{font-size:19px!important}
+
+/* Superfícies auxiliares que ainda herdavam o branco do tema antigo. */
+body:not(.public-bg):not(.auth-body) .security-card,
+body:not(.public-bg):not(.auth-body) .security-challenge-head,
+body:not(.public-bg):not(.auth-body) .security-challenge-actions,
+body:not(.public-bg):not(.auth-body) .security-secret-box,
+body:not(.public-bg):not(.auth-body) .ai-quota,
+body:not(.public-bg):not(.auth-body) .onboarding-step,
+body:not(.public-bg):not(.auth-body) .onboarding-progress,
+body:not(.public-bg):not(.auth-body) .support-ticket,
+body:not(.public-bg):not(.auth-body) .support-reply,
+body:not(.public-bg):not(.auth-body) .gateway-modal-card,
+body:not(.public-bg):not(.auth-body) .gateway-modal-card .modal-head,
+body:not(.public-bg):not(.auth-body) .marketing-modal-box,
+body:not(.public-bg):not(.auth-body) .marketing-modal-box .modal-head,
+body:not(.public-bg):not(.auth-body) .marketing-modal-actions,
+body:not(.public-bg):not(.auth-body) .store-admin-product,
+body:not(.public-bg):not(.auth-body) .store-order-card,
+body:not(.public-bg):not(.auth-body) .store-cart-drawer,
+body:not(.public-bg):not(.auth-body) .store-choice,
+body:not(.public-bg):not(.auth-body) .store-checkout-modal,
+body:not(.public-bg):not(.auth-body) .store-checkout-modal>.store-cart-head{
+  background:#111419!important;
+  color:#e7eaed!important;
+  border-color:#2b3138!important;
+}
+body:not(.public-bg):not(.auth-body) .security-secret-box code,
+body:not(.public-bg):not(.auth-body) .mfa-secret-box code{
+  background:#0b0e12!important;
+  color:#efb11f!important;
+  border-color:#30363d!important;
+}
+body:not(.public-bg):not(.auth-body) .support-reply{border-left-color:#d4a017!important}
+body:not(.public-bg):not(.auth-body) .security-card p,
+body:not(.public-bg):not(.auth-body) .security-card small,
+body:not(.public-bg):not(.auth-body) .ai-quota,
+body:not(.public-bg):not(.auth-body) .onboarding-step p,
+body:not(.public-bg):not(.auth-body) .support-ticket p,
+body:not(.public-bg):not(.auth-body) .support-ticket small{color:#9ca5af!important}
+
+/* Escala tipográfica do desktop: mais confortável sem perder densidade. */
+@media(min-width:761px){
+  .sidebar .menu>a,
+  .menu-group-toggle,
+  .master-side-link{font-size:13px!important}
+  .sidebar .menu-submenu a{font-size:12px!important}
+  .sidebar-plan-card strong,
+  .sidebar-plan-card a{font-size:12px!important}
+  .sidebar-plan-card p{font-size:11.5px!important;line-height:1.45!important}
+  .bf-premium-topbar>div:first-child p,
+  .bf-topbar-search input{font-size:13px!important}
+  .bf-topbar-account strong{font-size:12.5px!important}
+  .bf-topbar-account small{font-size:10.5px!important}
+
+  .topbar h1,
+  .master-content-head h1{font-size:27px!important;line-height:1.15!important}
+  .topbar p,
+  .master-content-head p{font-size:14px!important;line-height:1.5!important}
+  .page-eyebrow,
+  .finance-eyebrow,
+  .master-eyebrow{font-size:11px!important}
+  .panel h2,
+  .finance-panel h2,
+  .master-panel-modern h2{font-size:17px!important;line-height:1.25!important}
+  .panel .muted,
+  .finance-panel .muted,
+  .master-panel-modern .muted{font-size:13px!important;line-height:1.5!important}
+  .field label,
+  .inline-field label,
+  .form-grid label{font-size:13px!important}
+  input,
+  select,
+  textarea{font-size:14px!important}
+  .btn,
+  .form-actions button,
+  .actions button{font-size:13px!important}
+  table th{font-size:11px!important}
+  table td{font-size:13px!important}
+
+  .kpi-top,
+  .premium-kpi .kpi-top{font-size:12.5px!important}
+  .premium-kpi>small{font-size:11px!important;line-height:1.45!important}
+  .premium-dashboard-panel .panel-head h2{font-size:15px!important}
+  .premium-dashboard-panel .panel-head span,
+  .premium-dashboard-panel .panel-head a{font-size:10.5px!important}
+  .bf-appointment-time strong{font-size:12.5px!important}
+  .bf-appointment-time span{font-size:10.5px!important}
+  .bf-appointment-client strong{font-size:12px!important}
+  .bf-appointment-client small{font-size:10.5px!important}
+  .bf-appointment-barber{font-size:10.5px!important}
+  .bf-status-badge{font-size:9.5px!important}
+  .bf-graph-value,
+  .bf-graph-label,
+  .bf-performance-row{font-size:10px!important}
+  .bf-empty-state,
+  .premium-empty{font-size:11.5px!important;line-height:1.5!important}
+
+  .finance-kpi small,
+  .finance-card small,
+  .finance-note{font-size:11.5px!important;line-height:1.45!important}
+  .finance-chart-label,
+  .finance-chart-value{font-size:10.5px!important}
+  .agenda-filter label,
+  .agenda-toolbar label{font-size:11.5px!important}
+  .agenda-chip{font-size:10.5px!important}
+  .agenda-table th{font-size:10.5px!important}
+  .agenda-table td{font-size:12.5px!important}
+  .agenda-event strong{font-size:11.5px!important}
+  .agenda-event small{font-size:10px!important}
+  .agenda-client-line b,
+  .agenda-event>span{font-size:11px!important}
+  .agenda-event .badge{font-size:9px!important}
+  .client-kpi span{font-size:11.5px!important}
+  .client-kpi small{font-size:10.5px!important}
+  .clients-table th{font-size:10.5px!important}
+  .clients-table td,
+  .clients-table strong{font-size:12px!important}
+  .clients-table small{font-size:10.5px!important}
+  .client-segment{font-size:9.5px!important}
+  .plan-card p{font-size:12px!important;line-height:1.5!important}
+  .plan-card li{font-size:11.5px!important;line-height:1.45!important}
+  .plan-card h2{font-size:17px!important}
+  .public-booking-card label{font-size:11.5px!important}
+  .public-booking-card h2,
+  .public-booking-card h3{font-size:15px!important}
+  .public-booking-card .muted,
+  .public-helper{font-size:11px!important}
+  .public-barber strong,
+  .public-barber-card strong{font-size:12px!important}
+  .public-barber small,
+  .public-barber-card small{font-size:10.5px!important}
+  .slot-btn,
+  .public-time-column .slot{font-size:11.5px!important}
+
+  .master-nav-label{font-size:10px!important}
+  .master-kpi-modern span{font-size:11.5px!important}
+  .master-quick-card strong{font-size:12px!important}
+  .master-quick-card small{font-size:10.5px!important;line-height:1.45!important}
+  .master-table th{font-size:10.5px!important}
+  .master-table td{font-size:12px!important}
+  .master-table td small{font-size:10.5px!important}
+  .master-gateway-card p,
+  .master-security-card p,
+  .master-support-ticket p{font-size:11.5px!important;line-height:1.5!important}
+}
+
+/* Mobile: campos sem zoom involuntário e textos informativos realmente legíveis. */
+@media(max-width:760px){
+  .auth-card h1{font-size:27px!important;line-height:1.15!important}
+  .auth-card>p,
+  .auth-card .muted{font-size:14px!important;line-height:1.5!important}
+  .auth-card label{font-size:13px!important}
+  .auth-card input,
+  .auth-card select,
+  .auth-card textarea{font-size:16px!important}
+  .auth-card .btn{font-size:14px!important}
+  .auth-body .legal-consent,
+  .auth-body .auth-legal-links,
+  .auth-body .show-password-check{font-size:12px!important;line-height:1.45!important}
+  .auth-body .login-mfa-box small{font-size:12px!important}
+
+  .mobile-home-head span{font-size:9px!important}
+  .mobile-home-head h3{font-size:13px!important}
+  .mobile-home-head>a,
+  .mobile-home-head>strong{font-size:10.5px!important}
+  .mobile-operation-alert strong{font-size:11px!important}
+  .mobile-operation-alert span{font-size:9.5px!important}
+  .mobile-status-item strong{font-size:15px!important}
+  .mobile-status-item span{font-size:9px!important}
+  .mobile-role-highlights span{min-height:25px;font-size:9.5px!important}
+  .mobile-role-highlights strong{font-size:14px!important}
+  .mobile-role-highlights small{font-size:9px!important}
+  .mobile-week-day>b,
+  .mobile-week-day>span{font-size:8.5px!important}
+  .mobile-upcoming-time strong{font-size:11px!important}
+  .mobile-upcoming-time span{font-size:8.5px!important}
+  .mobile-upcoming-copy strong{font-size:10.5px!important}
+  .mobile-upcoming-copy span{font-size:9px!important}
+  .mobile-upcoming-status{font-size:8px!important}
+  .mobile-home-empty{font-size:10px!important}
+  .mobile-home-empty strong{font-size:11.5px!important}
+
+  .mobile-quick-action strong,
+  .mobile-daily-card h3{font-size:11px!important}
+  .mobile-quick-action small,
+  .mobile-daily-card small{font-size:9.5px!important}
+  .mobile-next-head span{font-size:10px!important}
+  .mobile-next-head strong{font-size:13px!important}
+  .mobile-next-card p{font-size:11.5px!important}
+  .mobile-next-card a{font-size:10px!important}
+  .agenda-mobile-card strong,
+  .client-mobile-card strong{font-size:12px!important}
+  .agenda-mobile-card span,
+  .agenda-mobile-card small,
+  .client-mobile-card span,
+  .client-mobile-card small{font-size:10px!important}
+  .public-booking-card label{font-size:12px!important}
+  .public-booking-card input,
+  .public-booking-card select,
+  .public-booking-card textarea{font-size:16px!important}
+  .public-booking-card .btn,
+  .public-booking-card button{font-size:13px!important}
+}
