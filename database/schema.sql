@@ -254,3 +254,34 @@ CREATE TRIGGER trg_bf_ag_tracking_code BEFORE INSERT ON agendamentos FOR EACH RO
 
 -- BarberFlow 3.3 — perfil visual dos profissionais
 ALTER TABLE barbeiros ADD COLUMN IF NOT EXISTS foto_url TEXT;
+
+-- BarberFlow 4.2 — central persistente de notificações
+CREATE TABLE IF NOT EXISTS notificacoes(
+  id BIGSERIAL PRIMARY KEY,
+  barbearia_id INTEGER REFERENCES barbearias(id) ON DELETE CASCADE,
+  usuario_id INTEGER REFERENCES usuarios(id) ON DELETE CASCADE,
+  audiencia VARCHAR(20) NOT NULL DEFAULT 'tenant',
+  papeis TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  tipo VARCHAR(50) NOT NULL DEFAULT 'sistema',
+  nivel VARCHAR(20) NOT NULL DEFAULT 'info',
+  titulo VARCHAR(160) NOT NULL,
+  mensagem VARCHAR(700) NOT NULL,
+  link VARCHAR(500),
+  dados JSONB NOT NULL DEFAULT '{}'::jsonb,
+  chave_unica VARCHAR(200),
+  expira_em TIMESTAMP,
+  criado_em TIMESTAMP NOT NULL DEFAULT NOW(),
+  CHECK(audiencia IN ('tenant','super_admin')),
+  CHECK(nivel IN ('info','success','warning','error')),
+  CHECK((audiencia='tenant' AND barbearia_id IS NOT NULL) OR audiencia='super_admin')
+);
+CREATE TABLE IF NOT EXISTS notificacoes_leituras(
+  notificacao_id BIGINT NOT NULL REFERENCES notificacoes(id) ON DELETE CASCADE,
+  usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  lida_em TIMESTAMP NOT NULL DEFAULT NOW(),
+  PRIMARY KEY(notificacao_id,usuario_id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_notificacoes_chave_unica ON notificacoes(chave_unica) WHERE chave_unica IS NOT NULL;
+CREATE INDEX IF NOT EXISTS ix_notificacoes_tenant_data ON notificacoes(barbearia_id,criado_em DESC) WHERE audiencia='tenant';
+CREATE INDEX IF NOT EXISTS ix_notificacoes_master_data ON notificacoes(criado_em DESC) WHERE audiencia='super_admin';
+CREATE INDEX IF NOT EXISTS ix_notificacoes_leituras_usuario ON notificacoes_leituras(usuario_id,lida_em DESC);

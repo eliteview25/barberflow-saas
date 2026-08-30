@@ -1,6 +1,7 @@
 const crypto=require('crypto');
 const pool=require('../config/db');
 const {precoPlano,obterPagamento}=require('./mercadoPago');
+const {criarNotificacao}=require('./notificationCenter');
 
 async function ensureSubscriptionPaymentSchema(db=pool){
   await db.query(`ALTER TABLE assinaturas ADD COLUMN IF NOT EXISTS ciclo_cobranca VARCHAR(20) NOT NULL DEFAULT 'mensal'`);
@@ -41,6 +42,7 @@ async function aplicarPagamentoPix(payment,{expectedTenantId=null,db=pool}={}){
   await db.query(`UPDATE assinaturas_pagamentos SET status=$1,referencia_externa=COALESCE(NULLIF($2,''),referencia_externa),pago_em=CASE WHEN $1='pago' THEN COALESCE(pago_em,NOW()) ELSE pago_em END,atualizado_em=NOW() WHERE id=$3`,[status,ref,row.id]);
   if(status==='cancelado'){
     await db.query(`UPDATE assinaturas SET plano_pendente=NULL,billing_change_pending=false,billing_idempotency_key=NULL,atualizado_em=NOW() WHERE barbearia_id=$1 AND plano_pendente=$2 AND COALESCE(billing_change_pending,false)=true`,[parsed.barbeariaId,parsed.plano]);
+    await criarNotificacao({barbeariaId:parsed.barbeariaId,papeis:['dono'],tipo:'assinatura',nivel:'warning',titulo:'Pagamento da assinatura não concluído',mensagem:`O pagamento Pix do plano ${parsed.plano} foi cancelado ou recusado.`,link:'/pages/assinatura.html',chaveUnica:`subscription-pix-cancelled:${row.id}`},{db});
   }
   if(status==='pago'){
     const atual=(await db.query(`SELECT id,plano,proxima_cobranca FROM assinaturas WHERE barbearia_id=$1 ORDER BY id DESC LIMIT 1 FOR UPDATE`,[parsed.barbeariaId])).rows[0];
@@ -48,6 +50,8 @@ async function aplicarPagamentoPix(payment,{expectedTenantId=null,db=pool}={}){
     const renewing=atual.plano===parsed.plano;
     await db.query(`UPDATE assinaturas SET plano=$1,plano_pendente=NULL,status='ativa',provedor='mercadopago_pix',provedor_status='approved',checkout_url=NULL,billing_change_pending=false,billing_idempotency_key=NULL,ciclo_cobranca=$4,proxima_cobranca=CASE WHEN $4='anual' AND $2 AND proxima_cobranca>=CURRENT_DATE THEN (proxima_cobranca+INTERVAL '1 year')::date WHEN $4='anual' THEN (CURRENT_DATE+INTERVAL '1 year')::date WHEN $2 AND proxima_cobranca>=CURRENT_DATE THEN (proxima_cobranca+INTERVAL '1 month')::date ELSE (CURRENT_DATE+INTERVAL '1 month')::date END,atualizado_em=NOW() WHERE id=$3`,[parsed.plano,renewing,atual.id,parsed.ciclo||'mensal']);
     await db.query(`INSERT INTO assinaturas_cobrancas(barbearia_id,assinatura_id,competencia,valor,status,vencimento,pago_em,provedor,referencia_externa) VALUES($1,$2,date_trunc('month',CURRENT_DATE)::date,$3,'pago',CURRENT_DATE,NOW(),'mercadopago_pix',$4) ON CONFLICT (provedor,referencia_externa) WHERE referencia_externa IS NOT NULL DO UPDATE SET status='pago',pago_em=COALESCE(assinaturas_cobrancas.pago_em,NOW()),valor=EXCLUDED.valor,atualizado_em=NOW()`,[parsed.barbeariaId,atual.id,Number(row.valor),ref]);
+    await criarNotificacao({barbeariaId:parsed.barbeariaId,papeis:['dono'],tipo:'assinatura',nivel:'success',titulo:'Assinatura confirmada',mensagem:`Pagamento Pix do plano ${parsed.plano} confirmado com sucesso.`,link:'/pages/assinatura.html',chaveUnica:`subscription-pix-paid:${row.id}`},{db});
+    await criarNotificacao({audiencia:'super_admin',tipo:'pagamento',nivel:'success',titulo:'Pagamento de assinatura recebido',mensagem:`Pagamento Pix do plano ${parsed.plano} confirmado no valor de R$ ${Number(row.valor).toFixed(2).replace('.',',')}.`,link:'/master.html?secao=financeiro-sec',chaveUnica:`master-subscription-pix-paid:${row.id}`},{db});
   }
   return {...row,status,referencia_externa:ref};
 }

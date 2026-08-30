@@ -126,7 +126,7 @@ function decoratePremiumTopbar(){
   bar.dataset.premiumReady='1';bar.classList.add('bf-premium-topbar');
   const search=document.createElement('div');search.className='bf-topbar-search';search.innerHTML=`${iconSVG('search',17)}<input type="search" id="bfGlobalSearch" autocomplete="off" placeholder="Buscar clientes, agenda, recursos..." aria-label="Buscar no BarberFlow"><span class="bf-search-shortcut">⌘ K</span><div class="bf-search-results hidden" id="bfGlobalSearchResults"></div>`;
   const account=document.createElement('a');account.className='bf-topbar-account';account.href=['dono','gerente'].includes(u.papel)?'/pages/configuracoes.html?secao=perfil':'/';account.innerHTML=`${userAvatarHtml(u,'top')}<span><strong>${esc(u.nome||'Usuário')}</strong><small>${esc(roleLabel(u.papel))}</small></span><b>⌄</b>`;
-  const bell=document.createElement('button');bell.type='button';bell.className='bf-topbar-bell';bell.setAttribute('aria-label','Notificações');bell.innerHTML=iconSVG('bell',18);
+  const bell=document.createElement('button');bell.type='button';bell.className='bf-topbar-bell';bell.setAttribute('aria-label','Notificações');bell.setAttribute('aria-expanded','false');bell.innerHTML=`${iconSVG('bell',18)}<span class="bf-notification-count hidden" aria-hidden="true">0</span>`;
   const action=bar.querySelector('.topbar-create,.topbar-actions,.actions');
   if(action)bar.insertBefore(search,action);else bar.appendChild(search);
   if(action)bar.insertBefore(bell,action);else bar.appendChild(bell);
@@ -137,12 +137,45 @@ function decoratePremiumTopbar(){
   document.addEventListener('click',e=>{if(!search.contains(e.target))results.classList.add('hidden')});
 }
 function updateChromeUser(u){if(!u?.id)return;document.querySelectorAll('.bf-topbar-account,.bf-sidebar-profile').forEach(el=>{const img=el.querySelector('.bf-user-avatar');if(img)img.outerHTML=userAvatarHtml(u,img.classList.contains('top')?'top':img.classList.contains('sm')?'sm':'')});const account=document.querySelector('.bf-topbar-account');if(account){const strong=account.querySelector('strong'),small=account.querySelector('small');if(strong)strong.textContent=u.nome||'Usuário';if(small)small.textContent=roleLabel(u.papel)}}
-document.addEventListener('DOMContentLoaded',()=>{setTimeout(initResponsiveTables,0);hydrateIcons();decoratePremiumTopbar();refreshCurrentUserChrome().then(updateChromeUser)});
+
+let bfNotificationState={items:[],unread:0,open:false,loading:false};
+function notificationTime(value){const date=new Date(value),diff=Date.now()-date.getTime();if(!Number.isFinite(date.getTime()))return '';if(diff<60000)return'Agora';if(diff<3600000)return`Há ${Math.max(1,Math.floor(diff/60000))} min`;if(diff<86400000)return`Há ${Math.max(1,Math.floor(diff/3600000))} h`;if(diff<604800000)return`Há ${Math.max(1,Math.floor(diff/86400000))} d`;return date.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}
+function notificationIcon(type){return ({agenda:'calendar',pagamento:'wallet',assinatura:'card',suporte:'support',barbearia:'building',sistema:'shield'})[type]||'bell'}
+function safeNotificationLink(value){try{const u=new URL(String(value||''),location.origin);return u.origin===location.origin&&u.pathname.startsWith('/')?`${u.pathname}${u.search}${u.hash}`:''}catch{return''}}
+function ensureNotificationCenter(){
+  let root=document.getElementById('bfNotificationCenter');if(root)return root;
+  root=document.createElement('div');root.id='bfNotificationCenter';root.className='bf-notification-center hidden';root.innerHTML=`<button class="bf-notification-backdrop" type="button" aria-label="Fechar notificações"></button><aside class="bf-notification-panel" role="dialog" aria-modal="true" aria-labelledby="bfNotificationTitle"><header><div><span>CENTRAL</span><h2 id="bfNotificationTitle">Notificações</h2></div><button class="bf-notification-close" type="button" aria-label="Fechar">×</button></header><div class="bf-notification-toolbar"><span id="bfNotificationSummary">Carregando…</span><button id="bfNotificationReadAll" type="button">Marcar todas como lidas</button></div><div id="bfNotificationList" class="bf-notification-list" aria-live="polite"></div><footer>Atualização automática a cada minuto</footer></aside>`;
+  document.body.appendChild(root);root.querySelector('.bf-notification-backdrop').onclick=closeNotificationCenter;root.querySelector('.bf-notification-close').onclick=closeNotificationCenter;root.querySelector('#bfNotificationReadAll').onclick=markAllNotificationsRead;return root;
+}
+function updateNotificationButtons(){
+  const unread=Math.max(0,Number(bfNotificationState.unread)||0),label=unread>99?'99+':String(unread);
+  document.querySelectorAll('.bf-topbar-bell,.mobile-bell,.master-notification-bell').forEach(button=>{let count=button.querySelector('.bf-notification-count');if(!count){count=document.createElement('span');count.className='bf-notification-count hidden';count.setAttribute('aria-hidden','true');button.appendChild(count)}count.textContent=label;count.classList.toggle('hidden',unread===0);button.classList.toggle('has-unread',unread>0);button.setAttribute('aria-label',unread?`Notificações: ${unread} não lida${unread===1?'':'s'}`:'Notificações');button.setAttribute('aria-expanded',String(bfNotificationState.open))});
+}
+function renderNotificationCenter(){
+  const root=ensureNotificationCenter(),list=root.querySelector('#bfNotificationList'),summary=root.querySelector('#bfNotificationSummary'),readAll=root.querySelector('#bfNotificationReadAll');const items=bfNotificationState.items||[];
+  summary.textContent=bfNotificationState.unread?`${bfNotificationState.unread} não lida${bfNotificationState.unread===1?'':'s'}`:'Tudo em dia';readAll.disabled=!bfNotificationState.unread;
+  list.innerHTML=items.length?items.map(item=>`<button type="button" class="bf-notification-item ${item.lida?'':'unread'} level-${esc(item.nivel||'info')}" data-notification-id="${Number(item.id)}" data-notification-link="${esc(safeNotificationLink(item.link))}"><span class="bf-notification-icon">${iconSVG(notificationIcon(item.tipo),17)}</span><span class="bf-notification-copy"><strong>${esc(item.titulo)}</strong><span>${esc(item.mensagem)}</span><small>${esc(notificationTime(item.criado_em))}</small></span><i aria-hidden="true"></i></button>`).join(''):`<div class="bf-notification-empty">${iconSVG('bell',25)}<strong>Nenhuma notificação</strong><span>Novos agendamentos, pagamentos e alertas aparecerão aqui.</span></div>`;
+  list.querySelectorAll('[data-notification-id]').forEach(item=>item.onclick=()=>openNotificationItem(item));updateNotificationButtons();
+}
+async function loadNotifications({silent=false}={}){
+  if(bfNotificationState.loading||!currentUser().id)return;bfNotificationState.loading=true;
+  try{const data=await api('/notificacoes?limit=30');bfNotificationState.items=Array.isArray(data.items)?data.items:[];bfNotificationState.unread=Number(data.nao_lidas||0);renderNotificationCenter()}catch(e){if(!silent&&bfNotificationState.open){const list=ensureNotificationCenter().querySelector('#bfNotificationList');list.innerHTML=`<div class="bf-notification-empty error"><strong>Não foi possível carregar</strong><span>${esc(e.message)}</span></div>`}}finally{bfNotificationState.loading=false}
+}
+function openNotificationCenter(){bfNotificationState.open=true;const root=ensureNotificationCenter();root.classList.remove('hidden');document.body.classList.add('notifications-open');updateNotificationButtons();loadNotifications();setTimeout(()=>root.querySelector('.bf-notification-close')?.focus(),30)}
+function closeNotificationCenter(){bfNotificationState.open=false;document.getElementById('bfNotificationCenter')?.classList.add('hidden');document.body.classList.remove('notifications-open');updateNotificationButtons()}
+async function openNotificationItem(element){const id=Number(element.dataset.notificationId),link=safeNotificationLink(element.dataset.notificationLink);try{if(element.classList.contains('unread')){await api(`/notificacoes/${id}/lida`,{method:'PATCH',body:'{}'});element.classList.remove('unread');const item=bfNotificationState.items.find(x=>Number(x.id)===id);if(item)item.lida=true;bfNotificationState.unread=Math.max(0,bfNotificationState.unread-1);renderNotificationCenter()}}catch{}if(!link)return;if(currentUser().papel==='super_admin'&&location.pathname==='/master.html'){const u=new URL(link,location.origin),section=u.searchParams.get('secao');if(section&&typeof window.openMasterSection==='function'){closeNotificationCenter();window.openMasterSection(section);history.replaceState(null,'',`/master.html?secao=${encodeURIComponent(section)}`);return}}location.href=link}
+async function markAllNotificationsRead(){try{await api('/notificacoes/ler-todas',{method:'POST',body:'{}'});bfNotificationState.items.forEach(x=>x.lida=true);bfNotificationState.unread=0;renderNotificationCenter()}catch(e){const summary=ensureNotificationCenter().querySelector('#bfNotificationSummary');summary.textContent=e.message}}
+function initNotificationCenter(){
+  if(!currentUser().id)return;const buttons=[...document.querySelectorAll('.bf-topbar-bell,.mobile-bell,.master-notification-bell')];if(!buttons.length)return;
+  buttons.forEach(button=>{if(button.dataset.notificationReady==='1')return;button.dataset.notificationReady='1';button.onclick=e=>{e.stopPropagation();bfNotificationState.open?closeNotificationCenter():openNotificationCenter()}});ensureNotificationCenter();updateNotificationButtons();loadNotifications({silent:true});
+  const timer=setInterval(()=>{if(!document.hidden)loadNotifications({silent:true})},60000);window.addEventListener('pagehide',()=>clearInterval(timer),{once:true});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&bfNotificationState.open)closeNotificationCenter()});
+}
+document.addEventListener('DOMContentLoaded',()=>{setTimeout(initResponsiveTables,0);hydrateIcons();decoratePremiumTopbar();initNotificationCenter();refreshCurrentUserChrome().then(updateChromeUser)});
 
 function renderShell(active){
   const u=currentUser();const role=u.papel;
   if(role==='super_admin'){return `
-    <div class="mobile-appbar master-mobile-appbar"><button class="icon-btn" data-click="toggleMobileMenu()">☰</button><a class="mobile-logo" href="/master.html">${brandLockup('compact')}</a><div class="mobile-avatar">MA</div></div>
+    <div class="mobile-appbar master-mobile-appbar"><button class="icon-btn" data-click="toggleMobileMenu()">☰</button><a class="mobile-logo" href="/master.html">${brandLockup('compact')}</a><button class="mobile-bell master-notification-bell" type="button" aria-label="Notificações" aria-expanded="false">${iconSVG('bell',20)}<span class="bf-notification-count hidden" aria-hidden="true">0</span></button></div>
     <div class="sidebar-backdrop" data-click="closeMobileMenu()"></div>
     <aside class="sidebar master-sidebar-v2">
       <div class="sidebar-mobile-head"><div class="master-brand-v2">${brandLockup('master')}<div class="master-brand-meta"><span>SUPERMASTER</span></div></div><button class="close-drawer" data-click="closeMobileMenu()">×</button></div>
@@ -240,7 +273,7 @@ function renderShell(active){
     <div class="mobile-appbar">
       <button class="icon-btn" type="button" data-click="toggleMobileMenu()" aria-label="Abrir menu">${iconSVG('menu',22)}</button>
       <a class="mobile-logo" href="/">${brandLockup('compact')}</a>
-      <button class="mobile-bell" type="button" aria-label="Notificações">${iconSVG('bell',20)}</button>
+      <button class="mobile-bell" type="button" aria-label="Notificações" aria-expanded="false">${iconSVG('bell',20)}<span class="bf-notification-count hidden" aria-hidden="true">0</span></button>
     </div>
     ${bottomNav}
     <div class="sidebar-backdrop" data-click="closeMobileMenu()"></div>

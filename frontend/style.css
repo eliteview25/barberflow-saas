@@ -1848,3 +1848,74 @@ body:not(.public-bg):not(.auth-body) .support-ticket small{color:#9ca5af!importa
   .public-booking-card .btn,
   .public-booking-card button{font-size:13px!important}
 }
+
+/* =========================================================
+   BarberFlow 4.2 — central real de notificações
+   ========================================================= */
+.bf-topbar-bell:after{display:none!important}
+.bf-topbar-bell,
+.mobile-bell,
+.master-notification-bell{position:relative!important}
+.bf-notification-count{
+  position:absolute;top:-5px;right:-6px;z-index:2;min-width:18px;height:18px;padding:0 4px;
+  display:grid;place-items:center;border:2px solid #080a0d;border-radius:999px;
+  background:#e5a515;color:#090b0e;font-size:9px!important;font-weight:900;line-height:1;
+  box-shadow:0 3px 10px rgba(0,0,0,.35)
+}
+.bf-notification-center{position:fixed;inset:0;z-index:120}
+.bf-notification-backdrop{position:absolute;inset:0;width:100%;height:100%;border:0;background:rgba(0,0,0,.58);backdrop-filter:blur(2px);cursor:default}
+.bf-notification-panel{
+  position:absolute;top:70px;right:22px;width:min(410px,calc(100vw - 32px));max-height:calc(100dvh - 92px);
+  display:flex;flex-direction:column;overflow:hidden;border:1px solid #30363d;border-radius:14px;
+  background:linear-gradient(155deg,#15191e,#0c0f13);color:#eef1f4;
+  box-shadow:0 26px 75px rgba(0,0,0,.55)
+}
+.bf-notification-panel>header{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:17px 18px 14px;border-bottom:1px solid #292f36}
+.bf-notification-panel>header span{display:block;margin-bottom:3px;color:#dda518;font-size:9px;font-weight:850;letter-spacing:.13em}
+.bf-notification-panel>header h2{margin:0;color:#f5f6f8;font-size:18px;line-height:1.2}
+.bf-notification-close{width:34px;height:34px;border:1px solid #30363d;border-radius:8px;background:#101318;color:#aeb6bf;font-size:22px;cursor:pointer}
+.bf-notification-close:hover{border-color:rgba(212,160,23,.48);color:#f1b326}
+.bf-notification-toolbar{min-height:42px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 18px;border-bottom:1px solid #252b31;background:#0d1014}
+.bf-notification-toolbar>span{color:#929ca7;font-size:11px;font-weight:650}
+.bf-notification-toolbar button{border:0;background:transparent;color:#e4aa1c;font-size:10.5px;font-weight:750;cursor:pointer}
+.bf-notification-toolbar button:disabled{opacity:.42;cursor:default}
+.bf-notification-list{min-height:170px;max-height:510px;overflow:auto;overscroll-behavior:contain;scrollbar-color:#343b43 #0d1014}
+.bf-notification-item{position:relative;width:100%;display:grid;grid-template-columns:37px minmax(0,1fr) 7px;gap:11px;align-items:start;padding:14px 17px;border:0;border-bottom:1px solid #242a30;background:#101318;color:inherit;text-align:left;cursor:pointer}
+.bf-notification-item:hover{background:#15191e}
+.bf-notification-item.unread{background:linear-gradient(90deg,rgba(212,160,23,.09),#111419 46%)}
+.bf-notification-item.unread:before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:#dfa619}
+.bf-notification-icon{width:37px;height:37px;display:grid;place-items:center;border:1px solid #30363d;border-radius:10px;background:#1a1f25;color:#9ea8b2}
+.bf-notification-item.level-success .bf-notification-icon{color:#86efac;border-color:rgba(34,197,94,.25);background:rgba(34,197,94,.08)}
+.bf-notification-item.level-warning .bf-notification-icon{color:#f4c75c;border-color:rgba(212,160,23,.28);background:rgba(212,160,23,.09)}
+.bf-notification-item.level-error .bf-notification-icon{color:#fca5a5;border-color:rgba(239,68,68,.26);background:rgba(239,68,68,.08)}
+.bf-notification-copy{min-width:0;display:flex;flex-direction:column;gap:4px}
+.bf-notification-copy strong{color:#edf0f3;font-size:12.5px;line-height:1.3}
+.bf-notification-copy>span{color:#9ca5af;font-size:11px;line-height:1.48}
+.bf-notification-copy small{color:#69737e;font-size:9.5px}
+.bf-notification-item>i{width:6px;height:6px;margin-top:5px;border-radius:50%;background:transparent}
+.bf-notification-item.unread>i{background:#e1a719;box-shadow:0 0 0 3px rgba(212,160,23,.1)}
+.bf-notification-empty{min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:28px;text-align:center;color:#77828d}
+.bf-notification-empty svg{color:#c28f17;margin-bottom:4px}
+.bf-notification-empty strong{color:#dfe3e7;font-size:13px}
+.bf-notification-empty span{max-width:270px;font-size:11px;line-height:1.5}
+.bf-notification-empty.error strong{color:#fca5a5}
+.bf-notification-panel>footer{padding:9px 18px;border-top:1px solid #292f36;background:#0b0e12;color:#606b76;font-size:9px;text-align:center}
+body.notifications-open{overflow:hidden}
+
+@media(max-width:760px){
+  .bf-notification-count{top:-3px;right:-4px;min-width:17px;height:17px;font-size:8px!important}
+  .bf-notification-panel{top:auto;right:0;bottom:0;width:100%;max-height:min(84dvh,720px);border-width:1px 0 0;border-radius:20px 20px 0 0;box-shadow:0 -24px 70px rgba(0,0,0,.58)}
+  .bf-notification-panel:before{content:"";flex:none;width:42px;height:4px;margin:8px auto 0;border-radius:99px;background:#3c434b}
+  .bf-notification-panel>header{padding:11px 15px 12px}
+  .bf-notification-panel>header h2{font-size:18px}
+  .bf-notification-toolbar{padding:9px 15px}
+  .bf-notification-toolbar>span{font-size:11px}
+  .bf-notification-toolbar button{font-size:11px!important}
+  .bf-notification-list{max-height:none;flex:1}
+  .bf-notification-item{grid-template-columns:39px minmax(0,1fr) 7px;gap:11px;padding:14px 15px}
+  .bf-notification-icon{width:39px;height:39px}
+  .bf-notification-copy strong{font-size:13px}
+  .bf-notification-copy>span{font-size:11.5px}
+  .bf-notification-copy small{font-size:10px}
+  .bf-notification-panel>footer{padding-bottom:max(10px,env(safe-area-inset-bottom))}
+}

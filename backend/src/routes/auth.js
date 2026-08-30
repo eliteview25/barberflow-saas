@@ -29,6 +29,7 @@ const {
 
 const { cleanText } = require('../utils/validation');
 const {LEGAL_VERSION}=require('../services/launchReadiness');
+const {notificar}=require('../services/notifications');
 
 const router = express.Router();
 
@@ -415,6 +416,8 @@ router.post('/registrar', async (req, res) => {
         await c.query(
             'COMMIT'
         );
+
+        notificar('nova_barbearia',{barbearia_id:tenant.rows[0].id,barbearia:tenant.rows[0].nome,usuario_id:usuario.rows[0].id}).catch(()=>{});
 
 
         return res.status(201).json({

@@ -20,6 +20,7 @@ const {ensureWhatsAppProviderSchema}=require('./src/services/whatsappProviders')
 const {ensureAdvancedOpsSchema}=require('./src/services/advancedOps');
 const {ensureBookingTrackingSchema}=require('./src/services/bookingTracking');
 const {ensureBarberProfileSchema}=require('./src/services/barberProfiles');
+const {ensureNotificationSchema}=require('./src/services/notificationCenter');
 const PORT=Number(process.env.PORT||3001);
 let server;
 let encerrando=false;
@@ -70,6 +71,7 @@ async function iniciar(){
     await ensureAdvancedOpsSchema();
     await ensureBookingTrackingSchema();
     await ensureBarberProfileSchema();
+    await ensureNotificationSchema();
     const purged=await purgeExpiredTenants();
     if(purged)console.log(`Barbearias expiradas eliminadas permanentemente: ${purged}`);
     console.log('Base de pré-lançamento preparada.');
@@ -88,6 +90,7 @@ async function iniciar(){
     console.log('Comandas, clube, CRM avançado, pacotes, fila inteligente, BI e fiscal preparados.');
     console.log('Acompanhamento de agendamentos por código e WhatsApp preparado.');
     console.log('Perfis e fotos dos barbeiros preparados.');
+    console.log('Central de notificações preparada.');
     console.log('PostgreSQL conectado!');
     server=app.listen(PORT,()=>{
       console.log(`BarberFlow SaaS: http://localhost:${PORT}`);

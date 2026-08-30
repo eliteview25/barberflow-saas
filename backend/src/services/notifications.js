@@ -1,5 +1,7 @@
 const {externalSignal}=require('../utils/http');
+const {publicarEventoNotificacao}=require('./notificationCenter');
 async function notificar(evento, dados) {
+  try{await publicarEventoNotificacao(evento,dados)}catch(e){console.error('Falha ao registrar notificação no painel:',e.message)}
   const url = process.env.AUTOMATION_WEBHOOK_URL;
   if (!url) { if (process.env.NODE_ENV !== 'production') console.log(`[automação:${evento}]`, dados); return; }
   try {

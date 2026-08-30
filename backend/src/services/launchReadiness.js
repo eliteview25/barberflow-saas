@@ -1,4 +1,5 @@
 const pool=require('../config/db');
+const {criarNotificacao}=require('./notificationCenter');
 
 const LEGAL_VERSION='2026-08-27';
 
@@ -85,7 +86,11 @@ async function onboardingStatus(barbeariaId){
 }
 
 async function recordSystemEvent({nivel='error',evento,mensagem,requestId=null,barbeariaId=null,usuarioId=null,detalhes={}}){
-  try{await pool.query(`INSERT INTO system_events(nivel,evento,request_id,barbearia_id,usuario_id,mensagem,detalhes) VALUES($1,$2,$3,$4,$5,$6,$7::jsonb)`,[nivel,evento,requestId,barbeariaId,usuarioId,String(mensagem||'').slice(0,4000),JSON.stringify(detalhes||{})]);}catch(e){console.error('system_event_write_failed',e.message)}
+  try{
+    const text=String(mensagem||'').slice(0,4000);
+    await pool.query(`INSERT INTO system_events(nivel,evento,request_id,barbearia_id,usuario_id,mensagem,detalhes) VALUES($1,$2,$3,$4,$5,$6,$7::jsonb)`,[nivel,evento,requestId,barbeariaId,usuarioId,text,JSON.stringify(detalhes||{})]);
+    if(['warn','error'].includes(nivel))await criarNotificacao({audiencia:'super_admin',tipo:'sistema',nivel:nivel==='warn'?'warning':'error',titulo:nivel==='warn'?'Atenção na operação':'Falha detectada no sistema',mensagem:text||String(evento||'Evento operacional'),link:'/master.html',chaveUnica:`system:${String(evento||'unknown')}:${String(requestId||Date.now())}`});
+  }catch(e){console.error('system_event_write_failed',e.message)}
 }
 
 module.exports={LEGAL_VERSION,ensureLaunchSchema,onboardingStatus,recordSystemEvent};
