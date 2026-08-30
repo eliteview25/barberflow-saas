@@ -36,12 +36,10 @@ test('metas financeiras são isoladas por tenant e apenas dono pode editar',()=>
   assert.match(finance,/Configurar metas/);
 });
 
-test('dashboard mostra faturamento diário semanal mensal anual com gráfico alternável',()=>{
-  for(const id of ['revHoje','revSemana','revMes','revAno','dashboardRevenueChart'])assert.match(dashHtml,new RegExp(`id="${id}"`));
-  for(const p of ['diario','semanal','mensal','anual'])assert.match(dashHtml,new RegExp(`data-revenue-period="${p}"`));
-  assert.match(tenant,/router\.get\('\/financeiro\/dashboard'/);
-  assert.match(service,/dashboardRevenue/);
-  assert.match(dash,/renderRevenueChart/);
+test('dashboard premium mostra gráfico real de 7 dias e backend mantém séries completas',()=>{
+  for(const id of ['revSemana','dashboardRevenueChart','barberPerformance'])assert.match(dashHtml,new RegExp(`id=\"${id}\"`));
+  for(const p of ['diario','semanal','mensal','anual'])assert.ok(service.includes(`series(barbeariaId,'${p}')`));
+  assert.match(tenant,/router\.get\('\/financeiro\/dashboard'/);assert.match(service,/barbeiros/);assert.match(dash,/renderRevenueChart/);assert.match(dash,/renderBarberPerformance/);
 });
 
 test('Mercado Pago passa a registrar Pix ou cartão quando o provedor informa o método',()=>{

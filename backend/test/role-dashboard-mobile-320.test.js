@@ -9,7 +9,7 @@ test('dashboard 3.2 personaliza gerente recepção e barbeiro sem chamar config 
   const js=read('frontend/script.js');
   assert.match(js,/role==='recepcao'/);
   assert.match(js,/role==='barbeiro'/);
-  assert.match(js,/Minha comissão/);
+  assert.match(js,/Comissão hoje/);
   assert.match(js,/Atrasados/);
   assert.match(js,/\['dono','gerente'\]\.includes\(role\)/);
   assert.doesNotMatch(js,/const c=await api\('\/configuracoes'\);E\('publicLink'\)/);

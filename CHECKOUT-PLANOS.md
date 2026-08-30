@@ -1,16 +1,23 @@
-# BarberFlow — Checkout de Planos
+# Checkout dos planos BarberFlow
 
-## Fluxos
-- Cartão: assinatura recorrente via Mercado Pago. O cartão é tokenizado pelo SDK/Brick no navegador; o backend recebe o token, não número/CVV.
-- Pix: pagamento mensal pré-pago. O QR Code e o Pix Copia e Cola são exibidos dentro do BarberFlow.
-- Migração de plano com cartão recorrente ativo: atualiza a assinatura Mercado Pago existente, sem criar uma segunda assinatura.
-- Downgrade: bloqueado quando a quantidade de profissionais ativos supera o limite do plano de destino.
+## Fluxos atuais
+- **Pix:** cobrança criada dentro do BarberFlow com QR Code Mercado Pago. A aprovação é reconciliada por webhook e consulta de status.
+- **Cartão:** o BarberFlow cria uma assinatura `pending` na conta Mercado Pago configurada pelo Supermaster e redireciona o dono da barbearia para o **checkout oficial do Mercado Pago**. O BarberFlow não coleta número do cartão, validade nem CVV.
+- **Migração de plano com cartão recorrente ativo:** atualiza a assinatura Mercado Pago existente, sem criar uma segunda assinatura.
 
-## Variáveis do Mercado Pago
-- `MP_ACCESS_TOKEN`: obrigatório para cobrança.
-- `MP_PUBLIC_KEY`: necessária para o formulário de cartão embutido.
-- `MP_WEBHOOK_SECRET` e `MP_TENANT_SIGNING_SECRET`: manter configuradas para validação/conciliação dos webhooks.
+## Credenciais
+A cobrança das assinaturas SaaS usa exclusivamente a conta Mercado Pago configurada em **Supermaster → Pagamentos**.
 
-Se `MP_PUBLIC_KEY` não estiver configurada, o BarberFlow mantém o fallback de checkout externo para cartão.
+- `Access Token` de produção: obrigatório para criar e consultar cobranças/assinaturas.
+- `Public Key`: pode permanecer cadastrada para diagnóstico/compatibilidade, mas não é usada para coletar cartão no checkout de assinatura 4.1.
+- Segredo de webhook: recomendado/obrigatório conforme a configuração de produção para validar notificações.
 
-A tabela `assinaturas_pagamentos` e as colunas necessárias são preparadas automaticamente no boot; não é necessário comando manual no Shell do Render.
+## Recuperação do cartão
+O checkout 4.1 é tolerante a respostas incompletas/timeouts:
+1. tenta reutilizar uma assinatura `pending` já salva;
+2. se houver `preapproval_id` salvo sem URL, consulta diretamente a preapproval;
+3. pesquisa a assinatura por `external_reference` antes de criar outra;
+4. se o Mercado Pago não devolver `init_point`, constrói a URL oficial usando o `preapproval_id`;
+5. o webhook reconcilia `barberflow:<tenant>:<plano>:<mensal|anual>`.
+
+Isso evita o caso em que o Mercado Pago cria a assinatura, mas o BarberFlow exibe erro e cria outra tentativa.

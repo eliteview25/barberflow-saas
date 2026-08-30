@@ -104,13 +104,13 @@ async function rankingForMonth(barbeariaId,monthStart){
        AND a.data >= $2::date AND a.data < ($2::date+INTERVAL '1 month')
        AND NOT EXISTS(SELECT 1 FROM vendas v WHERE v.barbearia_id=a.barbearia_id AND v.agendamento_id=a.id AND v.status='finalizada')
   )
-  SELECT br.id,br.nome,COALESCE(SUM(rs.valor),0)::numeric total,
+  SELECT br.id,br.nome,br.foto_url,COALESCE(SUM(rs.valor),0)::numeric total,
          COALESCE(SUM(rs.comissao),0)::numeric comissao_estimada,
          COUNT(rs.barbeiro_id)::int atendimentos
     FROM barbeiros br
     LEFT JOIN ranking_src rs ON rs.barbeiro_id=br.id
    WHERE br.barbearia_id=$1 AND br.ativo=true
-   GROUP BY br.id,br.nome
+   GROUP BY br.id,br.nome,br.foto_url
    ORDER BY total DESC,br.nome`,[barbeariaId,monthStart]);
   return r.rows;
 }
@@ -148,16 +148,17 @@ async function series(barbeariaId,grain){
 }
 
 async function dashboardRevenue(barbeariaId){
-  const [totais,diario,semanal,mensal,anual]=await Promise.all([
+  const monthStart=(await pool.query(`SELECT date_trunc('month',CURRENT_DATE)::date mes`)).rows[0].mes;
+  const [totais,diario,semanal,mensal,anual,barbeiros]=await Promise.all([
     pool.query(`${REVENUE_CTE} SELECT
       COALESCE(SUM(valor) FILTER(WHERE data=CURRENT_DATE),0)::numeric hoje,
       COALESCE(SUM(valor) FILTER(WHERE data>=date_trunc('week',CURRENT_DATE)::date AND data<CURRENT_DATE+1),0)::numeric semana,
       COALESCE(SUM(valor) FILTER(WHERE date_trunc('month',data)=date_trunc('month',CURRENT_DATE)),0)::numeric mes,
       COALESCE(SUM(valor) FILTER(WHERE date_trunc('year',data)=date_trunc('year',CURRENT_DATE)),0)::numeric ano
       FROM receitas`,[barbeariaId]),
-    series(barbeariaId,'diario'),series(barbeariaId,'semanal'),series(barbeariaId,'mensal'),series(barbeariaId,'anual')
+    series(barbeariaId,'diario'),series(barbeariaId,'semanal'),series(barbeariaId,'mensal'),series(barbeariaId,'anual'),rankingForMonth(barbeariaId,monthStart)
   ]);
-  return {totais:totais.rows[0],series:{diario,semanal,mensal,anual}};
+  return {totais:totais.rows[0],series:{diario,semanal,mensal,anual},barbeiros};
 }
 
 async function goalsForMonth(barbeariaId,monthStart){

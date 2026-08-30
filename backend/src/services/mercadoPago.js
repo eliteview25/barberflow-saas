@@ -60,6 +60,14 @@ function tituloPlano(plano) {
   return ({starter:'BarberFlow Starter', pro:'BarberFlow Pro', premium:'BarberFlow Premium'})[plano] || 'BarberFlow Pro';
 }
 
+function checkoutUrlAssinatura(subscription){
+  const id=String(subscription?.id||'').trim();
+  const direct=String(subscription?.init_point||subscription?.sandbox_init_point||'').trim();
+  if(direct)return direct;
+  if(!id||id.length>160)return null;
+  return `https://www.mercadopago.com.br/subscriptions/checkout?preapproval_id=${encodeURIComponent(id)}`;
+}
+
 async function criarAssinatura({ barbeariaId, plano, ciclo='mensal', email, idempotencyKey }) {
   const appUrl = process.env.APP_URL || 'http://localhost:3001';
   const body = {
@@ -112,6 +120,19 @@ async function criarPreferenciaAgendamento({ reservaId, reservaToken, barbeariaI
   if(feePct>0) body.marketplace_fee=Number((Number(valor)*feePct/100).toFixed(2));
   if (nome || email) body.payer = { ...(nome ? { name: nome } : {}), ...(email ? { email } : {}) };
   return mpFetch('/checkout/preferences', { method: 'POST', body: JSON.stringify(body), accessToken });
+}
+
+async function buscarAssinaturaPorReferencia({externalReference,email}) {
+  const ref=String(externalReference||'').trim();
+  if(!ref)return null;
+  const params=new URLSearchParams();
+  params.set('limit','50');
+  if(email)params.set('payer_email',String(email).trim().toLowerCase());
+  const data=await mpFetch(`/preapproval/search?${params.toString()}`);
+  const rows=Array.isArray(data?.results)?data.results:[];
+  const matches=rows.filter(x=>String(x?.external_reference||'')===ref&&String(x?.status||'')!=='canceled');
+  matches.sort((a,b)=>String(b?.date_created||'').localeCompare(String(a?.date_created||'')));
+  return matches[0]||null;
 }
 
 async function obterAssinatura(id) {
@@ -182,6 +203,8 @@ function validarWebhook({ xSignature, xRequestId, dataId, secret }) {
 
 module.exports = {
   criarAssinatura,
+  buscarAssinaturaPorReferencia,
+  checkoutUrlAssinatura,
   criarPreferenciaAgendamento,
   obterAssinatura,
   atualizarStatusAssinatura,

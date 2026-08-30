@@ -1,81 +1,50 @@
 if(currentUser().papel==='super_admin'){location.href='/master.html'}else if(requireAuth()){
   document.getElementById('shell').innerHTML=renderShell('dashboard');
   const u=currentUser(),role=u.papel;document.body.dataset.role=role;
-  let revenueState=null,revenuePeriod='diario';
   const E=id=>document.getElementById(id),phoneDigits=v=>String(v||'').replace(/\D/g,''),waHref=x=>{let p=phoneDigits(x.telefone);if(p.length===10||p.length===11)p='55'+p;return `https://wa.me/${p}`};
-  const firstName=String(u.nome||'').split(' ')[0]||'Usuário';
-  E('greeting').textContent=`${new Date().getHours()<12?'Bom dia':new Date().getHours()<18?'Boa tarde':'Boa noite'}, ${firstName}`;
-  const roleCopy={dono:'Aqui está a visão do negócio, da equipe e da agenda de hoje.',gerente:'Acompanhe equipe, agenda, caixa e crescimento da barbearia.',recepcao:'Organize a recepção e mantenha o fluxo de atendimento em dia.',barbeiro:'Sua agenda, seus clientes e seu desempenho hoje.'};
+  const firstName=String(u.nome||'').trim().split(/\s+/)[0]||'Usuário';
+  const hour=new Date().getHours(),hello=hour<12?'Bom dia':hour<18?'Boa tarde':'Boa noite';
+  E('greeting').textContent=`${hello}, ${firstName}! 👋`;
+  E('mobileGreeting').textContent=`Olá, ${firstName}`;
+  E('mobileOwnerAvatar').innerHTML=userAvatarHtml(u,'mobile-owner');
+  const roleCopy={dono:'Aqui está o resumo da sua barbearia hoje.',gerente:'Acompanhe equipe, agenda, caixa e crescimento da barbearia.',recepcao:'Organize a recepção e mantenha o atendimento em dia.',barbeiro:'Sua agenda e seus próximos clientes hoje.'};
   E('dashboardSubtitle').textContent=roleCopy[role]||'Aqui está sua operação hoje.';
   const setIcon=(id,name)=>{const el=E(id);if(el)el.innerHTML=iconSVG(name,20)};
-  setIcon('kpiCalendar','calendar');setIcon('kpiRevenue','wallet');setIcon('kpiTicket','receipt');setIcon('kpiOccupancy','trend');
+  setIcon('kpiCalendar','calendar');setIcon('kpiRevenue','wallet');setIcon('kpiTicket','users');setIcon('kpiOccupancy','chart');
+  if(role==='barbeiro'){E('dashboardPrimaryAction').href='/pages/agendamentos.html';E('dashboardPrimaryAction').textContent='Minha agenda'}
 
-  function configurePrimaryAction(){const a=E('dashboardPrimaryAction');if(!a)return;if(role==='barbeiro'){a.href='/pages/agendamentos.html';a.textContent='Minha agenda';a.classList.add('dashboard-action-agenda');return}a.href='/pages/agendamentos.html#novo';a.textContent='+ Novo agendamento'}
-  configurePrimaryAction();
+  const initials=name=>String(name||'BF').split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase();
+  const avatar=(name,url,cls='')=>{const safe=safeClientUrl(url);return `<span class="bf-data-avatar ${cls}">${safe?`<img src="${esc(safe)}" alt="${esc(name||'Profissional')}">`:`<span>${esc(initials(name))}</span>`}</span>`};
+  function sparkline(values){const nums=(values||[]).map(x=>Number(x?.total ?? x ?? 0)),w=92,h=30,p=2,max=Math.max(1,...nums),min=Math.min(0,...nums),range=Math.max(1,max-min);if(!nums.length)return '';const pts=nums.map((v,i)=>`${p+(i*(w-p*2)/Math.max(1,nums.length-1))},${h-p-((v-min)/range)*(h-p*2)}`).join(' ');return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}"/></svg>`}
+  function compactMoney(v){const n=Number(v||0);return n>=1000?`R$ ${(n/1000).toLocaleString('pt-BR',{maximumFractionDigits:1})}k`:money(n)}
+
+  function appointmentCard(x){return `<article class="premium-appointment-row"><div class="premium-appointment-time"><strong>${timeBR(x.horario)}</strong><span>${Number(x.duracao||0)}min</span></div>${avatar(x.barbeiro,x.barbeiro_foto,'appointment')}<div class="premium-appointment-client"><strong>${esc(x.cliente)}</strong><span>${esc(x.servico||'Serviço')}</span></div><div class="premium-appointment-barber">${role==='barbeiro'?'Você':esc(x.barbeiro||'')}</div><span class="premium-status status-${esc(x.status)}">${esc(String(x.status||'').replaceAll('_',' '))}</span><a class="appointment-wa" href="${waHref(x)}" target="_blank" rel="noopener" aria-label="WhatsApp de ${esc(x.cliente)}">${iconSVG('whatsapp',17)}</a></article>`}
+  function mobileActions(){const items=role==='barbeiro'?[['/pages/agendamentos.html','calendar','Agenda'],['/pages/clientes.html','users','Clientes'],['/pages/suporte.html','support','Suporte']]:[['/pages/agendamentos.html','calendar','Agenda'],['/pages/clientes.html','users','Clientes'],['/pages/servicos.html','scissors','Serviços'],['/pages/financeiro.html','wallet','Financeiro'],['/pages/gestao.html?secao=relatorios','chart','Relatórios'],['/pages/automacoes.html','whatsapp','WhatsApp']];E('mobileActionGrid').innerHTML=items.map(([href,ic,label])=>`<a href="${href}">${iconSVG(ic,22)}<span>${label}</span></a>`).join('')}
+  mobileActions();
 
   async function loadOnboarding(){if(!['dono','gerente'].includes(role))return;try{const o=await api('/onboarding'),panel=E('onboardingPanel');if(!panel)return;panel.classList.toggle('hidden',o.completo);E('onboardingPercent').textContent=`${o.progresso}%`;E('onboardingCount').textContent=`${o.concluidas}/${o.total}`;E('onboardingBar').style.width=`${o.progresso}%`;E('onboardingPublic').href=o.public_url;E('onboardingSteps').innerHTML=o.steps.map((x,i)=>`<a class="onboarding-step ${x.concluido?'done':''}" href="${esc(x.href)}" ${x.id==='publicar'?'target="_blank" rel="noopener"':''}><span class="onboarding-step-num">${x.concluido?'✓':i+1}</span><div><strong>${esc(x.titulo)}</strong><small>${esc(x.descricao)}</small></div><b>→</b></a>`).join('');E('onboardingShared').disabled=!!o.steps.find(x=>x.id==='publicar')?.concluido;E('onboardingShared').textContent=E('onboardingShared').disabled?'Link compartilhado ✓':'Já compartilhei o link'}catch(e){console.error('onboarding',e)}}
   E('onboardingShared')?.addEventListener('click',async()=>{try{await api('/onboarding/link-compartilhado',{method:'POST'});await loadOnboarding()}catch(e){console.error(e)}});
 
-  function renderRevenueChart(){if(!revenueState)return;const items=revenueState.series?.[revenuePeriod]||[],max=Math.max(1,...items.map(x=>Number(x.total||0))),chart=E('dashboardRevenueChart');if(!chart)return;chart.innerHTML=items.length?`<div class="dashboard-chart-columns">${items.map(x=>{const val=Number(x.total||0),h=val>0?Math.max(6,val/max*100):2;return `<div class="dashboard-chart-col" title="${esc(x.label)}: ${money(val)}"><div class="dashboard-chart-value">${money(val)}</div><div class="dashboard-chart-bar-wrap"><i style="height:${h}%"></i></div><span>${esc(x.label)}</span></div>`}).join('')}</div>`:'<p class="muted">Ainda sem faturamento para exibir.</p>';document.querySelectorAll('[data-revenue-period]').forEach(b=>b.classList.toggle('active',b.dataset.revenuePeriod===revenuePeriod))}
-  async function loadRevenue(){if(!['dono','gerente'].includes(role)||!hasFeature('financeiro_basico'))return;try{revenueState=await api('/financeiro/dashboard');E('dashboardRevenue')?.classList.remove('hidden');E('revHoje').textContent=money(revenueState.totais.hoje);E('revSemana').textContent=money(revenueState.totais.semana);E('revMes').textContent=money(revenueState.totais.mes);E('revAno').textContent=money(revenueState.totais.ano);renderRevenueChart()}catch(e){console.error('dashboard revenue',e)}}
-  E('dashboardRevenueTabs')?.addEventListener('click',e=>{const b=e.target.closest('[data-revenue-period]');if(!b)return;revenuePeriod=b.dataset.revenuePeriod;renderRevenueChart()});
+  function renderRevenueChart(state){
+    const items=state?.series?.diario||[],chart=E('dashboardRevenueChart');
+    if(!items.length){chart.innerHTML='<div class="premium-empty">Sem faturamento registrado nos últimos 7 dias.</div>';E('sparkRevenue').innerHTML='';E('revSemana').textContent=money(state?.totais?.semana||0);return}
+    const values=items.map(x=>Number(x.total||0)),max=Math.max(1,...values),week=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+    const labels=items.map((x,i)=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()-(items.length-1-i));return week[d.getDay()]});
+    chart.innerHTML=`<div class="premium-bar-chart" role="img" aria-label="Faturamento dos últimos 7 dias">${items.map((x,i)=>{const v=values[i],height=Math.max(3,Math.round(v/max*100));return `<div class="premium-bar-item"><b class="premium-bar-value">${v?esc(compactMoney(v)):''}</b><div class="premium-bar-track"><i style="height:${height}%" title="${esc(labels[i])} — ${money(v)}"></i></div><span>${esc(labels[i])}</span></div>`}).join('')}</div>`;
+    E('sparkRevenue').innerHTML=sparkline(items);E('revSemana').textContent=money(state?.totais?.semana||0)
+  }
 
-  function appointmentCard(x){const secondary=role==='barbeiro'?`${esc(x.servico)} • ${Number(x.duracao||0)} min`:`${esc(x.servico)} • ${esc(x.barbeiro)}`;return `<article class="dashboard-appointment"><div class="dashboard-appointment-time"><strong>${timeBR(x.horario)}</strong><span>${dateBR(x.data)}</span></div><div class="dashboard-appointment-main"><div><strong>${esc(x.cliente)}</strong><span>${secondary}</span></div><span class="badge status-${x.status}">${esc(String(x.status||'').replaceAll('_',' '))}</span></div><a class="appointment-wa" href="${waHref(x)}" target="_blank" rel="noopener" title="Falar no WhatsApp" aria-label="Falar com ${esc(x.cliente)} no WhatsApp">${iconSVG('whatsapp',16)}</a></article>`}
-  const insight=(icon,title,text,href)=>({icon,title,text,href});
-  function renderInsights(d){
-    const r=d.resumo,ins=[];
-    if(role==='recepcao'){
-      if(Number(r.atrasados_hoje)>0)ins.push(insight('clock',`${r.atrasados_hoje} cliente${Number(r.atrasados_hoje)===1?'':'s'} em atraso`,'Confira quem ainda não iniciou o atendimento.','/pages/agendamentos.html'));
-      if(Number(r.aguardando_confirmacao)>0)ins.push(insight('message',`${r.aguardando_confirmacao} aguardando confirmação`,'Vale confirmar os próximos horários para reduzir faltas.','/pages/agendamentos.html'));
-      if(Number(r.em_atendimento_hoje)>0)ins.push(insight('scissors',`${r.em_atendimento_hoje} em atendimento`,'Acompanhe comandas e próximos clientes.','/pages/gestao.html?secao=comandas'));
-      if(!ins.length)ins.push(insight('sparkle','Recepção em dia','Nenhum atraso ou pendência importante neste momento.','/pages/agendamentos.html'));
-    }else if(role==='barbeiro'){
-      const next=d.proximos?.[0];
-      if(next)ins.push(insight('clock',`Próximo às ${timeBR(next.horario)}`,`${next.cliente} • ${next.servico}.`,'/pages/agendamentos.html'));
-      if(Number(r.concluidos_hoje)>0)ins.push(insight('scissors',`${r.concluidos_hoje} concluído${Number(r.concluidos_hoje)===1?'':'s'} hoje`,`Comissão estimada: ${money(r.comissao_hoje)}.`,'/pages/agendamentos.html'));
-      if(Number(r.ocupacao_hoje)>=80)ins.push(insight('trend','Dia bem ocupado',`Sua agenda está em ${r.ocupacao_hoje}% de ocupação.`,'/pages/agendamentos.html'));
-      if(!ins.length)ins.push(insight('calendar','Agenda tranquila','Você não tem atendimento próximo neste momento.','/pages/agendamentos.html'));
-    }else{
-      if(Number(r.ocupacao_hoje)<60)ins.push(insight('trend','Agenda com espaço',`Ocupação de ${r.ocupacao_hoje||0}% hoje. Use oportunidades para preencher horários vagos.`,hasFeature('marketing_inteligente')?'/pages/gestao.html?secao=oportunidades':'/pages/agendamentos.html'));
-      if(Number(r.atrasados_hoje)>0)ins.push(insight('clock',`${r.atrasados_hoje} atendimento${Number(r.atrasados_hoje)===1?'':'s'} atrasado${Number(r.atrasados_hoje)===1?'':'s'}`,'A recepção pode precisar de atenção.','/pages/agendamentos.html'));
-      if(Number(r.agendamentos_hoje)>0)ins.push(insight('calendar',`${r.agendamentos_hoje} atendimento${Number(r.agendamentos_hoje)===1?'':'s'} hoje`, `Receita prevista de ${money(r.receita_prevista_hoje)}.`,'/pages/agendamentos.html'));
-      if(!d.proximos.length)ins.push(insight('sparkle','Agenda livre','Não há próximos agendamentos.','/pages/agendamentos.html'));
-    }
-    E('dashboardInsights').innerHTML=ins.slice(0,3).map(x=>`<a class="dashboard-insight" href="${x.href}"><span>${iconSVG(x.icon,18)}</span><div><strong>${esc(x.title)}</strong><p>${esc(x.text)}</p></div><b>→</b></a>`).join('')
-  }
-  function renderQuickActions(){
-    const items=role==='barbeiro'?
-      [['/pages/agendamentos.html','Minha agenda'],['/pages/suporte.html','Suporte']] :
-      role==='recepcao'?
-      [['/pages/agendamentos.html#novo','Novo agendamento'],['/pages/clientes.html','Clientes'],['/pages/gestao.html?secao=comandas','Comandas'],['/pages/gestao.html?secao=pdv','Caixa / PDV']] :
-      [['/pages/gestao.html?secao=comandas','Abrir comandas'],['/pages/agendamentos.html','Agenda completa'],...(hasFeature('marketing_inteligente')?[['/pages/gestao.html?secao=oportunidades','Oportunidades']]:[]),...(hasFeature('automacoes')?[['/pages/automacoes.html','WhatsApp & automações']]:[])];
-    E('dashboardQuickActions').innerHTML=items.map(([href,label])=>`<a href="${href}">${esc(label)} <b>→</b></a>`).join('');
-  }
-  function applyRoleMetrics(d){
-    const r=d.resumo,next=d.proximos?.[0];
-    if(role==='recepcao'){
-      E('kpiCalendarLabel').textContent='Agendamentos hoje';E('aHoje').textContent=r.agendamentos_hoje;E('agendaHint').textContent='Fluxo total do dia';
-      E('kpiRevenueLabel').textContent='Confirmados';E('receitaHoje').textContent=r.confirmados_hoje;E('receitaHint').textContent='Clientes confirmados';setIcon('kpiRevenue','shield');
-      E('kpiTicketLabel').textContent='Em atendimento';E('ticketMedio').textContent=r.em_atendimento_hoje;E('ticketHint').textContent='Atendimentos em andamento';setIcon('kpiTicket','scissors');
-      E('kpiOccupancyLabel').textContent='Atrasados';E('ocupacaoHoje').textContent=r.atrasados_hoje;E('ocupacaoHint').textContent=Number(r.atrasados_hoje)?'Precisam de atenção':'Tudo dentro do horário';setIcon('kpiOccupancy','clock');
-      E('scheduleEyebrow').textContent='RECEPÇÃO';E('scheduleTitle').textContent='Próximos clientes';E('scheduleSubtitle').textContent='Quem está chegando e precisa ser recebido.';
-    }else if(role==='barbeiro'){
-      E('kpiCalendarLabel').textContent='Meus atendimentos';E('aHoje').textContent=r.agendamentos_hoje;E('agendaHint').textContent='Sua agenda de hoje';
-      E('kpiRevenueLabel').textContent='Próximo horário';E('receitaHoje').textContent=next?timeBR(next.horario):'—';E('receitaHint').textContent=next?next.cliente:'Agenda livre';setIcon('kpiRevenue','clock');
-      E('kpiTicketLabel').textContent='Concluídos hoje';E('ticketMedio').textContent=r.concluidos_hoje;E('ticketHint').textContent=`${money(r.faturamento_hoje)} em serviços`;setIcon('kpiTicket','scissors');
-      E('kpiOccupancyLabel').textContent='Minha comissão';E('ocupacaoHoje').textContent=money(r.comissao_hoje);E('ocupacaoHint').textContent=`${r.ocupacao_hoje||0}% de ocupação`;setIcon('kpiOccupancy','wallet');
-      E('scheduleEyebrow').textContent='MINHA AGENDA';E('scheduleTitle').textContent='Próximos clientes';E('scheduleSubtitle').textContent='Atendimentos que vêm a seguir no seu dia.';
-    }else{
-      E('aHoje').textContent=r.agendamentos_hoje;E('receitaHoje').textContent=money(r.receita_prevista_hoje);E('ticketMedio').textContent=money(r.ticket_medio);E('ocupacaoHoje').textContent=`${r.ocupacao_hoje||0}%`;E('ocupacaoHint').textContent=Number(r.ocupacao_hoje)>=80?'Dia bem ocupado':Number(r.ocupacao_hoje)>=50?'Ainda há oportunidades':'Boa margem para preencher a agenda';
-      if(role==='gerente'){E('scheduleEyebrow').textContent='OPERAÇÃO';E('scheduleSubtitle').textContent='Próximos clientes para coordenar com a equipe.'}
-    }
-  }
+  function renderBarberPerformance(state){const rows=state?.barbeiros||[],max=Math.max(1,...rows.map(x=>Number(x.total||0)));E('barberPerformance').innerHTML=rows.length?rows.slice(0,5).map((x,i)=>{const total=Number(x.total||0),pct=Math.max(4,total/max*100);return `<div class="barber-performance-row">${avatar(x.nome,x.foto_url,'performance')}<strong>${esc(x.nome)}</strong><div class="barber-performance-track"><i style="width:${pct}%"></i></div><b>${money(total)}</b><span>${i===0&&total>0?'+ destaque':''}</span></div>`}).join(''):'<div class="premium-empty">Os resultados dos barbeiros aparecerão após os primeiros atendimentos concluídos.</div>'}
+
+  function applyRoleMetrics(d,revenue){const r=d.resumo||{};if(['dono','gerente'].includes(role)){E('aHoje').textContent=r.agendamentos_hoje||0;E('receitaHoje').textContent=money(revenue?.totais?.hoje??r.faturamento_hoje);E('ticketMedio').textContent=r.clientes||0;E('ocupacaoHoje').textContent=`${r.ocupacao_hoje||0}%`;E('agendaHint').textContent='Atendimentos programados';E('receitaHint').textContent='Faturamento consolidado hoje';E('ticketHint').textContent='Clientes cadastrados';E('ocupacaoHint').textContent='Capacidade da equipe';E('sparkAppointments').innerHTML=sparkline(d.tendencias?.agendamentos);E('sparkClients').innerHTML=sparkline(d.tendencias?.clientes);E('occupancyRing').style.setProperty('--pct',`${Math.max(0,Math.min(100,Number(r.ocupacao_hoje||0)))}%`)}else if(role==='recepcao'){E('aHoje').textContent=r.agendamentos_hoje||0;E('receitaHoje').textContent=r.confirmados_hoje||0;E('kpiRevenueLabel').textContent='Confirmados';E('ticketMedio').textContent=r.em_atendimento_hoje||0;E('kpiTicketLabel').textContent='Em atendimento';E('ocupacaoHoje').textContent=r.atrasados_hoje||0;E('kpiOccupancyLabel').textContent='Atrasados';E('sparkAppointments').innerHTML=sparkline(d.tendencias?.agendamentos)}else{const next=d.proximos?.[0];E('aHoje').textContent=r.agendamentos_hoje||0;E('receitaHoje').textContent=next?timeBR(next.horario):'—';E('kpiRevenueLabel').textContent='Próximo horário';E('ticketMedio').textContent=r.concluidos_hoje||0;E('kpiTicketLabel').textContent='Concluídos';E('ocupacaoHoje').textContent=money(r.comissao_hoje||0);E('kpiOccupancyLabel').textContent='Comissão hoje';E('sparkAppointments').innerHTML=sparkline(d.tendencias?.agendamentos)}}
 
   (async()=>{try{
-    const d=await api('/dashboard');applyRoleMetrics(d);
-    E('proximosCards').innerHTML=d.proximos.length?d.proximos.map(appointmentCard).join(''):`<div class="dashboard-empty"><strong>${role==='barbeiro'?'Nenhum próximo atendimento':'Nenhum próximo cliente'}</strong><span>${role==='barbeiro'?'Sua agenda está livre neste momento.':'Crie um agendamento ou use as ações rápidas para movimentar a agenda.'}</span></div>`;
-    renderInsights(d);renderQuickActions();
-    if(['dono','gerente'].includes(role)){try{const c=await api('/configuracoes');const link=document.createElement('a');link.id='publicLink';link.href=`/agendar/${c.barbearia.slug}`;link.target='_blank';link.rel='noopener';link.innerHTML='Página pública <b>↗</b>';E('dashboardQuickActions').appendChild(link)}catch(e){console.error('public link',e)}}
-    await Promise.all([loadOnboarding(),loadRevenue()]);
-  }catch(e){console.error(e)}})()
+    const [d,revenue]=await Promise.all([api('/dashboard'),['dono','gerente'].includes(role)&&hasFeature('financeiro_basico')?api('/financeiro/dashboard').catch(()=>null):Promise.resolve(null)]);
+    applyRoleMetrics(d,revenue);
+    E('proximosCards').innerHTML=d.proximos?.length?d.proximos.map(appointmentCard).join(''):`<div class="premium-empty"><strong>Agenda livre</strong><span>Nenhum próximo atendimento neste momento.</span></div>`;
+    const next=d.proximos?.[0];if(next){E('mobileNextTime').textContent=`Hoje • ${timeBR(next.horario)}`;E('mobileNextClient').textContent=`${next.cliente} · ${next.servico}`}else{E('mobileNextTime').textContent='Agenda livre';E('mobileNextClient').textContent='Nenhum cliente próximo.'}
+    E('mobileSummaryAppointments').textContent=d.resumo?.agendamentos_hoje||0;E('mobileSummaryClients').textContent=d.resumo?.clientes||0;E('mobileSummaryRevenue').textContent=compactMoney((revenue?.totais?.hoje ?? d.resumo?.faturamento_hoje ?? 0));
+    if(revenue){renderRevenueChart(revenue);renderBarberPerformance(revenue)}else{E('dashboardRevenue').classList.add('dashboard-no-finance');E('barberPerformance').innerHTML='<div class="premium-empty">Dados financeiros disponíveis para gestão.</div>'}
+    await loadOnboarding();
+  }catch(e){console.error('dashboard',e)}})();
 }

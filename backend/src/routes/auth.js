@@ -718,7 +718,10 @@ router.post('/login', async (req, res) => {
                 usuario.barbeiro_id,
 
             mfa_enabled:
-                !!usuario.mfa_enabled
+                !!usuario.mfa_enabled,
+
+            foto_url:
+                usuario.foto_url || null
         },
 
         barbearia: {
@@ -2100,6 +2103,7 @@ router.get(
                     u.papel,
                     u.barbeiro_id,
                     u.mfa_enabled,
+                    u.foto_url,
 
                     b.id
                         AS barbearia_id,

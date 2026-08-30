@@ -31,7 +31,7 @@ test('shell usa lockup BarberFlow com favicon preservado',()=>{
 test('todas as páginas carregam o CSS premium versionado',()=>{
   const pages=htmlFiles(frontend);
   assert.equal(pages.length,27);
-  for(const file of pages){assert.match(fs.readFileSync(file,'utf8'),/style\.css\?v=20260830-v400/,path.relative(root,file));}
+  for(const file of pages){assert.match(fs.readFileSync(file,'utf8'),/style\.css\?v=20260830-v410/,path.relative(root,file));}
 });
 
 test('cartão de assinatura usa checkout externo oficial e não Brick embutido',()=>{

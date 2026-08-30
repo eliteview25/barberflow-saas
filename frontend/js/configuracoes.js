@@ -3,6 +3,12 @@ if(requireAuth(['dono','gerente'])){
   const ids=['nome','telefone','email','endereco','cidade','estado','logo_url','banner_url','cor_primaria','cor_secundaria','cor_botao','cor_fundo','tema','descricao_publica','texto_boas_vindas','instagram','whatsapp_publico','mostrar_whatsapp_publico','mostrar_mapa_publico','mostrar_precos','mostrar_duracao','politica_cancelamento'];
   const el=Object.fromEntries(ids.map(id=>[id,document.getElementById(id)]));
   const user=currentUser();
+  const perfilEls={foto:document.getElementById('perfilFotoPreview'),nome:document.getElementById('perfilNomeUsuario'),telefone:document.getElementById('perfilTelefoneUsuario'),url:document.getElementById('perfilFotoUrl'),file:document.getElementById('perfilFotoFile'),upload:document.getElementById('perfilEnviarFoto'),remove:document.getElementById('perfilRemoverFoto'),save:document.getElementById('salvarPerfilUsuario')};
+  function perfilInitials(nome){return String(nome||'BF').trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()||'BF'}
+  function renderPerfilFoto(){if(!perfilEls.foto)return;const url=previewHttpUrl(perfilEls.url?.value);perfilEls.foto.innerHTML=url?`<img src="${esc(url)}" alt="Foto do perfil">`:`<span>${esc(perfilInitials(perfilEls.nome?.value||user.nome))}</span>`;perfilEls.remove?.classList.toggle('hidden',!url)}
+  async function loadPerfilUsuario(){if(!perfilEls.nome)return;try{const p=await api('/perfil');perfilEls.nome.value=p.nome||'';perfilEls.telefone.value=p.telefone||'';perfilEls.url.value=p.foto_url||'';const session={...currentUser(),nome:p.nome,telefone:p.telefone||null,foto_url:p.foto_url||null};localStorage.setItem('bf_user',JSON.stringify(session));renderPerfilFoto()}catch(e){console.error('perfil',e)}}
+  async function uploadPerfilFoto(file){if(!file)return;if(!['image/png','image/jpeg'].includes(file.type))throw new Error('Use uma foto JPG ou PNG');if(file.size>5*1024*1024)throw new Error('A foto deve ter no máximo 5MB');const r=await fetch('/api/uploads/perfil-imagem',{method:'POST',credentials:'same-origin',headers:{'Content-Type':file.type,'X-CSRF-Token':csrfToken()},body:file});let d={};try{d=await r.json()}catch{}if(!r.ok)throw new Error(d.erro||'Erro ao enviar foto');perfilEls.url.value=d.url;renderPerfilFoto();return d.url}
+  if(perfilEls.nome){perfilEls.nome.addEventListener('input',renderPerfilFoto);perfilEls.upload.onclick=()=>perfilEls.file.click();perfilEls.file.onchange=async()=>{try{perfilEls.upload.disabled=true;perfilEls.upload.textContent='Enviando...';await uploadPerfilFoto(perfilEls.file.files[0]);flash(msg,'Foto enviada. Salve seu perfil.')}catch(e){flash(msg,e.message,'error')}finally{perfilEls.file.value='';perfilEls.upload.disabled=false;perfilEls.upload.textContent='Alterar foto'}};perfilEls.remove.onclick=()=>{perfilEls.url.value='';renderPerfilFoto()};perfilEls.save.onclick=async()=>{try{perfilEls.save.disabled=true;const p=await api('/perfil',{method:'PATCH',body:JSON.stringify({nome:perfilEls.nome.value,telefone:perfilEls.telefone.value,foto_url:perfilEls.url.value})});localStorage.setItem('bf_user',JSON.stringify({...currentUser(),nome:p.nome,telefone:p.telefone||null,foto_url:p.foto_url||null}));renderPerfilFoto();flash(msg,'Seu perfil foi atualizado. A foto já aparece no BarberFlow.');setTimeout(()=>location.reload(),500)}catch(e){flash(msg,e.message,'error')}finally{perfilEls.save.disabled=false}}}
   const configSection=new URLSearchParams(location.search).get('secao')||'perfil';
   const sectionMeta={
     perfil:['Perfil','Dados da barbearia','Identidade e dados principais da sua barbearia.'],
@@ -95,5 +101,6 @@ if(requireAuth(['dono','gerente'])){
 
   el.endereco?.addEventListener('input',preview);el.cidade?.addEventListener('input',preview);el.estado?.addEventListener('input',preview);
   load();
+  loadPerfilUsuario();
   loadSecurity();
 }

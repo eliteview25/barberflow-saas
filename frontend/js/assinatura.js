@@ -83,8 +83,16 @@ if(requireAuth(['dono'])){
     if(cardRedirecting||!selectedPlan)return;cardRedirecting=true;els.cardBtn.disabled=true;if(els.cardCheckout)els.cardCheckout.disabled=true;
     flash(els.payMsg,'Preparando o checkout seguro do Mercado Pago...');
     try{
-      const r=await api('/assinatura/checkout',{method:'POST',body:JSON.stringify({plano:selectedPlan.id,ciclo:billingCycle})});
+      let r;
+      try{r=await api('/assinatura/checkout',{method:'POST',body:JSON.stringify({plano:selectedPlan.id,ciclo:billingCycle})})}
+      catch(firstError){
+        // O Mercado Pago pode ter criado a assinatura e a resposta HTTP ter se perdido.
+        // Uma segunda chamada é segura: o backend procura a referência já criada antes de criar outra.
+        await new Promise(resolve=>setTimeout(resolve,900));
+        try{r=await api('/assinatura/checkout',{method:'POST',body:JSON.stringify({plano:selectedPlan.id,ciclo:billingCycle})})}catch{throw firstError}
+      }
       if(!r.checkout_url)throw new Error('O Mercado Pago não retornou o link de pagamento.');
+      sessionStorage.setItem('bf_mp_checkout_pending','1');
       window.location.assign(r.checkout_url);
     }catch(e){cardRedirecting=false;els.cardBtn.disabled=false;if(els.cardCheckout)els.cardCheckout.disabled=false;flash(els.payMsg,e.message,'error')}
   }

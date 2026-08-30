@@ -1,5 +1,5 @@
 const pool=require('../config/db');
-const {obterAssinatura,obterPagamentoAutorizado,obterPagamento}=require('./mercadoPago');
+const {obterAssinatura,obterPagamentoAutorizado,obterPagamento,checkoutUrlAssinatura}=require('./mercadoPago');
 const {getSellerAccessToken}=require('./mercadoPagoOAuth');
 const {finalizePaidReservation}=require('./reservations');
 const {integrationByPhoneId,processIncoming}=require('./whatsapp');
@@ -14,13 +14,13 @@ function mpLocalStatus(providerStatus,currentStatus){
   return currentStatus;
 }
 async function syncPreapproval(id){
-  const mp=await obterAssinatura(id);const ref=String(mp.external_reference||''),parsed=ref.match(/^barberflow:(\d+):(starter|pro|premium)$/);
+  const mp=await obterAssinatura(id);const ref=String(mp.external_reference||''),parsed=ref.match(/^barberflow:(\d+):(starter|pro|premium)(?::(mensal|anual))?$/);
   let cur=(await pool.query(`SELECT id,barbearia_id,status,plano,plano_pendente,referencia_externa FROM assinaturas WHERE referencia_externa=$1 ORDER BY id DESC LIMIT 1`,[String(id)])).rows[0];
   if(!cur){if(!parsed)return;const tenantId=Number(parsed[1]);cur=(await pool.query(`SELECT id,barbearia_id,status,plano,plano_pendente,referencia_externa FROM assinaturas WHERE barbearia_id=$1 ORDER BY id DESC LIMIT 1`,[tenantId])).rows[0];if(!cur)return;}
   if(parsed&&Number(parsed[1])!==Number(cur.barbearia_id))throw new Error('external_reference Mercado Pago diverge da assinatura vinculada');
   const targetPlan=cur.plano_pendente||cur.plano||(parsed?parsed[2]:null);if(!['starter','pro','premium'].includes(targetPlan))throw new Error('Plano alvo da assinatura inválido');
   const authorized=mp.status==='authorized';
-  await pool.query(`UPDATE assinaturas SET plano=CASE WHEN $1 THEN $2 ELSE plano END,plano_pendente=CASE WHEN $3 IN ('authorized','canceled') THEN NULL ELSE plano_pendente END,status=$4,provedor='mercadopago',referencia_externa=$5,provedor_status=$3,checkout_url=COALESCE($6,checkout_url),proxima_cobranca=$7,billing_change_pending=false,billing_idempotency_key=NULL,atualizado_em=NOW() WHERE id=$8`,[authorized,targetPlan,mp.status,mpLocalStatus(mp.status,cur.status),String(id),mp.init_point||null,mp.next_payment_date?String(mp.next_payment_date).slice(0,10):null,cur.id]);
+  await pool.query(`UPDATE assinaturas SET plano=CASE WHEN $1 THEN $2 ELSE plano END,plano_pendente=CASE WHEN $3 IN ('authorized','canceled') THEN NULL ELSE plano_pendente END,status=$4,provedor='mercadopago',referencia_externa=$5,provedor_status=$3,checkout_url=COALESCE($6,checkout_url),proxima_cobranca=$7,ciclo_cobranca=COALESCE($8,ciclo_cobranca),billing_change_pending=false,billing_idempotency_key=NULL,atualizado_em=NOW() WHERE id=$9`,[authorized,targetPlan,mp.status,mpLocalStatus(mp.status,cur.status),String(id),checkoutUrlAssinatura(mp)||null,mp.next_payment_date?String(mp.next_payment_date).slice(0,10):null,parsed?.[3]||null,cur.id]);
 }
 async function processMercado(payload){
   const {type,dataId}=payload||{};if(!dataId)return;
