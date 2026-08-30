@@ -131,6 +131,12 @@ await client.query(`CREATE TABLE IF NOT EXISTS email_verification_tokens(id BIGS
 await client.query(`CREATE TABLE IF NOT EXISTS webhook_events(id BIGSERIAL PRIMARY KEY,provider VARCHAR(40) NOT NULL,event_id TEXT NOT NULL,status VARCHAR(30) NOT NULL DEFAULT 'recebido',erro TEXT,recebido_em TIMESTAMP DEFAULT NOW(),processado_em TIMESTAMP,UNIQUE(provider,event_id))`);
 await client.query(`UPDATE agendamentos SET public_token=encode(gen_random_bytes(24),'hex') WHERE public_token IS NULL`);
 await client.query(`UPDATE reservas_pagamento SET public_token=encode(gen_random_bytes(24),'hex') WHERE public_token IS NULL`);
+await client.query(`ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS tracking_code VARCHAR(16)`);
+await client.query(`UPDATE agendamentos SET tracking_code=UPPER(encode(gen_random_bytes(6),'hex')) WHERE tracking_code IS NULL`);
+await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS ux_agendamentos_tracking_code ON agendamentos(barbearia_id,tracking_code) WHERE tracking_code IS NOT NULL`);
+await client.query(`CREATE OR REPLACE FUNCTION bf_fill_tracking_code() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.tracking_code IS NULL OR btrim(NEW.tracking_code)='' THEN NEW.tracking_code=UPPER(encode(gen_random_bytes(6),'hex')); END IF; RETURN NEW; END $$`);
+await client.query(`DROP TRIGGER IF EXISTS trg_bf_ag_tracking_code ON agendamentos`);
+await client.query(`CREATE TRIGGER trg_bf_ag_tracking_code BEFORE INSERT ON agendamentos FOR EACH ROW EXECUTE FUNCTION bf_fill_tracking_code()`);
 await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS ux_agendamentos_public_token ON agendamentos(public_token)`);
 await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS ux_reservas_public_token ON reservas_pagamento(public_token)`);
 await client.query(`ALTER TABLE agendamentos ALTER COLUMN public_token SET NOT NULL`);

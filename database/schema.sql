@@ -242,3 +242,11 @@ CREATE TABLE IF NOT EXISTS compra_itens(id BIGSERIAL PRIMARY KEY,pedido_id BIGIN
 CREATE TABLE IF NOT EXISTS servico_insumos(barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,servico_id INTEGER NOT NULL REFERENCES servicos(id) ON DELETE CASCADE,produto_id INTEGER NOT NULL REFERENCES produtos(id) ON DELETE CASCADE,quantidade NUMERIC(12,3) NOT NULL,PRIMARY KEY(barbearia_id,servico_id,produto_id));
 CREATE TABLE IF NOT EXISTS fiscal_config(barbearia_id INTEGER PRIMARY KEY REFERENCES barbearias(id) ON DELETE CASCADE,ativo BOOLEAN NOT NULL DEFAULT false,provedor VARCHAR(30) NOT NULL DEFAULT 'manual',regime VARCHAR(40),codigo_servico VARCHAR(40),item_lista_servico VARCHAR(40),aliquota_iss NUMERIC(7,4),municipio_codigo VARCHAR(20),inscricao_municipal VARCHAR(60),observacoes TEXT,atualizado_em TIMESTAMP NOT NULL DEFAULT NOW());
 CREATE TABLE IF NOT EXISTS fiscal_documentos(id BIGSERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,venda_id INTEGER REFERENCES vendas(id) ON DELETE SET NULL,status VARCHAR(30) NOT NULL DEFAULT 'rascunho',valor NUMERIC(12,2) NOT NULL DEFAULT 0,descricao TEXT,numero VARCHAR(80),codigo_verificacao VARCHAR(120),url TEXT,provider_id TEXT,erro TEXT,payload JSONB NOT NULL DEFAULT '{}'::jsonb,criado_em TIMESTAMP NOT NULL DEFAULT NOW(),emitido_em TIMESTAMP,atualizado_em TIMESTAMP NOT NULL DEFAULT NOW());
+
+-- BarberFlow 3.1 — código amigável para acompanhamento de agendamentos
+ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS tracking_code VARCHAR(16);
+UPDATE agendamentos SET tracking_code=UPPER(encode(gen_random_bytes(6),'hex')) WHERE tracking_code IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_agendamentos_tracking_code ON agendamentos(barbearia_id,tracking_code) WHERE tracking_code IS NOT NULL;
+CREATE OR REPLACE FUNCTION bf_fill_tracking_code() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.tracking_code IS NULL OR btrim(NEW.tracking_code)='' THEN NEW.tracking_code=UPPER(encode(gen_random_bytes(6),'hex')); END IF; RETURN NEW; END $$;
+DROP TRIGGER IF EXISTS trg_bf_ag_tracking_code ON agendamentos;
+CREATE TRIGGER trg_bf_ag_tracking_code BEFORE INSERT ON agendamentos FOR EACH ROW EXECUTE FUNCTION bf_fill_tracking_code();

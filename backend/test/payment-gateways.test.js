@@ -1,7 +1,7 @@
 const test=require('node:test');const assert=require('node:assert/strict');const fs=require('fs');const path=require('path');
 const root=path.resolve(__dirname,'../..');const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 
-test('menu lateral possui área dedicada de Pagamentos',()=>{const c=read('frontend/js/common.js');assert.match(c,/\['pagamentos','\/pages\/pagamentos\.html','💳','Pagamentos'/);const h=read('frontend/pages/pagamentos.html');assert.match(h,/<h1>Pagamentos<\/h1>/);assert.match(h,/Credenciais dos gateways/);assert.match(h,/Configuração do checkout/)});
+test('menu lateral possui área dedicada de Pagamentos',()=>{const c=read('frontend/js/common.js');assert.match(c,/\['pagamentos','\/pages\/pagamentos\.html','card','Pagamentos'/);const h=read('frontend/pages/pagamentos.html');assert.match(h,/<h1>Pagamentos<\/h1>/);assert.match(h,/Credenciais dos gateways/);assert.match(h,/Configuração do checkout/)});
 
 test('aba Configurações não possui mais recebimentos ou gateways',()=>{const h=read('frontend/pages/configuracoes.html'),j=read('frontend/js/configuracoes.js');for(const term of ['Recebimentos','aceitar_mercadopago','pix_chave','pagamento_agendamento','conectarMP','mpStatus']){assert.doesNotMatch(h,new RegExp(term));assert.doesNotMatch(j,new RegExp(term))}});
 test('API geral de Configurações também não lê nem grava campos de pagamento',()=>{const t=read('backend/src/routes/tenant.js');const block=t.slice(t.indexOf("router.get('/configuracoes'"),t.indexOf("router.get('/usuarios'"));for(const term of ['pagamento_agendamento','aceitar_mercadopago','pix_chave','percentual_sinal'])assert.doesNotMatch(block,new RegExp(term))});

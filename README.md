@@ -48,8 +48,8 @@ Nenhuma revisão estática garante ausência total de vulnerabilidades. Antes de
 
 O anual equivale a 10 mensalidades e libera 12 meses de uso. O trial permanece em 7 dias com recursos Premium.
 
-### Próxima etapa: IA no WhatsApp
-A versão atual **não envia respostas por IA ainda**. Ela já contém configuração multi-tenant, política de ferramentas permitidas e contadores de uso sem dar acesso direto ao banco. A integração futura deve chamar somente ferramentas controladas do BarberFlow (consultar horários, criar/reagendar/cancelar agendamento, listar serviços/preços e gerar link de pagamento).
+### IA no WhatsApp
+A IA é opcional e usa ferramentas controladas do BarberFlow, sem acesso direto ao banco. Quando `OPENAI_API_KEY` não está configurada ou a integração falha, o atendimento clássico continua funcionando. As ações continuam validadas pelo contexto do tenant e pelas regras de agenda.
 
 ## Pré-lançamento 2.1
 - Onboarding guiado no Dashboard com progresso real.

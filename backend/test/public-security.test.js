@@ -13,11 +13,15 @@ test('código seguro público tem formato restrito e rate limit dedicado',()=>{
   assert.match(app,/PUBLIC_TOKEN_ATTEMPTS_PER_15_MIN/);
   assert.match(app,/\/api\/publico\/:slug\/agendamentos',publicTokenLimit/);
   assert.match(app,/\/api\/publico\/:slug\/reservas',publicTokenLimit/);
+  assert.match(app,/\/api\/publico\/:slug\/acompanhar',publicTokenLimit/);
 });
 
-test('código seguro fica mascarado na interface pública',()=>{
-  assert.match(html,/id="manageToken" type="password"/);
-  assert.match(js,/function maskManageToken/);
+test('acompanhamento público não expõe o token interno e exige código + WhatsApp',()=>{
+  assert.match(html,/id="trackingPhone"/);
+  assert.match(html,/id="trackingCode"/);
+  assert.match(js,/trackingCredentials/);
+  assert.match(publico,/findByTrackingCode/);
+  assert.doesNotMatch(html,/id="manageToken"/);
   assert.doesNotMatch(js,/Guarde seu código seguro: \$\{d\.agendamento\.token\}/);
 });
 

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#111827">
   <title>Agendamento - BarberFlow</title>
-  <link rel="stylesheet" href="/style.css?v=20260829-v301">
+  <link rel="stylesheet" href="/style.css?v=20260829-v310">
 </head>
 <body class="public-bg public-custom">
   <main class="public-shell public-shell-custom">
@@ -119,30 +119,38 @@
       <p id="politicaTexto"></p>
     </section>
 
-    <section class="public-card public-manage-card">
+    <section id="acompanharCard" class="public-card public-manage-card public-track-card">
       <div class="public-card-head compact">
         <div>
-          <span class="public-eyebrow">Já é cliente?</span>
-          <h2>Gerenciar agendamento</h2>
-          <p>Cancele, reagende ou avalie usando o código seguro recebido na confirmação.</p>
+          <span class="public-eyebrow">Acompanhe pelo BarberFlow</span>
+          <h2>Meu agendamento</h2>
+          <p>Use o código recebido no WhatsApp junto com o seu número para consultar o status, cancelar ou reagendar.</p>
         </div>
       </div>
-      <div class="field">
-        <label for="manageToken">Código seguro do agendamento</label>
-        <input id="manageToken" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="200" placeholder="Cole seu código seguro">
+      <div class="form-grid public-track-form">
+        <div class="field">
+          <label for="trackingPhone">Seu WhatsApp</label>
+          <input id="trackingPhone" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="(00) 00000-0000">
+        </div>
+        <div class="field">
+          <label for="trackingCode">Código de acompanhamento</label>
+          <input id="trackingCode" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="20" placeholder="A1B2-C3D4-E5F6">
+        </div>
       </div>
-      <div class="actions public-manage-actions">
-        <button class="btn btn-secondary" id="cancelarPub">Cancelar</button>
-        <button class="btn btn-secondary" id="reagendarPub">Reagendar</button>
-        <button class="btn btn-secondary" id="avaliarPub">Avaliar</button>
+      <button class="btn btn-dark public-track-submit" id="acompanharPub" type="button">Consultar agendamento</button>
+      <div id="trackingResult" class="public-tracking-result hidden" aria-live="polite"></div>
+      <div id="trackingActions" class="actions public-manage-actions hidden">
+        <button class="btn btn-secondary" id="cancelarPub" type="button">Cancelar</button>
+        <button class="btn btn-secondary" id="reagendarPub" type="button">Reagendar</button>
       </div>
       <div id="manageMsg" class="notice hidden" role="status" aria-live="polite"></div>
+      <p class="public-whatsapp-track-note">No WhatsApp da barbearia, você também pode enviar <strong>ACOMPANHAR</strong> para consultar seus próximos horários.</p>
     </section>
 
     <div class="public-powered">Agendamento online por <strong>BarberFlow</strong></div><div class="public-legal-links"><a href="/privacidade.html">Privacidade</a><a href="/termos.html">Termos</a></div>
   </main>
 
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" defer></script>
-  <script src="/js/publico.js?v=20260829-v301" defer></script>
+  <script src="/js/publico.js?v=20260829-v310" defer></script>
 </body>
 </html>

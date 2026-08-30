@@ -9,7 +9,7 @@ test('Produtos e estoque aparecem como módulo próprio, sem Loja no menu',()=>{
   const common=read('frontend/js/common.js');
   assert.match(common,/\['gestao-produtos',[^\n]+Produtos & Estoque/);
   assert.doesNotMatch(common,/lojaGroupHtml|loja-config|loja-pedidos/);
-  assert.match(common,/groupHtml\('vendas'[^\n]+gestao-pdv[^\n]+gestao-vendas/);
+  assert.match(common,/groupHtml\('operacao'[\s\S]*gestao-pdv[\s\S]*gestao-vendas/);
 });
 
 test('Gestão oferece PDV, histórico e Produtos & Estoque como áreas reais',()=>{

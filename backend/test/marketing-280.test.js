@@ -1,7 +1,7 @@
 const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const path=require('node:path');
 const ROOT=path.resolve(__dirname,'../..');const read=p=>fs.readFileSync(path.join(ROOT,p),'utf8');
 
-test('Marketing é recurso Pro e continua no Premium',()=>{const cat=read('backend/src/services/planCatalog.js'),menu=read('frontend/js/common.js'),ass=read('frontend/pages/assinatura.html');const pro=cat.slice(cat.indexOf('pro:Object'),cat.indexOf('premium:Object'));assert.match(pro,/'marketing'/);assert.match(cat,/premium[\s\S]*?'marketing'/);assert.match(menu,/groupHtml\('marketing'/);assert.match(menu,/marketing-campanhas/);assert.match(ass,/Marketing inteligente e relatórios/)});
+test('Marketing é recurso Pro e continua no Premium',()=>{const cat=read('backend/src/services/planCatalog.js'),menu=read('frontend/js/common.js'),ass=read('frontend/pages/assinatura.html');const pro=cat.slice(cat.indexOf('pro:Object'),cat.indexOf('premium:Object'));assert.match(pro,/'marketing'/);assert.match(cat,/premium[\s\S]*?'marketing'/);assert.match(menu,/groupHtml\('crescimento'[\s\S]*marketing-campanhas/);assert.match(menu,/marketing-campanhas/);assert.match(ass,/Marketing inteligente e relatórios/)});
 
 test('Marketing possui áreas completas e UI sem prompt de navegador',()=>{const h=read('frontend/pages/marketing.html'),j=read('frontend/js/marketing.js'),css=read('frontend/style.css');for(const s of ['resumo','campanhas','publicos','cupons','indicacoes','links','modelos'])assert.match(j,new RegExp(`['\"]${s}['\"]`));assert.match(h,/marketingModal/);assert.doesNotMatch(j,/window\.prompt|\bprompt\(/);assert.match(css,/\.marketing-modal-box/);assert.match(css,/@media\(max-width:700px\)[\s\S]*marketing-modal-box/)});
 

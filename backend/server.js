@@ -18,6 +18,7 @@ const {notifyOps}=require('./src/services/opsAlerts');
 const {ensureMarketingSchema,processMarketingCampaigns}=require('./src/services/marketing');
 const {ensureWhatsAppProviderSchema}=require('./src/services/whatsappProviders');
 const {ensureAdvancedOpsSchema}=require('./src/services/advancedOps');
+const {ensureBookingTrackingSchema}=require('./src/services/bookingTracking');
 const PORT=Number(process.env.PORT||3001);
 let server;
 let encerrando=false;
@@ -66,6 +67,7 @@ async function iniciar(){
     await ensureMarketingSchema();
     await ensureWhatsAppProviderSchema();
     await ensureAdvancedOpsSchema();
+    await ensureBookingTrackingSchema();
     const purged=await purgeExpiredTenants();
     if(purged)console.log(`Barbearias expiradas eliminadas permanentemente: ${purged}`);
     console.log('Base de pré-lançamento preparada.');
@@ -82,6 +84,7 @@ async function iniciar(){
     console.log('Marketing, cupons, públicos e indicações preparados.');
     console.log('Provedores WhatsApp preparados (Meta, 360dialog, Twilio e Evolution).');
     console.log('Comandas, clube, CRM avançado, pacotes, fila inteligente, BI e fiscal preparados.');
+    console.log('Acompanhamento de agendamentos por código e WhatsApp preparado.');
     console.log('PostgreSQL conectado!');
     server=app.listen(PORT,()=>{
       console.log(`BarberFlow SaaS: http://localhost:${PORT}`);

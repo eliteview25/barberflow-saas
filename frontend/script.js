@@ -1,39 +1,13 @@
-if(currentUser().papel==='super_admin'){
-  location.href='/master.html';
-}else if(requireAuth()){
-  document.getElementById('shell').innerHTML=renderShell('dashboard');
-  const u=currentUser();let revenueState=null,revenuePeriod='diario';
-  async function loadOnboarding(){
-    if(!['dono','gerente'].includes(u.papel))return;
-    try{
-      const o=await api('/onboarding');const panel=document.getElementById('onboardingPanel');if(!panel)return;
-      panel.classList.toggle('hidden',o.completo);onboardingPercent.textContent=`${o.progresso}%`;onboardingCount.textContent=`${o.concluidas}/${o.total}`;onboardingBar.style.width=`${o.progresso}%`;onboardingPublic.href=o.public_url;
-      onboardingSteps.innerHTML=o.steps.map((x,i)=>`<a class="onboarding-step ${x.concluido?'done':''}" href="${esc(x.href)}" ${x.id==='publicar'?'target="_blank" rel="noopener"':''}><span class="onboarding-step-num">${x.concluido?'✓':i+1}</span><div><strong>${esc(x.titulo)}</strong><small>${esc(x.descricao)}</small></div><b>→</b></a>`).join('');
-      onboardingShared.disabled=!!o.steps.find(x=>x.id==='publicar')?.concluido;onboardingShared.textContent=onboardingShared.disabled?'Link compartilhado ✓':'Já compartilhei o link';
-    }catch(e){console.error('onboarding',e)}
-  }
-  document.getElementById('onboardingShared')?.addEventListener('click',async()=>{try{await api('/onboarding/link-compartilhado',{method:'POST'});await loadOnboarding()}catch(e){alert(e.message)}});
-
-  function renderRevenueChart(){
-    if(!revenueState)return;const items=revenueState.series?.[revenuePeriod]||[],max=Math.max(1,...items.map(x=>Number(x.total||0)));const chart=document.getElementById('dashboardRevenueChart');if(!chart)return;
-    chart.innerHTML=items.length?`<div class="dashboard-chart-columns">${items.map(x=>{const val=Number(x.total||0),h=val>0?Math.max(6,val/max*100):2;return `<div class="dashboard-chart-col" title="${esc(x.label)}: ${money(val)}"><div class="dashboard-chart-value">${money(val)}</div><div class="dashboard-chart-bar-wrap"><i style="height:${h}%"></i></div><span>${esc(x.label)}</span></div>`}).join('')}</div>`:'<p class="muted">Ainda sem faturamento para exibir.</p>';
-    document.querySelectorAll('[data-revenue-period]').forEach(b=>b.classList.toggle('active',b.dataset.revenuePeriod===revenuePeriod));
-  }
-  async function loadRevenue(){
-    if(!['dono','gerente'].includes(u.papel))return;
-    if(!hasFeature('financeiro_basico')){document.getElementById('dashboardRevenueLocked')?.classList.remove('hidden');return}
-    try{
-      revenueState=await api('/financeiro/dashboard');document.getElementById('dashboardRevenue')?.classList.remove('hidden');
-      revHoje.textContent=money(revenueState.totais.hoje);revSemana.textContent=money(revenueState.totais.semana);revMes.textContent=money(revenueState.totais.mes);revAno.textContent=money(revenueState.totais.ano);renderRevenueChart();
-    }catch(e){console.error('dashboard revenue',e)}
-  }
-  document.getElementById('dashboardRevenueTabs')?.addEventListener('click',e=>{const b=e.target.closest('[data-revenue-period]');if(!b)return;revenuePeriod=b.dataset.revenuePeriod;renderRevenueChart()});
-
-  (async()=>{
-    try{
-      const d=await api('/dashboard');aHoje.textContent=d.resumo.agendamentos_hoje;clientes.textContent=d.resumo.clientes;barbeiros.textContent=d.resumo.barbeiros;servicos.textContent=d.resumo.servicos;
-      proximos.innerHTML=d.proximos.length?d.proximos.map(x=>`<tr><td>${dateBR(x.data)}</td><td>${timeBR(x.horario)}</td><td>${esc(x.cliente)}</td><td>${esc(x.barbeiro)}</td><td>${esc(x.servico)}</td><td><span class="badge status-${x.status}">${esc(x.status.replace('_',' '))}</span></td></tr>`).join(''):'<tr><td colspan="6">Nenhum próximo agendamento.</td></tr>';
-      const c=await api('/configuracoes');publicLink.href=`/agendar/${c.barbearia.slug}`;await Promise.all([loadOnboarding(),loadRevenue()]);
-    }catch(e){console.error(e)}
-  })();
+if(currentUser().papel==='super_admin'){location.href='/master.html'}else if(requireAuth()){
+  document.getElementById('shell').innerHTML=renderShell('dashboard');const u=currentUser();let revenueState=null,revenuePeriod='diario';
+  const E=id=>document.getElementById(id),phoneDigits=v=>String(v||'').replace(/\D/g,''),waHref=x=>{let p=phoneDigits(x.telefone);if(p.length===10||p.length===11)p='55'+p;return `https://wa.me/${p}`};
+  E('greeting').textContent=`${new Date().getHours()<12?'Bom dia':new Date().getHours()<18?'Boa tarde':'Boa noite'}, ${String(u.nome||'').split(' ')[0]||'!'} 👋`;E('kpiCalendar').innerHTML=iconSVG('calendar',20);E('kpiRevenue').innerHTML=iconSVG('wallet',20);E('kpiTicket').innerHTML=iconSVG('receipt',20);E('kpiOccupancy').innerHTML=iconSVG('trend',20);
+  async function loadOnboarding(){if(!['dono','gerente'].includes(u.papel))return;try{const o=await api('/onboarding'),panel=E('onboardingPanel');if(!panel)return;panel.classList.toggle('hidden',o.completo);E('onboardingPercent').textContent=`${o.progresso}%`;E('onboardingCount').textContent=`${o.concluidas}/${o.total}`;E('onboardingBar').style.width=`${o.progresso}%`;E('onboardingPublic').href=o.public_url;E('onboardingSteps').innerHTML=o.steps.map((x,i)=>`<a class="onboarding-step ${x.concluido?'done':''}" href="${esc(x.href)}" ${x.id==='publicar'?'target="_blank" rel="noopener"':''}><span class="onboarding-step-num">${x.concluido?'✓':i+1}</span><div><strong>${esc(x.titulo)}</strong><small>${esc(x.descricao)}</small></div><b>→</b></a>`).join('');E('onboardingShared').disabled=!!o.steps.find(x=>x.id==='publicar')?.concluido;E('onboardingShared').textContent=E('onboardingShared').disabled?'Link compartilhado ✓':'Já compartilhei o link'}catch(e){console.error('onboarding',e)}}
+  E('onboardingShared')?.addEventListener('click',async()=>{try{await api('/onboarding/link-compartilhado',{method:'POST'});await loadOnboarding()}catch(e){console.error(e)}});
+  function renderRevenueChart(){if(!revenueState)return;const items=revenueState.series?.[revenuePeriod]||[],max=Math.max(1,...items.map(x=>Number(x.total||0))),chart=E('dashboardRevenueChart');if(!chart)return;chart.innerHTML=items.length?`<div class="dashboard-chart-columns">${items.map(x=>{const val=Number(x.total||0),h=val>0?Math.max(6,val/max*100):2;return `<div class="dashboard-chart-col" title="${esc(x.label)}: ${money(val)}"><div class="dashboard-chart-value">${money(val)}</div><div class="dashboard-chart-bar-wrap"><i style="height:${h}%"></i></div><span>${esc(x.label)}</span></div>`}).join('')}</div>`:'<p class="muted">Ainda sem faturamento para exibir.</p>';document.querySelectorAll('[data-revenue-period]').forEach(b=>b.classList.toggle('active',b.dataset.revenuePeriod===revenuePeriod))}
+  async function loadRevenue(){if(!['dono','gerente'].includes(u.papel)||!hasFeature('financeiro_basico'))return;try{revenueState=await api('/financeiro/dashboard');E('dashboardRevenue')?.classList.remove('hidden');E('revHoje').textContent=money(revenueState.totais.hoje);E('revSemana').textContent=money(revenueState.totais.semana);E('revMes').textContent=money(revenueState.totais.mes);E('revAno').textContent=money(revenueState.totais.ano);renderRevenueChart()}catch(e){console.error('dashboard revenue',e)}}
+  E('dashboardRevenueTabs')?.addEventListener('click',e=>{const b=e.target.closest('[data-revenue-period]');if(!b)return;revenuePeriod=b.dataset.revenuePeriod;renderRevenueChart()});
+  function appointmentCard(x){return `<article class="dashboard-appointment"><div class="dashboard-appointment-time"><strong>${timeBR(x.horario)}</strong><span>${dateBR(x.data)}</span></div><div class="dashboard-appointment-main"><div><strong>${esc(x.cliente)}</strong><span>${esc(x.servico)} • ${esc(x.barbeiro)}</span></div><span class="badge status-${x.status}">${esc(x.status.replaceAll('_',' '))}</span></div><a class="appointment-wa" href="${waHref(x)}" target="_blank" rel="noopener" title="Falar no WhatsApp">${iconSVG('whatsapp',16)}</a></article>`}
+  function renderInsights(d){const r=d.resumo,ins=[];if(Number(r.ocupacao_hoje)<60)ins.push({icon:'trend',title:'Agenda com espaço',text:`Ocupação de ${r.ocupacao_hoje||0}% hoje. Use oportunidades para preencher horários vagos.`,href:'/pages/gestao.html?secao=oportunidades'});if(Number(r.agendamentos_hoje)>0)ins.push({icon:'calendar',title:`${r.agendamentos_hoje} atendimento${Number(r.agendamentos_hoje)===1?'':'s'} hoje`,text:`Receita prevista de ${money(r.receita_prevista_hoje)}.`,href:'/pages/agendamentos.html'});if(!d.proximos.length)ins.push({icon:'sparkle',title:'Agenda livre',text:'Não há próximos agendamentos. Considere uma campanha de retorno.',href:'/pages/marketing.html?secao=campanhas'});E('dashboardInsights').innerHTML=ins.slice(0,3).map(x=>`<a class="dashboard-insight" href="${x.href}"><span>${iconSVG(x.icon,18)}</span><div><strong>${esc(x.title)}</strong><p>${esc(x.text)}</p></div><b>→</b></a>`).join('')}
+  (async()=>{try{const d=await api('/dashboard');E('aHoje').textContent=d.resumo.agendamentos_hoje;E('receitaHoje').textContent=money(d.resumo.receita_prevista_hoje);E('ticketMedio').textContent=money(d.resumo.ticket_medio);E('ocupacaoHoje').textContent=`${d.resumo.ocupacao_hoje||0}%`;E('ocupacaoHint').textContent=Number(d.resumo.ocupacao_hoje)>=80?'Dia bem ocupado':Number(d.resumo.ocupacao_hoje)>=50?'Ainda há oportunidades':'Boa margem para preencher a agenda';E('proximosCards').innerHTML=d.proximos.length?d.proximos.map(appointmentCard).join(''):'<div class="dashboard-empty"><strong>Nenhum próximo atendimento</strong><span>Crie um agendamento ou use uma campanha para movimentar a agenda.</span></div>';renderInsights(d);const c=await api('/configuracoes');E('publicLink').href=`/agendar/${c.barbearia.slug}`;await Promise.all([loadOnboarding(),loadRevenue()])}catch(e){console.error(e)}})()
 }
