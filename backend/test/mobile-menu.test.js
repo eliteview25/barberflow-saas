@@ -22,3 +22,9 @@ test('mobile não reserva espaço para barra inferior removida',()=>{
   assert.match(css,/body\{padding-top:62px;padding-bottom:0;background:#f5f6f8\}/);
   assert.match(css,/padding-bottom:env\(safe-area-inset-bottom\)/);
 });
+
+test('hotfix 3.2.1 mantém botão do menu escuro e checkbox de senha compacto',()=>{
+  assert.match(css,/\.show-password-check input\[type="checkbox"\],[\s\S]*?width:18px!important/);
+  assert.match(css,/\.mobile-appbar \.icon-btn,[\s\S]*?background:rgba\(255,255,255,\.06\)!important/);
+  assert.match(css,/\.mobile-appbar \.icon-btn,[\s\S]*?color:#fff!important/);
+});

@@ -841,3 +841,45 @@ body[data-role="barbeiro"] .dashboard-topbar .topbar-create{background:#111827;c
 }
 
 @media(max-width:760px){.feature-matrix-wrap{overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch;overscroll-behavior-inline:contain}.feature-matrix-wrap .feature-matrix{width:640px;max-width:none!important}}
+
+/* BarberFlow 3.2.1 — hotfix: checkbox de senha + botão do menu mobile */
+.show-password-check{
+  width:max-content!important;
+  max-width:100%!important;
+  align-self:flex-start;
+}
+.show-password-check input[type="checkbox"],
+.security-challenge-card .show-password-check input[type="checkbox"]{
+  width:18px!important;
+  min-width:18px!important;
+  max-width:18px!important;
+  height:18px!important;
+  min-height:18px!important;
+  padding:0!important;
+  margin:0!important;
+  flex:0 0 18px!important;
+  accent-color:#f59e0b;
+}
+@media(max-width:760px){
+  .mobile-appbar .icon-btn,
+  .master-mobile-appbar .icon-btn{
+    width:42px!important;
+    min-width:42px!important;
+    max-width:42px!important;
+    height:42px!important;
+    padding:0!important;
+    border:1px solid rgba(255,255,255,.12)!important;
+    background:rgba(255,255,255,.06)!important;
+    color:#fff!important;
+    box-shadow:none!important;
+  }
+  .mobile-appbar .icon-btn:active,
+  .master-mobile-appbar .icon-btn:active{
+    background:rgba(255,255,255,.14)!important;
+  }
+  .mobile-appbar .icon-btn:focus-visible,
+  .master-mobile-appbar .icon-btn:focus-visible{
+    outline:2px solid #f59e0b;
+    outline-offset:2px;
+  }
+}
