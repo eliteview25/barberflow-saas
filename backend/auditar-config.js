@@ -1,7 +1,7 @@
 require('dotenv').config();
 const prod=process.env.NODE_ENV==='production';
 const required=['JWT_SECRET','DB_HOST','DB_NAME','DB_USER','DB_PASSWORD','APP_URL'];
-if(prod)required.push('APP_SECRETS_ENCRYPTION_KEY','MP_WEBHOOK_SECRET');
+if(prod)required.push('APP_SECRETS_ENCRYPTION_KEY');
 if(prod&&process.env.REQUIRE_TURNSTILE!=='false')required.push('TURNSTILE_SITE_KEY','TURNSTILE_SECRET_KEY');
 if(prod&&process.env.ALLOW_PUBLIC_REGISTRATION!=='false')required.push('RESEND_API_KEY','EMAIL_FROM');
 if(prod&&process.env.WHATSAPP_ENABLED==='true')required.push('META_WHATSAPP_APP_SECRET');

@@ -5,6 +5,7 @@ const {timingSafeText}=require('../utils/security');
 const {enqueue,processEvent,pending}=require('../services/webhookInbox');
 const {processByProvider}=require('../services/webhookProcessors');
 const {tenantWebhookSecret}=require('../services/paymentGateways');
+const {platformWebhookSecret}=require('../services/platformPaymentGateways');
 const router=express.Router();
 
 function kick(provider,eventId){setImmediate(()=>processEvent(provider,eventId,p=>processByProvider(provider,p)).catch(e=>console.error(`Webhook ${provider} ${eventId}:`,e.message)));}
@@ -12,11 +13,12 @@ function mpEventId(req,type,dataId){const own=String(req.body?.id||'').trim();if
 router.post('/mercadopago',async(req,res)=>{try{
   const dataId=String(req.query['data.id']||'');const type=String(req.query.type||req.body?.type||req.query.topic||'');
   if(!dataId)return res.status(401).json({erro:'Webhook inválido'});
-  let barbeariaId=null,paymentScope=null,secret=process.env.MP_WEBHOOK_SECRET||'';
+  let barbeariaId=null,paymentScope=null,secret=(await platformWebhookSecret())||'';
   if(type==='payment'||type==='payments'){
     const candidate=Number(req.query.barbearia_id);if(!Number.isSafeInteger(candidate)||candidate<1||!validarMpTenantSignature(candidate,req.query.tenant_sig))return res.status(401).json({erro:'Roteamento do webhook inválido'});
     barbeariaId=candidate;paymentScope=req.query.scope==='subscription'?'subscription':req.query.scope==='store'?'store':'booking';
-    if(paymentScope!=='subscription')secret=(await tenantWebhookSecret(candidate))||secret;
+    if(paymentScope==='subscription')secret=(await platformWebhookSecret())||'';
+    else secret=(await tenantWebhookSecret(candidate))||(process.env.MP_WEBHOOK_SECRET||'');
   }
   if(!secret||!validarWebhook({xSignature:req.headers['x-signature'],xRequestId:req.headers['x-request-id'],dataId,secret}))return res.status(401).json({erro:'Assinatura do webhook inválida'});
   const eventId=mpEventId(req,type,dataId);const row=await enqueue('mercadopago',eventId,{type,dataId,barbeariaId,paymentScope});if(row.status!=='processado')kick('mercadopago',eventId);return res.sendStatus(200);

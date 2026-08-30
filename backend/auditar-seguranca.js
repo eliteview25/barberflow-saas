@@ -74,7 +74,7 @@ check(/isoDate/.test(agenda) && /Per[ií]odo|Data inv|status/i.test(agenda), 'Fi
 check(/isoDate/.test(operacao) && /Per[ií]odo inv/i.test(operacao), 'Filtro de comissões valida período');
 check(/regexp_replace/.test(clientes) && /409/.test(clientes), 'Cadastro administrativo bloqueia telefone duplicado por tenant');
 check(/ux_produtos_tenant_sku_lower/.test(mig), 'SKU de produto é único por tenant de forma case-insensitive');
-check(/MP_WEBHOOK_SECRET/.test(app) && /validarWebhook/.test(mpRoute) && /req\.query\[['"]data\.id['"]\]/.test(mpRoute), 'Webhook Mercado Pago usa assinatura e data.id oficial da query');
+check(/platformWebhookSecret/.test(mpRoute) && /validarWebhook/.test(mpRoute) && /req\.query\[['"]data\.id['"]\]/.test(mpRoute), 'Webhook Mercado Pago usa segredo central/tenant e data.id oficial da query');
 check(/validarMpTenantSignature/.test(mpRoute) && /mpTenantSignature/.test(mp), 'Roteamento multi-tenant do webhook Mercado Pago tem HMAC próprio');
 check(/x-hub-signature-256/.test(wa) && /createHmac\(['"]sha256['"]/.test(wa) && /timingSafeEqual/.test(wa), 'Webhook WhatsApp valida HMAC da Meta');
 check(/PROVIDERS=\['meta','360dialog','twilio','evolution'\]/.test(whatsappProviders) && /whatsapp_conexoes/.test(whatsappProviders), 'Central WhatsApp suporta os quatro provedores previstos');
