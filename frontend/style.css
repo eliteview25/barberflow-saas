@@ -1988,3 +1988,59 @@ body:not(.public-bg):not(.auth-body):not(.legal-page) .flow-editor-empty strong{
 .schedule-row>strong{align-self:center}.schedule-toggle,.schedule-break-toggle{display:flex;align-items:center;gap:7px;min-height:44px;font-size:13px;font-weight:700}.schedule-time{display:flex;flex-direction:column;gap:5px;min-width:0}.schedule-time span{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}.schedule-time input{width:100%;min-width:0;border:1px solid #d1d5db;border-radius:9px;padding:9px;background:#fff;min-height:42px}.schedule-break-times{display:grid;grid-template-columns:1fr 1fr;gap:8px;min-width:0}.schedule-break-toggle{color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:0 10px}
 @media(max-width:900px){.schedule-row{grid-template-columns:56px 1fr 1fr;align-items:end}.schedule-row>strong{grid-row:1/3}.schedule-toggle{grid-column:2}.schedule-time{min-width:0}.schedule-break-toggle{grid-column:2/4}.schedule-break-times{grid-column:2/4}}
 @media(max-width:520px){.schedule-row{grid-template-columns:48px 1fr}.schedule-row>strong{grid-row:auto;align-self:center}.schedule-toggle{grid-column:2}.schedule-row>.schedule-time{grid-column:2}.schedule-break-toggle{grid-column:2}.schedule-break-times{grid-column:2;grid-template-columns:1fr 1fr}}
+
+/* =========================================================
+   4.4.4 — Pix manual mobile-first: modal com ação sempre visível
+   ========================================================= */
+#dashboardPixModal .dashboard-pix-modal-box,
+#pixManualConfirmModal .dashboard-pix-modal-box{display:flex;flex-direction:column;overflow:auto;overscroll-behavior:contain}
+.pix-manual-confirm-box{width:min(560px,100%)}
+.pending-payment-copy{min-width:0}.pending-payment-copy>strong{display:block}.pending-payment-copy>small{display:block;margin-top:4px;color:var(--muted);overflow-wrap:anywhere}.pending-payment-confirm{flex:none;white-space:nowrap}
+
+@media(max-width:760px){
+  #dashboardPixModal,#pixManualConfirmModal{align-items:end!important;padding:max(8px,env(safe-area-inset-top)) 0 0!important;overflow:hidden}
+  #dashboardPixModal .dashboard-pix-modal-box,
+  #pixManualConfirmModal .dashboard-pix-modal-box{width:100%!important;max-width:none!important;max-height:calc(100dvh - max(8px,env(safe-area-inset-top)))!important;border-radius:20px 20px 0 0!important;padding:0!important;overflow:auto!important;-webkit-overflow-scrolling:touch}
+  #dashboardPixModal .dashboard-pix-modal-box .modal-head,
+  #pixManualConfirmModal .dashboard-pix-modal-box .modal-head{position:sticky!important;top:0!important;z-index:5;margin:0!important;padding:14px 16px 12px!important;background:#111419!important;border-bottom:1px solid #292f36;flex:none}
+  #dashboardPixModal .dashboard-pix-modal-box .modal-head h2,
+  #pixManualConfirmModal .dashboard-pix-modal-box .modal-head h2{font-size:17px!important;line-height:1.25;padding-right:4px}
+  #dashboardPixModal .dashboard-pix-modal-box>.muted,
+  #pixManualConfirmModal .dashboard-pix-modal-box>.muted{margin:14px 16px 0!important;font-size:12px!important;line-height:1.5}
+  #dashboardPixModal .dashboard-pix-modal-details,
+  #pixManualConfirmModal .dashboard-pix-modal-details{grid-template-columns:1fr!important;gap:7px;margin:12px 16px!important}
+  #dashboardPixModal .dashboard-pix-modal-details>div,
+  #pixManualConfirmModal .dashboard-pix-modal-details>div{padding:10px 12px}
+  #dashboardPixModal .dashboard-pix-modal-details span,
+  #pixManualConfirmModal .dashboard-pix-modal-details span{font-size:10px}
+  #dashboardPixModal .dashboard-pix-modal-details strong,
+  #pixManualConfirmModal .dashboard-pix-modal-details strong{font-size:13px}
+  #dashboardPixModal .dashboard-pix-modal-details .dashboard-pix-modal-value strong,
+  #pixManualConfirmModal .dashboard-pix-modal-details .dashboard-pix-modal-value strong{font-size:20px}
+  #dashboardPixModal .dashboard-pix-modal-box>.notice,
+  #pixManualConfirmModal .dashboard-pix-modal-box>.notice{margin:0 16px 10px!important;font-size:12px}
+  #dashboardPixModal .dashboard-pix-modal-actions,
+  #pixManualConfirmModal .dashboard-pix-modal-actions{position:sticky!important;bottom:0!important;z-index:6;display:grid!important;grid-template-columns:minmax(88px,.72fr) minmax(0,1.28fr)!important;gap:8px!important;margin:0!important;padding:12px 16px max(12px,env(safe-area-inset-bottom))!important;background:#111419!important;border-top:1px solid #30363d;box-shadow:0 -10px 24px rgba(0,0,0,.28);flex:none}
+  #dashboardPixModal .dashboard-pix-modal-actions .btn,
+  #pixManualConfirmModal .dashboard-pix-modal-actions .btn{width:100%!important;min-width:0!important;min-height:50px!important;padding:10px 9px!important;font-size:12px!important;line-height:1.2;white-space:normal}
+  #dashboardPixModal .dashboard-pix-modal-actions .btn-primary,
+  #pixManualConfirmModal .dashboard-pix-modal-actions .btn-primary{font-weight:900}
+  .pending-payment-row{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:10px!important;align-items:stretch!important;padding:13px!important;margin-bottom:9px;border:1px solid #292f36!important;border-radius:11px;background:#0c0f13}
+  .pending-payment-row:last-child{border-bottom:1px solid #292f36!important}
+  .pending-payment-copy .muted{margin-top:4px;line-height:1.45}.pending-payment-copy>small{font-size:11px;line-height:1.45}
+  .pending-payment-confirm{width:100%!important;min-height:48px!important;font-size:12px!important}
+  .dashboard-pix-row{grid-template-columns:minmax(0,1fr)!important}
+  .dashboard-pix-person,.dashboard-pix-service,.dashboard-pix-when,.dashboard-pix-value{grid-column:1!important;padding-left:0!important}
+  .dashboard-pix-confirm-btn{grid-column:1!important;grid-row:auto!important;width:100%!important;min-height:48px!important;margin-top:2px}
+}
+
+@media(max-width:380px){
+  #dashboardPixModal .dashboard-pix-modal-actions,
+  #pixManualConfirmModal .dashboard-pix-modal-actions{grid-template-columns:82px minmax(0,1fr)!important;padding-left:12px!important;padding-right:12px!important}
+  #dashboardPixModal .dashboard-pix-modal-box>.muted,
+  #pixManualConfirmModal .dashboard-pix-modal-box>.muted,
+  #dashboardPixModal .dashboard-pix-modal-details,
+  #pixManualConfirmModal .dashboard-pix-modal-details,
+  #dashboardPixModal .dashboard-pix-modal-box>.notice,
+  #pixManualConfirmModal .dashboard-pix-modal-box>.notice{margin-left:12px!important;margin-right:12px!important}
+}

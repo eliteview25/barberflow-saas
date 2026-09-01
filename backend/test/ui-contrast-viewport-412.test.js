@@ -17,7 +17,7 @@ test('controles autenticados possuem contraste escuro global e autofill legível
   assert.match(css,/input:-webkit-autofill[\s\S]*?-webkit-text-fill-color:#f4f6f8!important/);
 });
 
-test('assets 4.4.3 quebram o cache antigo em todas as páginas',()=>{
+test('assets 4.4.4 quebram o cache antigo em todas as páginas',()=>{
   const pages=[];
   const walk=dir=>fs.readdirSync(dir,{withFileTypes:true}).forEach(item=>{
     const file=path.join(dir,item.name);
@@ -26,6 +26,6 @@ test('assets 4.4.3 quebram o cache antigo em todas as páginas',()=>{
   walk(path.join(root,'frontend'));
   for(const file of pages){
     const html=fs.readFileSync(file,'utf8');
-    if(html.includes('/style.css'))assert.match(html,/style\.css\?v=20260901-v443/,path.relative(root,file));
+    if(html.includes('/style.css'))assert.match(html,/style\.css\?v=20260901-v444/,path.relative(root,file));
   }
 });
