@@ -1,4 +1,4 @@
-# BarberFlow SaaS 4.3.1 — segurança reforçada + hotfix de boot
+# BarberFlow SaaS 4.4.6 — UI mobile refinada + segurança preservada
 
 SaaS multiempresa para gestão de barbearias com agenda, clientes, equipe, serviços, página pública, pagamentos, PDV/estoque, CRM, fidelidade, automações, Supermaster e planos Starter/Pro/Premium.
 

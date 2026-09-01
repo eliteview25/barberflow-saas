@@ -61,7 +61,7 @@ const frontFiles = filesRecursive(path.resolve(root, '../frontend'));
 const front = frontFiles.map(p => fs.readFileSync(p, 'utf8')).join('\n');
 const runtime = filesRecursive(path.join(root, 'src'), /\.js$/i).map(p => fs.readFileSync(p, 'utf8')).join('\n');
 
-console.log('=== Auditoria estática de regressão de segurança 4.4.5 ===');
+console.log('=== Auditoria estática de regressão de segurança 4.4.6 ===');
 check(/contentSecurityPolicy\s*:\s*\{/.test(app) && !/contentSecurityPolicy\s*:\s*false/.test(app), 'CSP está habilitada');
 check(/bf_session/.test(mw) && /httpOnly\s*:\s*true/.test(sec) && /validateCsrf/.test(mw), 'Sessão usa cookie HttpOnly e CSRF');
 check(/token_version/.test(auth) && /token_version/.test(mw), 'Versão de sessão revoga JWTs antigos');
@@ -232,4 +232,4 @@ if (leaked) {
 }
 console.log(`Resumo: ${fail} falha(s), ${warn} aviso(s).`);
 process.exitCode = fail ? 1 : 0;
-if (!fail) console.log('🔐 Auditoria estática 4.4.5 passou.');
+if (!fail) console.log('🔐 Auditoria estática 4.4.6 passou.');
