@@ -26,28 +26,23 @@ let server;
 let encerrando=false;
 
 async function corrigirCompatibilidadeLegada(){
-  // A verificação obrigatória de e-mail foi removida. Esta correção de boot é
-  // intencionalmente pequena e idempotente para instalações que já migraram
-  // antes dessa regra mudar, mas ficaram com contas em trial_pendente.
-  await pool.query(`UPDATE barbearias
-    SET email_verificado=true
-    WHERE COALESCE(is_system,false)=false
-      AND COALESCE(email_verificado,false)=false`);
-
-  const trial=await pool.query(`UPDATE assinaturas
+  await pool.query(`ALTER TABLE barbearias ALTER COLUMN email_verificado SET DEFAULT false`);
+  const trial=await pool.query(`UPDATE assinaturas a
     SET status='trial',
-        inicio=COALESCE(inicio,CURRENT_DATE),
+        inicio=COALESCE(a.inicio,CURRENT_DATE),
         fim_trial=CASE
-          WHEN status='trial_pendente' OR fim_trial IS NULL
+          WHEN a.fim_trial IS NULL
             THEN CURRENT_DATE+INTERVAL '7 days'
-          ELSE fim_trial
+          ELSE a.fim_trial
         END,
         atualizado_em=NOW()
-    WHERE status='trial_pendente'
-       OR (status='trial' AND fim_trial IS NULL)
-    RETURNING id`);
+    FROM barbearias b
+    WHERE a.barbearia_id=b.id
+      AND a.status='trial_pendente'
+      AND COALESCE(b.email_verificado,false)=true
+    RETURNING a.id`);
 
-  if(trial.rowCount>0)console.log(`Compatibilidade legada: ${trial.rowCount} trial(s) liberado(s).`);
+  if(trial.rowCount>0)console.log(`Contas verificadas: ${trial.rowCount} trial(s) ativado(s).`);
 }
 
 async function iniciar(){

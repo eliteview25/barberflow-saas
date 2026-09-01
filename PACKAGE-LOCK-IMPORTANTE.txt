@@ -1,14 +1,13 @@
-BARBERFLOW SEGURANCA V2 — PACKAGE-LOCK
+BARBERFLOW 4.3.0 — PACKAGE-LOCK
 
-Este pacote não inclui um package-lock.json gerado offline.
-Ao aplicar a V2 sobre o seu repositório real:
+O lockfile válido está em backend/package-lock.json e acompanha o package.json da aplicação.
+Não gere nem mantenha um package-lock.json vazio na raiz do projeto.
+
+Validação recomendada:
 
 1) cd backend
-2) npm install
+2) npm ci
 3) npm audit --omit=dev --audit-level=high
-4) npm test
-5) npm run audit:security
-6) commit package.json + package-lock.json juntos
+4) npm run qa
 
-Motivo: Multer foi removido da aplicação V2. O npm install atualiza corretamente o lockfile real e remove a dependência/transitivos que não são mais necessários.
-Depois disso, mantenha o Build Command do Render como: npm ci
+Mantenha package.json e package-lock.json versionados juntos. No Render, use backend como Root Directory e npm ci como Build Command.

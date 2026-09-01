@@ -5,11 +5,12 @@ const path=require('node:path');
 
 const server=fs.readFileSync(path.join(__dirname,'..','server.js'),'utf8');
 
-test('boot libera contas legadas presas em trial_pendente sem reativar canceladas',()=>{
+test('boot libera apenas contas já verificadas presas em trial_pendente',()=>{
   assert.match(server,/corrigirCompatibilidadeLegada/);
   assert.match(server,/status='trial_pendente'/);
   assert.match(server,/status='trial'/);
-  assert.match(server,/email_verificado=true/);
+  assert.match(server,/email_verificado,false\)=true/);
+  assert.doesNotMatch(server,/SET email_verificado=true/);
   assert.doesNotMatch(server,/status\s+IN\s*\([^)]*cancelada[^)]*\).*SET\s+status='trial'/is);
 });
 

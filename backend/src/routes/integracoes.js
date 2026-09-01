@@ -1,7 +1,7 @@
 const crypto=require('crypto');
 const express=require('express');
 const {validarWebhook,validarMpTenantSignature}=require('../services/mercadoPago');
-const {timingSafeText}=require('../utils/security');
+const {timingSafeText,verifyTimestampedHmac}=require('../utils/security');
 const {enqueue,processEvent,pending}=require('../services/webhookInbox');
 const {processByProvider}=require('../services/webhookProcessors');
 const {tenantWebhookSecret}=require('../services/paymentGateways');
@@ -24,7 +24,7 @@ router.post('/mercadopago',async(req,res)=>{try{
   const eventId=mpEventId(req,type,dataId);const row=await enqueue('mercadopago',eventId,{type,dataId,barbeariaId,paymentScope});if(row.status!=='processado')kick('mercadopago',eventId);return res.sendStatus(200);
 }catch(e){console.error('Recepção webhook MP:',e.message);return res.sendStatus(500)}});
 
-router.post('/billing',async(req,res)=>{try{const configured=process.env.BILLING_WEBHOOK_SECRET||'';if(!configured||!timingSafeText(req.headers['x-barberflow-secret'],configured))return res.status(401).json({erro:'Webhook não autorizado'});const eventId=String(req.headers['x-idempotency-key']||'').trim();if(!eventId||eventId.length>200)return res.status(400).json({erro:'X-Idempotency-Key obrigatório'});const row=await enqueue('billing',eventId,req.body||{});if(row.status!=='processado')kick('billing',eventId);return res.status(202).json({mensagem:'Evento recebido'})}catch(e){console.error('Recepção webhook billing:',e.message);res.status(500).json({erro:'Erro ao receber webhook'})}});
+router.post('/billing',async(req,res)=>{try{const configured=process.env.BILLING_WEBHOOK_SECRET||'',timestamp=req.headers['x-webhook-timestamp'],signature=req.headers['x-signature'];if(!verifyTimestampedHmac({secret:configured,timestamp,signature,rawBody:req.rawBody,maxAgeSeconds:300}))return res.status(401).json({erro:'Webhook não autorizado'});const eventId=String(req.headers['x-idempotency-key']||'').trim();if(!/^[A-Za-z0-9._:-]{8,200}$/.test(eventId))return res.status(400).json({erro:'X-Idempotency-Key inválido'});const row=await enqueue('billing',eventId,req.body||{});if(row.status!=='processado')kick('billing',eventId);return res.status(202).json({mensagem:'Evento recebido'})}catch(e){console.error('Recepção webhook billing:',e.message);res.status(500).json({erro:'Erro ao receber webhook'})}});
 
 router.post('/processar-pendentes',async(req,res)=>{const configured=process.env.CRON_SECRET||'';if(!configured||!timingSafeText(req.headers['x-cron-secret'],configured))return res.status(401).json({erro:'Não autorizado'});const rows=await pending(100),out=[];for(const row of rows){try{out.push({provider:row.provider,event_id:row.event_id,...await processEvent(row.provider,row.event_id,p=>processByProvider(row.provider,p))})}catch(e){out.push({provider:row.provider,event_id:row.event_id,ok:false,error:e.message})}}res.json({processados:out.length,resultados:out})});
 module.exports=router;

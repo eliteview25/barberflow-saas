@@ -330,7 +330,8 @@ async function processMarketingCampaigns(limit=1){
 async function updateWhatsAppMarketingStatus(providerMessageId,status,errors=[]){
   const id=String(providerMessageId||'').trim();if(!id)return false;const s=String(status||'').toLowerCase();
   const mapped=s==='read'?'lido':s==='delivered'?'entregue':s==='sent'?'enviado':s==='failed'?'erro':null;if(!mapped)return false;
-  const err=Array.isArray(errors)&&errors.length?String(errors[0]?.title||errors[0]?.message||errors[0]?.code||'Falha no WhatsApp').slice(0,500):null;
+  const rawCode=Array.isArray(errors)&&errors.length?String(errors[0]?.code||'provider_failure').slice(0,120):'';
+  const err=/^[A-Za-z0-9_.:-]+$/.test(rawCode)?rawCode:(rawCode?'provider_failure':null);
   const r=await pool.query(`UPDATE marketing_envios SET status=$1,entregue_em=CASE WHEN $2 IN ('delivered','read') THEN COALESCE(entregue_em,NOW()) ELSE entregue_em END,lido_em=CASE WHEN $2='read' THEN COALESCE(lido_em,NOW()) ELSE lido_em END,erro=COALESCE($3,erro),atualizado_em=NOW() WHERE provider_message_id=$4 RETURNING id`,[mapped,s,err,id]);
   return !!r.rowCount;
 }

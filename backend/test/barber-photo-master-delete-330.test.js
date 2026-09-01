@@ -59,7 +59,7 @@ test('exclusão de barbearia não pede nome e exige 2FA fresco',()=>{
   const front=read('frontend/js/master.js');
   const app=read('backend/src/app.js');
   assert.match(route,/exigir2FAExclusao/);
-  assert.match(route,/verifyTotp\(secret,req\.body\?\.mfa_code\)/);
+  assert.match(route,/verifyAndConsumeTotp\(req\.usuario\.id,secret,req\.body\?\.mfa_code\)/);
   assert.doesNotMatch(route,/Digite exatamente o nome da barbearia/);
   assert.doesNotMatch(front,/prompt\(.*nome da barbearia/);
   assert.match(front,/mode:'totp'/);

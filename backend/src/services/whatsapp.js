@@ -3,7 +3,7 @@ const providers=require('./whatsappProviders');
 const {contextoPlano}=require('./planos');
 const {horaParaMinutos,minutosParaHora}=require('../utils/time');
 const {createTrustedAppointment,lockSlot,slotContext}=require('./booking');
-const {criarPreferenciaAgendamento}=require('./mercadoPago');
+const {criarPreferenciaAgendamento,safeMercadoPagoCheckoutUrl}=require('./mercadoPago');
 const {getSellerAccessToken}=require('./mercadoPagoOAuth');
 const {routeIntent}=require('./aiAgent');
 const {getAiConfig}=require('./aiConfig');
@@ -84,10 +84,10 @@ async function finishBooking(integ,from,d,semCobranca){
     await resetSession(integ.barbearia_id,from);
     if(d.forma==='pix_manual')return sendText(integ,from,`Seu horário foi reservado. Faça o Pix de R$ ${charge.toFixed(2).replace('.',',')}.\n\nChave: ${cfg.pix_chave}\nRecebedor: ${cfg.pix_nome||cfg.nome}${cfg.pix_banco?`\nBanco: ${cfg.pix_banco}`:''}\n\nA barbearia confirmará após verificar o pagamento.`);
     if(d.forma==='mercado_pago'){
-      if(!cfg.mp_conectado)throw new Error('Mercado Pago não está conectado.');const token=await getSellerAccessToken(integ.barbearia_id);const mp=await criarPreferenciaAgendamento({reservaId:reserva.id,reservaToken:reserva.public_token,barbeariaId:integ.barbearia_id,slug:cfg.slug,servicoId:d.servico.id,servicoNome:d.servico.nome,valor:charge,nome:d.nome,email:null,accessToken:token,aceitarPix:cfg.mp_aceitar_pix!==false,aceitarCartao:cfg.mp_aceitar_cartao!==false});await pool.query(`UPDATE reservas_pagamento SET mp_preference_id=$1,atualizado_em=NOW() WHERE id=$2`,[mp.id,reserva.id]);return sendText(integ,from,`Seu horário foi reservado. ✅\n\nPague pelo link para confirmar:\n${mp.init_point}\n\nA reserva expira em alguns minutos.`);
+      if(!cfg.mp_conectado)throw new Error('Mercado Pago não está conectado.');const token=await getSellerAccessToken(integ.barbearia_id);const mp=await criarPreferenciaAgendamento({reservaId:reserva.id,reservaToken:reserva.public_token,barbeariaId:integ.barbearia_id,slug:cfg.slug,servicoId:d.servico.id,servicoNome:d.servico.nome,valor:charge,nome:d.nome,email:null,accessToken:token,aceitarPix:cfg.mp_aceitar_pix!==false,aceitarCartao:cfg.mp_aceitar_cartao!==false});const checkout=safeMercadoPagoCheckoutUrl(mp.init_point);if(!checkout)throw new Error('Link de pagamento inválido');await pool.query(`UPDATE reservas_pagamento SET mp_preference_id=$1,atualizado_em=NOW() WHERE id=$2 AND barbearia_id=$3`,[mp.id,reserva.id,integ.barbearia_id]);return sendText(integ,from,`Seu horário foi reservado. ✅\n\nPague pelo link para confirmar:\n${checkout}\n\nA reserva expira em alguns minutos.`);
     }
     throw new Error('Forma de pagamento indisponível.');
-  }catch(e){await resetSession(integ.barbearia_id,from);return sendText(integ,from,`Não consegui finalizar: ${e.message||'erro no agendamento'}. Digite *oi* para tentar novamente.`)}
+  }catch(e){console.error('whatsapp_booking_finish',{tenant:integ.barbearia_id,message:e.message});await resetSession(integ.barbearia_id,from);return sendText(integ,from,'Não consegui finalizar o agendamento agora. Digite *oi* para tentar novamente ou fale com a barbearia.')}
 }
 async function sendTemplate(integ,to,name,params=[],language='pt_BR',options={}){return providers.sendTemplate(integ,to,name,params,language,options)}
 module.exports={integrationByPhoneId,sendText,sendTemplate,processIncoming};

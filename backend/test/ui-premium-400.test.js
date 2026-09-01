@@ -31,13 +31,14 @@ test('shell usa lockup BarberFlow com favicon preservado',()=>{
 test('todas as páginas carregam o CSS premium versionado',()=>{
   const pages=htmlFiles(frontend);
   assert.equal(pages.length,27);
-  for(const file of pages){assert.match(fs.readFileSync(file,'utf8'),/style\.css\?v=20260830-v420/,path.relative(root,file));}
+  for(const file of pages){assert.match(fs.readFileSync(file,'utf8'),/style\.css\?v=20260901-v430/,path.relative(root,file));}
 });
 
 test('cartão de assinatura usa checkout externo oficial e não Brick embutido',()=>{
   assert.match(assinaturaHtml,/Checkout oficial Mercado Pago/);
   assert.match(assinaturaHtml,/openMercadoPagoCard/);
   assert.doesNotMatch(assinaturaHtml,/cardPaymentBrick_container|sdk\.mercadopago\.com/);
-  assert.match(assinaturaJs,/window\.location\.assign\(r\.checkout_url\)/);
+  assert.match(assinaturaJs,/safeMercadoPagoUrl\(r\.checkout_url\)/);
+  assert.match(assinaturaJs,/window\.location\.assign\(checkout\)/);
   assert.match(tenant,/CARTAO_CHECKOUT_EXTERNO/);
 });

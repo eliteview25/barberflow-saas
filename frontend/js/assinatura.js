@@ -38,7 +38,7 @@ if(requireAuth(['dono'])){
       els.atual.textContent=`Contratado: ${planLabel(a.plano)} (${ciclo}) • efetivo agora: ${planLabel(a.plano_efetivo)}${a.limite_profissionais?` • limite: ${a.limite_profissionais} profissionais`:' • profissionais ilimitados'}${mode}${a.provedor_status?` • Mercado Pago: ${a.provedor_status}`:''}`;
       els.trial.innerHTML=a.trial_ativo?`<div class="trial-banner"><strong>Trial Premium ativo</strong><h2 style="margin:6px 0">${a.dias_trial} dia(s) restantes</h2><p>Você está testando todos os recursos Premium gratuitamente até ${dateBR(a.fim_trial)}.</p><div class="trial-progress"><div style="width:${Math.max(5,Math.min(100,(7-Number(a.dias_trial||0))/7*100))}%"></div></div></div>`:'';
       els.acoes.innerHTML='';
-      if(a.checkout_url&&a.provedor_status==='pending')els.acoes.innerHTML+=`<a class="btn btn-primary" href="${esc(a.checkout_url)}">Continuar pagamento no Mercado Pago</a>`;
+      const pendingCheckout=safeMercadoPagoUrl(a.checkout_url);if(pendingCheckout&&a.provedor_status==='pending')els.acoes.innerHTML+=`<a class="btn btn-primary" href="${esc(pendingCheckout)}">Continuar pagamento no Mercado Pago</a>`;
       if(a.status!=='cancelada'&&(a.referencia_externa||a.provedor==='mercadopago_pix'))els.acoes.innerHTML+=`<button class="btn btn-danger" id="cancelarAssinatura">Cancelar assinatura</button>`;
       $('cancelarAssinatura')?.addEventListener('click',cancelar);renderCatalog();
     }catch(e){flash(els.msg,e.message,'error')}
@@ -91,9 +91,9 @@ if(requireAuth(['dono'])){
         await new Promise(resolve=>setTimeout(resolve,900));
         try{r=await api('/assinatura/checkout',{method:'POST',body:JSON.stringify({plano:selectedPlan.id,ciclo:billingCycle})})}catch{throw firstError}
       }
-      if(!r.checkout_url)throw new Error('O Mercado Pago não retornou o link de pagamento.');
+      const checkout=safeMercadoPagoUrl(r.checkout_url);if(!checkout)throw new Error('O Mercado Pago não retornou um link de pagamento válido.');
       sessionStorage.setItem('bf_mp_checkout_pending','1');
-      window.location.assign(r.checkout_url);
+      window.location.assign(checkout);
     }catch(e){cardRedirecting=false;els.cardBtn.disabled=false;if(els.cardCheckout)els.cardCheckout.disabled=false;flash(els.payMsg,e.message,'error')}
   }
   async function generatePix(){
@@ -104,7 +104,7 @@ if(requireAuth(['dono'])){
       const r=await api('/assinatura/checkout/pix',{method:'POST',body:JSON.stringify({plano:selectedPlan.id,ciclo:billingCycle,documento:doc})});
       els.pixResult.classList.remove('hidden');els.pixCode.value=r.qr_code||'';
       if(r.qr_code_base64){els.pixQr.src=`data:image/png;base64,${r.qr_code_base64}`;els.pixQr.classList.remove('hidden')}else els.pixQr.classList.add('hidden');
-      if(r.ticket_url){els.pixTicket.href=r.ticket_url;els.pixTicket.classList.remove('hidden')}else els.pixTicket.classList.add('hidden');
+      const ticket=safeMercadoPagoUrl(r.ticket_url);if(ticket){els.pixTicket.href=ticket;els.pixTicket.classList.remove('hidden')}else els.pixTicket.classList.add('hidden');
       els.pixResult.scrollIntoView({behavior:'smooth',block:'nearest'});startPixPolling(r.pagamento_id);
     }catch(e){flash(els.payMsg,e.message,'error')}finally{els.generatePix.disabled=false;els.generatePix.textContent='Gerar QR Code Pix'}
   }

@@ -6,6 +6,7 @@ function configured(){return !!(base()&&key())}
 function instanceName(barbeariaId){return `barberflow${Number(barbeariaId)}`}
 function digits(v){return String(v||'').replace(/\D/g,'').slice(-15)}
 function validPhone(v){const d=digits(v);return d.length>=10&&d.length<=15}
+function providerCode(value){const s=String(value||'').trim().slice(0,120);return /^[A-Za-z0-9_.:-]+$/.test(s)?s:''}
 
 async function call(path,{method='GET',body,allow404=false}={}){
   if(!configured())throw new Error('Conector QR não configurado na infraestrutura do BarberFlow');
@@ -17,7 +18,7 @@ async function call(path,{method='GET',body,allow404=false}={}){
   });
   let d={};try{d=await r.json()}catch{}
   if(r.status===404&&allow404)return null;
-  if(!r.ok)throw new Error(d?.response?.message||d?.message||d?.error||`Conector QR respondeu ${r.status}`);
+  if(!r.ok){const e=new Error(`Conector QR HTTP ${r.status}`);e.status=r.status;e.providerCode=providerCode(d?.response?.code||d?.code||d?.error);throw e}
   return d;
 }
 
@@ -48,7 +49,7 @@ async function status(barbeariaId){
   try{
     const st=await stateByName(r.instance_name);
     if(st){const mapped=st==='open'?'conectado':st==='connecting'?'conectando':'desconectado';await save(barbeariaId,{status:mapped,conectado_em:mapped==='conectado'?(r.conectado_em||new Date()):r.conectado_em});return {configurado:true,conectado:mapped==='conectado',status:mapped,integracao:{...r,status:mapped}}}
-  }catch(e){return {configurado:true,conectado:false,status:r.status,integracao:r,aviso:e.message}}
+  }catch(e){console.error('whatsapp_qr_status',e.message);return {configurado:true,conectado:false,status:r.status,integracao:r,aviso:'Não foi possível consultar o conector QR'}}
   return {configurado:true,conectado:false,status:r.status,integracao:r};
 }
 function extractQr(d){

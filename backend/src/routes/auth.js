@@ -1,7 +1,6 @@
 const express = require('express');
 const { externalSignal } = require('../utils/http');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const pool = require('../config/db');
 
@@ -18,20 +17,25 @@ const {
     strongPassword,
     validEmail,
     verifyTurnstile,
-    normalizePhone
+    normalizePhone,
+    signAppToken,
+    verifyAppToken
 } = require('../utils/security');
 
 const {
     generateSecret,
-    verifyTotp,
+    matchingTotpStep,
     otpauthUri
 } = require('../utils/totp');
 
 const { cleanText } = require('../utils/validation');
 const {LEGAL_VERSION}=require('../services/launchReadiness');
 const {notificar}=require('../services/notifications');
+const {sendVerificationEmail}=require('../services/email');
+const {checkLoginThrottle,recordLoginFailure,clearLoginFailures,verifyAndConsumeTotp}=require('../services/accountSecurity');
 
 const router = express.Router();
+const DUMMY_PASSWORD_HASH='$2b$12$C6UzMDM.H6dfI/f/IKcEe.5onZl1LQH02lNLTQnBLoG/5.uq2qKma';
 
 
 /* =========================================================
@@ -48,6 +52,8 @@ function slugify(texto) {
         .replace(/(^-|-$)/g, '');
 }
 
+function boundedPassword(value){const s=String(value||'');return Buffer.byteLength(s,'utf8')<=72?s:''}
+
 
 router.get('/security-config', (req, res) => {
     return res.json({
@@ -58,7 +64,7 @@ router.get('/security-config', (req, res) => {
 
 
 function signSession(usuario) {
-    return jwt.sign(
+    return signAppToken(
         {
             purpose: 'session',
             id: usuario.id,
@@ -67,16 +73,19 @@ function signSession(usuario) {
             nome: usuario.nome,
             sv: Number(usuario.token_version || 0)
         },
-        process.env.JWT_SECRET,
         {
-            expiresIn: '12h',
-            algorithm: 'HS256'
+            expiresIn: '12h'
         }
     );
 }
 
 
-function setSession(res, usuario) {
+function setStepUpCookie(res,usuario,metodo){
+    const token=signAppToken({purpose:'stepup',id:usuario.id,sv:Number(usuario.token_version||0),metodo},{expiresIn:'10m'});
+    res.cookie('bf_stepup',token,{httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax',path:'/',maxAge:10*60*1000});
+}
+
+function setSession(res, usuario,{freshAuthMethod=null}={}) {
 
     const token = signSession(usuario);
 
@@ -86,14 +95,16 @@ function setSession(res, usuario) {
 
     csrfCookie(res, csrf);
 
+    if(freshAuthMethod)setStepUpCookie(res,usuario,freshAuthMethod);
+
     return csrf;
 }
 
 
 /* =========================================================
    REGISTRAR NOVA BARBEARIA
-   E-mail já nasce liberado
-   Trial Premium começa imediatamente
+   E-mail precisa ser confirmado
+   Trial Premium começa após a confirmação
 ========================================================= */
 
 router.post('/registrar', async (req, res) => {
@@ -294,14 +305,6 @@ router.post('/registrar', async (req, res) => {
         }
 
 
-        /*
-         * IMPORTANTE:
-         * email_verificado = true
-         *
-         * Não existe mais bloqueio
-         * obrigatório por e-mail.
-         */
-
         const tenant =
             await c.query(
                 `
@@ -318,7 +321,7 @@ router.post('/registrar', async (req, res) => {
                     $2,
                     $3,
                     true,
-                    true,
+                    false,
                     false
                 )
                 RETURNING *
@@ -378,6 +381,13 @@ router.post('/registrar', async (req, res) => {
                 ]
             );
 
+        const verificationToken=randomToken(32);
+        await c.query(
+            `INSERT INTO email_verification_tokens(usuario_id,token_hash,expira_em)
+             VALUES($1,$2,NOW()+INTERVAL '24 hours')`,
+            [usuario.rows[0].id,sha256(verificationToken)]
+        );
+
 
         await c.query(`INSERT INTO legal_acceptances(usuario_id,barbearia_id,documento,versao,ip,user_agent)
             VALUES($1,$2,'termos',$3,$4,$5),($1,$2,'privacidade',$3,$4,$5)
@@ -385,10 +395,6 @@ router.post('/registrar', async (req, res) => {
             usuario.rows[0].id,tenant.rows[0].id,LEGAL_VERSION,req.ip||null,String(req.headers['user-agent']||'').slice(0,1000)||null
         ]);
 
-
-        /*
-         * Trial começa imediatamente.
-         */
 
         await c.query(
             `
@@ -402,9 +408,9 @@ router.post('/registrar', async (req, res) => {
             VALUES(
                 $1,
                 'premium',
-                'trial',
-                CURRENT_DATE,
-                CURRENT_DATE + INTERVAL '7 days'
+                'trial_pendente',
+                NULL,
+                NULL
             )
             `,
             [
@@ -417,12 +423,16 @@ router.post('/registrar', async (req, res) => {
             'COMMIT'
         );
 
+        sendVerificationEmail({to:email,token:verificationToken})
+            .catch(e=>console.error('verification_email_failed',e.message));
+
         notificar('nova_barbearia',{barbearia_id:tenant.rows[0].id,barbearia:tenant.rows[0].nome,usuario_id:usuario.rows[0].id}).catch(()=>{});
 
 
         return res.status(201).json({
             mensagem:
-                'Conta criada com sucesso. Seu trial Premium de 7 dias começou.',
+                'Conta criada. Confirme seu e-mail para iniciar o trial Premium de 7 dias.',
+            email_verification_required:true,
             usuario: {
                 id:
                     usuario.rows[0].id,
@@ -480,18 +490,29 @@ router.post('/registrar', async (req, res) => {
 });
 
 
-/* =========================================================
-   COMPATIBILIDADE COM LINKS ANTIGOS
-========================================================= */
-
 router.post(
     '/verificar-email',
     async (req, res) => {
-
-        return res.json({
-            mensagem:
-                'A verificação de e-mail não é mais necessária. Você já pode entrar.'
-        });
+        const token=String(req.body?.token||'').trim();
+        if(!/^[A-Za-z0-9_-]{40,100}$/.test(token))return res.status(400).json({erro:'Link inválido ou expirado'});
+        const db=await pool.connect();
+        try{
+            await db.query('BEGIN');
+            const r=await db.query(`SELECT evt.id,evt.usuario_id,u.barbearia_id,b.email_verificado
+                FROM email_verification_tokens evt
+                JOIN usuarios u ON u.id=evt.usuario_id AND u.ativo=true
+                JOIN barbearias b ON b.id=u.barbearia_id AND COALESCE(b.is_system,false)=false
+                WHERE evt.token_hash=$1 AND evt.usado=false AND evt.expira_em>NOW()
+                FOR UPDATE OF evt,b`,[sha256(token)]);
+            if(!r.rowCount){await db.query('ROLLBACK');return res.status(400).json({erro:'Link inválido ou expirado'})}
+            const row=r.rows[0];
+            await db.query(`UPDATE email_verification_tokens SET usado=true WHERE usuario_id=$1`,[row.usuario_id]);
+            await db.query(`UPDATE barbearias SET email_verificado=true WHERE id=$1 AND COALESCE(is_system,false)=false`,[row.barbearia_id]);
+            await db.query(`UPDATE assinaturas SET status='trial',inicio=CURRENT_DATE,fim_trial=CURRENT_DATE+INTERVAL '7 days',atualizado_em=NOW()
+                WHERE id=(SELECT id FROM assinaturas WHERE barbearia_id=$1 AND status='trial_pendente' ORDER BY id DESC LIMIT 1)`,[row.barbearia_id]);
+            await db.query('COMMIT');
+            return res.json({mensagem:'E-mail confirmado. Seu trial Premium de 7 dias começou.'});
+        }catch(e){await db.query('ROLLBACK').catch(()=>{});console.error('email_verification_failed',e.message);return res.status(500).json({erro:'Não foi possível confirmar o e-mail agora'})}finally{db.release()}
     }
 );
 
@@ -499,11 +520,21 @@ router.post(
 router.post(
     '/reenviar-verificacao',
     async (req, res) => {
-
-        return res.json({
-            mensagem:
-                'A verificação de e-mail não é mais necessária. Você já pode entrar.'
-        });
+        const generic={mensagem:'Se a conta estiver pendente, um novo link será enviado.'};
+        const email=String(req.body?.email||'').trim().toLowerCase();
+        if(email.length>160||!validEmail(email))return res.json(generic);
+        try{
+            const r=await pool.query(`SELECT u.id,u.email FROM usuarios u JOIN barbearias b ON b.id=u.barbearia_id
+                WHERE LOWER(u.email)=LOWER($1) AND u.ativo=true AND COALESCE(b.is_system,false)=false AND COALESCE(b.email_verificado,false)=false`,[email]);
+            if(!r.rowCount)return res.json(generic);
+            const recent=await pool.query(`SELECT 1 FROM email_verification_tokens WHERE usuario_id=$1 AND criado_em>NOW()-INTERVAL '2 minutes' LIMIT 1`,[r.rows[0].id]);
+            if(recent.rowCount)return res.json(generic);
+            const token=randomToken(32);
+            await pool.query(`UPDATE email_verification_tokens SET usado=true WHERE usuario_id=$1 AND usado=false`,[r.rows[0].id]);
+            await pool.query(`INSERT INTO email_verification_tokens(usuario_id,token_hash,expira_em) VALUES($1,$2,NOW()+INTERVAL '24 hours')`,[r.rows[0].id,sha256(token)]);
+            await sendVerificationEmail({to:r.rows[0].email,token});
+            return res.json(generic);
+        }catch(e){console.error('resend_verification_failed',e.message);return res.status(503).json({erro:'Não foi possível enviar o e-mail agora. Tente novamente em alguns minutos.'})}
     }
 );
 
@@ -513,12 +544,14 @@ router.post(
 ========================================================= */
 
 router.post('/login', async (req, res) => {
-
-    const {
-        email,
-        senha,
-        mfa_code
-    } = req.body;
+    const email=String(req.body?.email||'').trim().toLowerCase().slice(0,161);
+    const senha=String(req.body?.senha||'');
+    const mfa_code=String(req.body?.mfa_code||'').slice(0,12);
+    const blocked=await checkLoginThrottle(email);
+    if(blocked.blocked){
+        res.setHeader('Retry-After',String(blocked.retryAfterSeconds));
+        return res.status(429).json({erro:'Muitas tentativas. Aguarde e tente novamente.'});
+    }
 
 
     const r =
@@ -527,7 +560,9 @@ router.post('/login', async (req, res) => {
             SELECT
                 u.*,
                 b.nome AS barbearia_nome,
-                b.slug
+                b.slug,
+                COALESCE(b.email_verificado,false) AS email_verificado,
+                COALESCE(b.is_system,false) AS is_system
             FROM usuarios u
             JOIN barbearias b
               ON b.id = u.barbearia_id
@@ -537,30 +572,26 @@ router.post('/login', async (req, res) => {
 
                 AND u.ativo = true
 
-                AND (
+                AND ((
                     u.papel = 'super_admin'
-
-                    OR (
-                        b.ativo = true
+                    AND COALESCE(b.is_system,false)=true
+                    ) OR (
+                        u.papel <> 'super_admin'
+                        AND COALESCE(b.is_system,false)=false
+                        AND b.ativo = true
                         AND b.excluido_em IS NULL
                     )
                 )
             `,
             [
-                email || ''
+                email
             ]
         );
 
-
-    if (
-        !r.rowCount ||
-        !(
-            await bcrypt.compare(
-                senha || '',
-                r.rows[0].senha_hash
-            )
-        )
-    ) {
+    const passwordOk=await bcrypt.compare(boundedPassword(senha),r.rows[0]?.senha_hash||DUMMY_PASSWORD_HASH);
+    if (!r.rowCount || !passwordOk || !validEmail(email)) {
+        const fail=await recordLoginFailure(email);
+        if(fail.blocked){res.setHeader('Retry-After',String(fail.retryAfterSeconds));return res.status(429).json({erro:'Muitas tentativas. Aguarde e tente novamente.'});}
         return res.status(401).json({
             erro:
                 'E-mail ou senha inválidos'
@@ -571,11 +602,10 @@ router.post('/login', async (req, res) => {
     const usuario =
         r.rows[0];
 
-
-    /*
-     * A verificação de e-mail
-     * NÃO bloqueia mais login.
-     */
+    if(usuario.papel!=='super_admin'&&!usuario.email_verificado){
+        await clearLoginFailures(email);
+        return res.status(403).json({erro:'Confirme seu e-mail antes de entrar',codigo:'EMAIL_NAO_VERIFICADO',email_verification_required:true});
+    }
 
 
     /* =====================================================
@@ -590,8 +620,10 @@ router.post('/login', async (req, res) => {
         !usuario.mfa_enabled
     ) {
 
+        await clearLoginFailures(email);
+
         const setupToken =
-            jwt.sign(
+            signAppToken(
                 {
                     purpose:
                         'mfa_setup',
@@ -606,14 +638,9 @@ router.post('/login', async (req, res) => {
                         )
                 },
 
-                process.env.JWT_SECRET,
-
                 {
                     expiresIn:
-                        '10m',
-
-                    algorithm:
-                        'HS256'
+                        '10m'
                 }
             );
 
@@ -656,12 +683,9 @@ router.post('/login', async (req, res) => {
         }
 
 
-        if (
-            !verifyTotp(
-                secret,
-                mfa_code
-            )
-        ) {
+        if (!(await verifyAndConsumeTotp(usuario.id,secret,mfa_code))) {
+            const fail=await recordLoginFailure(email);
+            if(fail.blocked){res.setHeader('Retry-After',String(fail.retryAfterSeconds));return res.status(429).json({erro:'Muitas tentativas. Aguarde e tente novamente.'});}
             return res
                 .status(428)
                 .json({
@@ -673,6 +697,8 @@ router.post('/login', async (req, res) => {
                 });
         }
     }
+
+    await clearLoginFailures(email);
 
 
     await pool.query(
@@ -690,7 +716,8 @@ router.post('/login', async (req, res) => {
     const csrf =
         setSession(
             res,
-            usuario
+            usuario,
+            {freshAuthMethod:usuario.mfa_enabled?'totp':'senha'}
         );
 
 
@@ -768,14 +795,7 @@ router.post(
         try {
 
             const payload =
-                jwt.verify(
-                    req.body.setup_token,
-                    process.env.JWT_SECRET,
-                    {
-                        algorithms:
-                            ['HS256']
-                    }
-                );
+                verifyAppToken(req.body.setup_token);
 
 
             if (
@@ -844,7 +864,8 @@ router.post(
                 UPDATE usuarios
                 SET
                     mfa_secret_enc = $1,
-                    mfa_enabled = false
+                    mfa_enabled = false,
+                    mfa_last_used_step = -1
                 WHERE id = $2
                 `,
                 [
@@ -890,14 +911,7 @@ router.post(
         try {
 
             const payload =
-                jwt.verify(
-                    req.body.setup_token,
-                    process.env.JWT_SECRET,
-                    {
-                        algorithms:
-                            ['HS256']
-                    }
-                );
+                verifyAppToken(req.body.setup_token);
 
 
             if (
@@ -961,12 +975,7 @@ router.post(
                 );
 
 
-            if (
-                !verifyTotp(
-                    secret,
-                    req.body.code
-                )
-            ) {
+            if (!(await verifyAndConsumeTotp(usuario.id,secret,req.body.code))) {
                 return res
                     .status(400)
                     .json({
@@ -1006,7 +1015,8 @@ router.post(
             const csrf =
                 setSession(
                     res,
-                    usuario
+                    usuario,
+                    {freshAuthMethod:'totp'}
                 );
 
 
@@ -1121,7 +1131,7 @@ router.post(
 
         const usuario = r.rows[0];
 
-        if (!usuario || !(await bcrypt.compare(senhaAtual, usuario.senha_hash))) {
+        if (!usuario || !(await bcrypt.compare(boundedPassword(senhaAtual), usuario.senha_hash))) {
             return res.status(400).json({
                 erro: 'Senha atual incorreta'
             });
@@ -1141,7 +1151,7 @@ router.post(
                 return res.status(500).json({ erro: 'MFA indisponível' });
             }
 
-            if (!verifyTotp(secret, mfaCode)) {
+            if (!(await verifyAndConsumeTotp(req.usuario.id,secret,mfaCode))) {
                 return res.status(400).json({
                     erro: 'Código MFA inválido'
                 });
@@ -1189,7 +1199,7 @@ router.post(
 
         const usuario = r.rows[0];
 
-        if (!usuario || !(await bcrypt.compare(senha, usuario.senha_hash))) {
+        if (!usuario || !(await bcrypt.compare(boundedPassword(senha), usuario.senha_hash))) {
             return res.status(400).json({ erro: 'Senha atual incorreta' });
         }
 
@@ -1200,7 +1210,7 @@ router.post(
         const secret = generateSecret();
         await pool.query(
             `UPDATE usuarios
-             SET mfa_secret_enc=$1,mfa_enabled=false,atualizado_em=NOW()
+             SET mfa_secret_enc=$1,mfa_enabled=false,mfa_last_used_step=-1,atualizado_em=NOW()
              WHERE id=$2`,
             [encrypt(secret), req.usuario.id]
         );
@@ -1233,7 +1243,7 @@ router.post(
 
         const usuario = r.rows[0];
 
-        if (!usuario || !(await bcrypt.compare(senha, usuario.senha_hash))) {
+        if (!usuario || !(await bcrypt.compare(boundedPassword(senha), usuario.senha_hash))) {
             return res.status(400).json({ erro: 'Senha atual incorreta' });
         }
 
@@ -1252,7 +1262,7 @@ router.post(
             return res.status(500).json({ erro: 'Não foi possível ler a configuração do MFA' });
         }
 
-        if (!verifyTotp(secret, code)) {
+        if (!(await verifyAndConsumeTotp(req.usuario.id,secret,code))) {
             return res.status(400).json({ erro: 'Código de 6 dígitos inválido' });
         }
 
@@ -1304,7 +1314,7 @@ router.post(
 
         const usuario = r.rows[0];
 
-        if (!usuario || !(await bcrypt.compare(senha, usuario.senha_hash))) {
+        if (!usuario || !(await bcrypt.compare(boundedPassword(senha), usuario.senha_hash))) {
             return res.status(400).json({ erro: 'Senha atual incorreta' });
         }
 
@@ -1319,7 +1329,7 @@ router.post(
             return res.status(500).json({ erro: 'MFA indisponível' });
         }
 
-        if (!verifyTotp(secret, code)) {
+        if (!(await verifyAndConsumeTotp(req.usuario.id,secret,code))) {
             return res.status(400).json({ erro: 'Código MFA inválido' });
         }
 
@@ -1377,7 +1387,7 @@ router.post(
 
         const usuario = r.rows[0];
 
-        if (!usuario || !(await bcrypt.compare(senha, usuario.senha_hash))) {
+        if (!usuario || !(await bcrypt.compare(boundedPassword(senha), usuario.senha_hash))) {
             return res.status(400).json({ erro: 'Senha atual incorreta' });
         }
 
@@ -1392,7 +1402,7 @@ router.post(
             return res.status(500).json({ erro: 'Não foi possível validar o 2FA atual' });
         }
 
-        if (!verifyTotp(atual, code)) {
+        if (!(await verifyAndConsumeTotp(req.usuario.id,atual,code))) {
             return res.status(400).json({ erro: 'Código do autenticador atual inválido' });
         }
 
@@ -1447,7 +1457,7 @@ router.post(
 
         const usuario = r.rows[0];
 
-        if (!usuario || !(await bcrypt.compare(senha, usuario.senha_hash))) {
+        if (!usuario || !(await bcrypt.compare(boundedPassword(senha), usuario.senha_hash))) {
             return res.status(400).json({ erro: 'Senha atual incorreta' });
         }
 
@@ -1462,7 +1472,8 @@ router.post(
             return res.status(500).json({ erro: 'Não foi possível ler a nova configuração de 2FA' });
         }
 
-        if (!verifyTotp(novoSecret, code)) {
+        const novoStep=matchingTotpStep(novoSecret,code);
+        if (novoStep===null) {
             return res.status(400).json({ erro: 'Código do novo autenticador inválido' });
         }
 
@@ -1471,11 +1482,12 @@ router.post(
              SET mfa_secret_enc=mfa_pending_secret_enc,
                  mfa_pending_secret_enc=NULL,
                  mfa_enabled=true,
+                 mfa_last_used_step=$2,
                  token_version=COALESCE(token_version,0)+1,
                  atualizado_em=NOW()
              WHERE id=$1
              RETURNING COALESCE(token_version,0)::int AS token_version`,
-            [req.usuario.id]
+            [req.usuario.id,novoStep]
         );
 
         const tokenVersion = Number(updated.rows[0]?.token_version || 0);
@@ -1525,17 +1537,19 @@ router.post(
     '/step-up',
     autenticar,
     async (req, res) => {
+        const throttle=await checkLoginThrottle(req.usuario.email);
+        if(throttle.blocked){res.setHeader('Retry-After',String(throttle.retryAfterSeconds));return res.status(429).json({erro:'Muitas tentativas. Aguarde e tente novamente.'});}
         const r=await pool.query(`SELECT senha_hash,papel,COALESCE(mfa_enabled,false) AS mfa_enabled,mfa_secret_enc FROM usuarios WHERE id=$1`,[req.usuario.id]);
         const usuario=r.rows[0];if(!usuario)return res.status(401).json({erro:'Usuário não encontrado'});
         let metodo='senha';
         if(usuario.mfa_enabled){
             metodo='totp';let secret;try{secret=decrypt(usuario.mfa_secret_enc)}catch{return res.status(500).json({erro:'2FA indisponível'})}
-            if(!verifyTotp(secret,req.body?.mfa_code))return res.status(401).json({erro:'Código de autenticação inválido'});
+            if(!(await verifyAndConsumeTotp(req.usuario.id,secret,req.body?.mfa_code))){const fail=await recordLoginFailure(req.usuario.email);if(fail.blocked)res.setHeader('Retry-After',String(fail.retryAfterSeconds));return res.status(fail.blocked?429:401).json({erro:fail.blocked?'Muitas tentativas. Aguarde e tente novamente.':'Código de autenticação inválido'});}
         }else{
-            if(!(await bcrypt.compare(String(req.body?.senha||''),usuario.senha_hash)))return res.status(401).json({erro:'Senha atual incorreta'});
+            if(!(await bcrypt.compare(boundedPassword(req.body?.senha),usuario.senha_hash))){const fail=await recordLoginFailure(req.usuario.email);if(fail.blocked)res.setHeader('Retry-After',String(fail.retryAfterSeconds));return res.status(fail.blocked?429:401).json({erro:fail.blocked?'Muitas tentativas. Aguarde e tente novamente.':'Senha atual incorreta'});}
         }
-        const token=jwt.sign({purpose:'stepup',id:req.usuario.id,sv:Number(req.usuario.token_version||0),metodo},process.env.JWT_SECRET,{expiresIn:'10m',algorithm:'HS256'});
-        res.cookie('bf_stepup',token,{httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax',path:'/',maxAge:10*60*1000});
+        await clearLoginFailures(req.usuario.email);
+        setStepUpCookie(res,req.usuario,metodo);
         return res.json({mensagem:'Confirmação de segurança válida por 10 minutos',metodo});
     }
 );
@@ -1630,18 +1644,14 @@ router.post(
             });
         }
 
+        const recentReset=await pool.query(`SELECT 1 FROM password_resets WHERE usuario_id=$1 AND criado_em>NOW()-INTERVAL '2 minutes' LIMIT 1`,[r.rows[0].id]);
+        if(recentReset.rowCount)return res.json({mensagem:'Se o e-mail existir, as instruções serão enviadas.'});
+
 
         await pool.query(
             `
             DELETE FROM password_resets
-            WHERE
-                usuario_id = $1
-
-                AND (
-                    usado = true
-
-                    OR expira_em <= NOW()
-                )
+            WHERE usuario_id = $1
             `,
             [
                 r.rows[0].id

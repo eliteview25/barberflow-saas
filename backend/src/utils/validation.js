@@ -28,7 +28,7 @@ function finitePercent(value,{min=0,max=100}={}){const n=Number(value);return Nu
 function safeColor(value,fallback=null){const s=String(value||'').trim();return /^#[0-9a-fA-F]{6}$/.test(s)?s:fallback;}
 function safeHttpUrl(value,{allowEmpty=true}={}){
   const s=String(value||'').trim();if(!s)return allowEmpty?null:false;
-  try{const u=new URL(s);return ['http:','https:'].includes(u.protocol)&&!u.username&&!u.password?u.href:false}catch{return false}
+  try{const u=new URL(s);if(!['http:','https:'].includes(u.protocol)||u.username||u.password)return false;if(process.env.NODE_ENV==='production'&&u.protocol!=='https:')return false;return u.href}catch{return false}
 }
 function safeCsvCell(value){
   let s=String(value??'').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g,' ');

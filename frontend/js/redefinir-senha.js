@@ -2,6 +2,7 @@ const token = new URLSearchParams(location.search).get('token') || '';
 const btn = document.getElementById('btn');
 const senha = document.getElementById('senha');
 const msg = document.getElementById('msg');
+senha.maxLength = 72;
 
 function aviso(texto, tipo = 'error') {
   msg.className = 'notice ' + tipo;
@@ -10,7 +11,7 @@ function aviso(texto, tipo = 'error') {
 
 async function validarLink() {
   if (!/^[a-f0-9]{64}$/i.test(token)) {
-    aviso('Link inv?lido ou expirado. Solicite uma nova recupera??o.');
+    aviso('Link inválido ou expirado. Solicite uma nova recuperação.');
     btn.disabled = true;
     return false;
   }
@@ -23,14 +24,14 @@ async function validarLink() {
     });
 
     if (!r.ok) {
-      aviso('Link inv?lido ou expirado. Solicite uma nova recupera??o.');
+      aviso('Link inválido ou expirado. Solicite uma nova recuperação.');
       btn.disabled = true;
       return false;
     }
 
     return true;
   } catch {
-    aviso('N?o foi poss?vel validar o link agora. Tente novamente.');
+    aviso('Não foi possível validar o link agora. Tente novamente.');
     btn.disabled = true;
     return false;
   }
@@ -52,7 +53,7 @@ btn.addEventListener('click', async () => {
     const d = await r.json().catch(() => ({}));
 
     aviso(
-      d.mensagem || d.erro || 'N?o foi poss?vel atualizar a senha.',
+      d.mensagem || d.erro || 'Não foi possível atualizar a senha.',
       r.ok ? 'success' : 'error'
     );
 

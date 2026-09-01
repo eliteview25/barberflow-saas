@@ -1,4 +1,5 @@
 if(requireAuth(['dono','gerente'])){
+  document.querySelectorAll('input[type="password"]').forEach(x=>x.maxLength=72);
   document.getElementById('shell').innerHTML=renderShell('config');
   const ids=['nome','telefone','email','endereco','cidade','estado','logo_url','banner_url','cor_primaria','cor_secundaria','cor_botao','cor_fundo','tema','descricao_publica','texto_boas_vindas','instagram','whatsapp_publico','mostrar_whatsapp_publico','mostrar_mapa_publico','mostrar_precos','mostrar_duracao','politica_cancelamento'];
   const el=Object.fromEntries(ids.map(id=>[id,document.getElementById(id)]));

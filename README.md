@@ -1,18 +1,18 @@
-# BarberFlow SaaS — Segurança V2 / Auditoria Profunda
+# BarberFlow SaaS 4.3.0 — segurança reforçada
 
 SaaS multiempresa para gestão de barbearias com agenda, clientes, equipe, serviços, página pública, pagamentos, PDV/estoque, CRM, fidelidade, automações, Supermaster e planos Starter/Pro/Premium.
 
 ## Segurança desta versão
 
-A V2 passou por uma revisão estática aprofundada de segurança, isolamento multi-tenant, concorrência, integridade financeira e confiabilidade de webhooks.
+A 4.3.0 passou por revisão integral do código seguindo OWASP Top 10 2025, OWASP API Security 2023, ASVS e OWASP Top 10 para aplicações com IA. Foram reforçados autenticação, autorização multi-tenant, MFA, sessões, webhooks, pagamentos, OAuth, uploads, erros, segredos, banco, backups e o agente de IA.
 
-Leia **`AUDITORIA-SEGURANCA-V2.md`** e **`APLICAR-V2.md`** antes do deploy.
+Leia **`SECURITY-AUDIT-4.3.0.md`**, **`BARBERFLOW-4.3.0.md`** e **`PRE-DEPLOY-SECURITY.md`** antes do deploy.
 
 ## Local
 
 ```powershell
 cd backend
-npm install
+npm ci
 Copy-Item .env.example .env
 npm run migrate
 npm start
@@ -20,7 +20,7 @@ npm start
 
 ## Produção
 
-Antes do primeiro deploy desta V2, rode `npm install` localmente dentro de `backend` e versione o `package-lock.json` atualizado. Depois, no Render, use `npm ci`. Após alteração de banco:
+Use `backend` como diretório raiz, preserve `backend/package-lock.json` e instale sempre com `npm ci`. Após configurar o ambiente:
 
 ```bash
 npm run migrate
@@ -29,6 +29,7 @@ npm run qa
 npm run audit:config
 npm run audit:pilot
 npm run audit:security
+npm run smoke:security
 ```
 
 ## Trial e planos
@@ -37,7 +38,7 @@ Novos tenants entram como `trial_pendente`; após verificar e-mail, começam Pre
 
 ## Importante
 
-Nenhuma revisão estática garante ausência total de vulnerabilidades. Antes de clientes pagantes em escala, use um ambiente staging e faça testes dinâmicos autorizados de isolamento de tenant, permissões, webhooks, sessões, uploads, pagamentos e concorrência de agenda.
+Nenhuma revisão estática torna um sistema invulnerável. Antes de clientes pagantes em escala, use staging, execute testes dinâmicos autorizados e mantenha WAF/rate limit distribuído, monitoramento, rotação de segredos, atualização de dependências e testes reais de restauração de backup.
 
 
 ## Planos comerciais atuais

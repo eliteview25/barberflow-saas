@@ -3,6 +3,11 @@ const {CATALOGO}=require('./planCatalog');
 
 const BASE = 'https://api.mercadopago.com';
 
+function providerCode(value){
+  const normalized=String(value||'').trim().slice(0,120);
+  return /^[A-Za-z0-9_.:-]+$/.test(normalized)?normalized:'';
+}
+
 function tenantWebhookKey(){
   const root=String(process.env.MP_WEBHOOK_TENANT_SECRET||process.env.APP_SECRETS_ENCRYPTION_KEY||'');
   if(!root)return null;
@@ -21,12 +26,13 @@ async function platformAccessToken() {
 async function mpFetch(path, options = {}) {
   const timeout=Math.max(1000,Math.min(30000,Number(process.env.EXTERNAL_HTTP_TIMEOUT_MS||10000)||10000));
   const token=options.accessToken || await platformAccessToken();
+  const {accessToken,idempotencyKey,...requestOptions}=options;
   const resposta = await fetch(`${BASE}${path}`, {
-    ...options,
+    ...requestOptions,
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
-      ...(options.idempotencyKey ? {'X-Idempotency-Key': options.idempotencyKey} : {}),
+      ...(idempotencyKey ? {'X-Idempotency-Key': idempotencyKey} : {}),
       ...(options.headers || {})
     },
     signal: options.signal || AbortSignal.timeout(timeout)
@@ -34,9 +40,14 @@ async function mpFetch(path, options = {}) {
   let data = {};
   try { data = await resposta.json(); } catch {}
   if (!resposta.ok) {
-    const erro = new Error(data.message || data.error || `Mercado Pago respondeu ${resposta.status}`);
+    // Provider bodies can contain payer data, credentials echoed by an upstream
+    // proxy, or implementation details. Preserve only bounded machine codes.
+    const erro = new Error(`Mercado Pago HTTP ${resposta.status}`);
     erro.status = resposta.status;
-    erro.data = data;
+    erro.providerCode = providerCode(data?.error||data?.code);
+    erro.providerCauses = Array.isArray(data?.cause)
+      ? data.cause.slice(0,10).map(c=>providerCode(c?.code)).filter(Boolean)
+      : [];
     erro.retryAfter = resposta.headers.get('retry-after');
     throw erro;
   }
@@ -63,10 +74,12 @@ function tituloPlano(plano) {
 function checkoutUrlAssinatura(subscription){
   const id=String(subscription?.id||'').trim();
   const direct=String(subscription?.init_point||subscription?.sandbox_init_point||'').trim();
-  if(direct)return direct;
+  if(direct)return safeMercadoPagoCheckoutUrl(direct);
   if(!id||id.length>160)return null;
   return `https://www.mercadopago.com.br/subscriptions/checkout?preapproval_id=${encodeURIComponent(id)}`;
 }
+
+function safeMercadoPagoCheckoutUrl(value){try{const u=new URL(String(value||''));const host=u.hostname.toLowerCase();if(u.protocol!=='https:'||u.username||u.password)return null;if(host==='mercadopago.com'||host.endsWith('.mercadopago.com')||host==='mercadopago.com.br'||host.endsWith('.mercadopago.com.br'))return u.toString();return null}catch{return null}}
 
 async function criarAssinatura({ barbeariaId, plano, ciclo='mensal', email, idempotencyKey }) {
   const appUrl = process.env.APP_URL || 'http://localhost:3001';
@@ -189,11 +202,10 @@ function validarWebhook({ xSignature, xRequestId, dataId, secret }) {
     parts[k]=v;
   }
   if (!/^\d{9,16}$/.test(parts.ts||'') || !/^[a-fA-F0-9]{64}$/.test(parts.v1||'')) return false;
-  const maxAge=Number(process.env.MP_WEBHOOK_MAX_AGE_SECONDS||0);
-  if(Number.isFinite(maxAge)&&maxAge>0){
-    let stamp=Number(parts.ts);if(stamp>1e12)stamp=Math.floor(stamp/1000);
-    if(!Number.isFinite(stamp)||Math.abs(Math.floor(Date.now()/1000)-stamp)>Math.min(maxAge,86400*7))return false;
-  }
+  const configured=Number(process.env.MP_WEBHOOK_MAX_AGE_SECONDS||300);
+  const maxAge=Number.isFinite(configured)?Math.max(60,Math.min(3600,configured)):300;
+  let stamp=Number(parts.ts);if(stamp>1e12)stamp=Math.floor(stamp/1000);
+  if(!Number.isFinite(stamp)||Math.abs(Math.floor(Date.now()/1000)-stamp)>maxAge)return false;
   const manifest = `id:${String(dataId)};request-id:${String(xRequestId)};ts:${parts.ts};`;
   const calculado = crypto.createHmac('sha256', secret).update(manifest).digest('hex');
   const a = Buffer.from(calculado, 'hex');
@@ -205,6 +217,7 @@ module.exports = {
   criarAssinatura,
   buscarAssinaturaPorReferencia,
   checkoutUrlAssinatura,
+  safeMercadoPagoCheckoutUrl,
   criarPreferenciaAgendamento,
   obterAssinatura,
   atualizarStatusAssinatura,

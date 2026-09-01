@@ -35,7 +35,7 @@ test('login exige MFA para qualquer usuário que tenha 2FA ativo',()=>{
 
 test('configurações oferecem troca de senha com revogação de outras sessões',()=>{
   assert.match(auth,/['"]\/change-password['"]/);
-  assert.match(auth,/bcrypt\.compare\(senhaAtual, usuario\.senha_hash\)/);
+  assert.match(auth,/bcrypt\.compare\(boundedPassword\(senhaAtual\), usuario\.senha_hash\)/);
   assert.match(auth,/strongPassword\(novaSenha\)/);
   assert.match(auth,/token_version=COALESCE\(token_version,0\)\+1/);
   assert.match(html,/id="senhaAtual"/);
@@ -47,7 +47,7 @@ test('2FA opcional usa segredo criptografado e confirmação TOTP',()=>{
   assert.match(auth,/['"]\/mfa\/enroll['"]/);
   assert.match(auth,/encrypt\(secret\)/);
   assert.match(auth,/['"]\/mfa\/enable['"]/);
-  assert.match(auth,/verifyTotp\(secret, code\)/);
+  assert.match(auth,/verifyAndConsumeTotp\(req\.usuario\.id,secret,code\)/);
   assert.match(auth,/['"]\/mfa\/disable['"]/);
   assert.match(auth,/mfa_secret_enc=NULL/);
 });

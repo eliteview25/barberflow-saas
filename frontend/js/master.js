@@ -1,4 +1,5 @@
 if(requireAuth(['super_admin'])){
+  document.querySelectorAll('input[type="password"]').forEach(x=>x.maxLength=72);
   const $=id=>document.getElementById(id);
   $('shell').innerHTML=renderShell('master');
   let cache=[];

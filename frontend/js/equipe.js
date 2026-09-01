@@ -1,4 +1,5 @@
 if(requireAuth(['dono','gerente'])){
+  if(window.uSenha){uSenha.minLength=12;uSenha.maxLength=72;uSenha.autocomplete='new-password'}
   document.getElementById('shell').innerHTML=renderShell('equipe');
   if(!hasFeature('equipe')){document.querySelector('main.main').innerHTML='<header class="topbar"><div><h1>Equipe e acessos</h1></div></header><div class="upgrade-card"><strong>🔒 Recurso Pro</strong><p>Equipe e permissões ficam disponíveis nos planos Pro e Premium.</p><a class="btn btn-primary" href="/pages/assinatura.html">Ver planos</a></div>'; } else {
   const owner=hasRole('dono'); let dados=[]; let profissionais=[];

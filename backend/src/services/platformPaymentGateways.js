@@ -29,7 +29,7 @@ async function verifyMercadoPagoAccessToken(token){
 async function inspectMercadoPagoCapabilities(token){
   const r=await fetch('https://api.mercadopago.com/v1/payment_methods',{headers:{Authorization:`Bearer ${token}`},signal:externalSignal()});
   let d=[];try{d=await r.json()}catch{}
-  if(!r.ok)return {checked:false,pix_available:null,credit_card_available:null,error:String(d?.message||d?.error||`Mercado Pago respondeu ${r.status}`).slice(0,180)};
+  if(!r.ok){console.error('platform_mp_capabilities',{status:r.status});return {checked:false,pix_available:null,credit_card_available:null,error:'Não foi possível consultar os meios de pagamento'}};
   const methods=Array.isArray(d)?d:[];
   const enabled=m=>!['inactive','disabled','unavailable'].includes(String(m?.status||'').toLowerCase());
   const pix=methods.find(m=>m?.id==='pix'&&enabled(m));

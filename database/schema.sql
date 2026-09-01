@@ -285,3 +285,30 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_notificacoes_chave_unica ON notificacoes(ch
 CREATE INDEX IF NOT EXISTS ix_notificacoes_tenant_data ON notificacoes(barbearia_id,criado_em DESC) WHERE audiencia='tenant';
 CREATE INDEX IF NOT EXISTS ix_notificacoes_master_data ON notificacoes(criado_em DESC) WHERE audiencia='super_admin';
 CREATE INDEX IF NOT EXISTS ix_notificacoes_leituras_usuario ON notificacoes_leituras(usuario_id,lida_em DESC);
+
+-- BarberFlow 4.3 — autenticação, anti-replay e limitação persistente
+ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS email_verificado BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE barbearias ALTER COLUMN email_verificado SET DEFAULT false;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS mfa_secret_enc TEXT;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS mfa_pending_secret_enc TEXT;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS mfa_enabled BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS mfa_last_used_step BIGINT NOT NULL DEFAULT -1;
+CREATE TABLE IF NOT EXISTS email_verification_tokens(
+  id BIGSERIAL PRIMARY KEY,
+  usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  token_hash TEXT UNIQUE NOT NULL,
+  expira_em TIMESTAMP NOT NULL,
+  usado BOOLEAN NOT NULL DEFAULT false,
+  criado_em TIMESTAMP NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS ix_email_verify_expira ON email_verification_tokens(expira_em,usado);
+CREATE TABLE IF NOT EXISTS auth_login_attempts(
+  subject_hash VARCHAR(64) PRIMARY KEY,
+  failures INTEGER NOT NULL DEFAULT 0,
+  first_failed_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  last_failed_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  blocked_until TIMESTAMP,
+  atualizado_em TIMESTAMP NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS ix_auth_login_attempts_cleanup ON auth_login_attempts(atualizado_em);

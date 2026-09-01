@@ -8,6 +8,7 @@ const {ensureTenantLifecycleSchema,purgeExpiredTenants}=require('./src/services/
  r=await pool.query(`DELETE FROM password_resets WHERE (usado=true OR expira_em<NOW()) AND criado_em<NOW()-INTERVAL '7 days'`);out.password_resets_removidos=r.rowCount;
  r=await pool.query(`DELETE FROM email_verification_tokens WHERE (usado=true OR expira_em<NOW()) AND criado_em<NOW()-INTERVAL '7 days'`);out.email_tokens_removidos=r.rowCount;
  r=await pool.query(`DELETE FROM booking_otps WHERE (usado=true OR expira_em<NOW()) AND criado_em<NOW()-INTERVAL '2 days'`);out.booking_otps_removidos=r.rowCount;
+ r=await pool.query(`DELETE FROM auth_login_attempts WHERE atualizado_em<NOW()-INTERVAL '30 days'`);out.login_attempts_removidos=r.rowCount;
  r=await pool.query(`DELETE FROM whatsapp_sessoes WHERE atualizado_em<NOW()-INTERVAL '3 days'`);out.sessoes_whatsapp_removidas=r.rowCount;
  r=await pool.query(`UPDATE webhook_events SET status='erro',erro=COALESCE(erro,'Processamento interrompido; liberado pela manutenção'),proxima_tentativa=NOW(),atualizado_em=NOW() WHERE status='processando' AND atualizado_em<NOW()-INTERVAL '15 minutes'`);out.webhooks_destravados=r.rowCount;
  r=await pool.query(`UPDATE automacoes_envios SET status='erro',erro=COALESCE(erro,'Envio interrompido; liberado pela manutenção'),proxima_tentativa=NOW(),atualizado_em=NOW() WHERE status='processando' AND COALESCE(atualizado_em,enviado_em)<NOW()-INTERVAL '30 minutes' AND tentativas<5`);out.automacoes_destravadas=r.rowCount;

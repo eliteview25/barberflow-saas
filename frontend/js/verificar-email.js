@@ -1,68 +1,12 @@
-(() => {
-    const token = new URLSearchParams(window.location.search).get('token');
-    const msg = document.getElementById('msg');
-    const btn = document.getElementById('confirmarEmail');
-
-    if (
-        !token ||
-        token.length < 32 ||
-        token.length > 200 ||
-        !/^[A-Za-z0-9_-]+$/.test(token)
-    ) {
-        msg.textContent = 'Link inválido ou expirado';
-        msg.className = 'notice error';
-        btn.hidden = true;
-        return;
-    }
-
-    msg.textContent = 'Clique no botão abaixo para confirmar seu e-mail.';
-    btn.hidden = false;
-
-    btn.addEventListener('click', async () => {
-        btn.disabled = true;
-        msg.textContent = 'Confirmando e-mail...';
-
-        try {
-            const r = await fetch('/api/auth/verificar-email', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ token })
-            });
-
-            let d = {};
-
-            try {
-                d = await r.json();
-            } catch {}
-
-            if (r.ok) {
-                msg.textContent =
-                    d.mensagem ||
-                    'E-mail confirmado com sucesso.';
-
-                msg.className = 'notice success';
-                btn.hidden = true;
-
-                setTimeout(() => {
-                    window.location.href = '/login.html';
-                }, 2000);
-
-                return;
-            }
-
-            msg.textContent =
-                d.erro ||
-                `Não foi possível confirmar o e-mail. Código ${r.status}`;
-
-            msg.className = 'notice error';
-            btn.disabled = false;
-
-        } catch {
-            msg.textContent = 'Não foi possível confirmar o e-mail';
-            msg.className = 'notice error';
-            btn.disabled = false;
-        }
-    });
+(()=>{
+  const msg=document.getElementById('msg'),button=document.getElementById('confirmarEmail');
+  const params=new URLSearchParams(location.search),token=String(params.get('token')||''),email=String(params.get('email')||'');
+  async function verify(){
+    button.disabled=true;
+    try{const r=await fetch('/api/auth/verificar-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})});const d=await r.json();if(!r.ok)throw new Error(d.erro||'Link inválido ou expirado');msg.textContent=d.mensagem;msg.className='notice success';button.hidden=true;setTimeout(()=>location.replace('/login.html?email_verificado=1'),1200)}catch(e){msg.textContent=e.message;msg.className='notice error';button.hidden=false;button.textContent='Tentar novamente'}finally{button.disabled=false}
+  }
+  async function resend(){button.disabled=true;try{const r=await fetch('/api/auth/reenviar-verificacao',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});const d=await r.json();if(!r.ok)throw new Error(d.erro||'Não foi possível reenviar');msg.textContent=d.mensagem;msg.className='notice success'}catch(e){msg.textContent=e.message;msg.className='notice error'}finally{button.disabled=false}}
+  if(/^[A-Za-z0-9_-]{40,100}$/.test(token)){button.hidden=false;button.textContent='Confirmar meu e-mail';button.onclick=verify;verify()}
+  else if(email){msg.textContent='Enviamos um link de confirmação. Verifique sua caixa de entrada e o spam.';msg.className='notice success';button.hidden=false;button.textContent='Reenviar link';button.onclick=resend}
+  else{msg.textContent='Abra o link recebido por e-mail para confirmar sua conta.';msg.className='notice'}
 })();

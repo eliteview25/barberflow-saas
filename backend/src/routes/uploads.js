@@ -38,7 +38,7 @@ async function uploadImage(req,res,{folderSuffix='',transformation='c_limit,w_24
     const cloud = process.env.CLOUDINARY_CLOUD_NAME;
     const key = process.env.CLOUDINARY_API_KEY;
     const secret = process.env.CLOUDINARY_API_SECRET;
-    if (!cloud || !key || !secret) return res.status(503).json({ erro: 'Upload ainda não configurado' });
+    if (!/^[a-zA-Z0-9_-]{1,80}$/.test(String(cloud||'')) || !key || !secret) return res.status(503).json({ erro: 'Upload ainda não configurado' });
 
     const timestamp = Math.floor(Date.now() / 1000);
     const folder = `barberflow/${req.usuario.barbearia_id}${folderSuffix?`/${folderSuffix}`:''}`;
@@ -54,8 +54,10 @@ async function uploadImage(req,res,{folderSuffix='',transformation='c_limit,w_24
 
     const r = await fetch(`https://api.cloudinary.com/v1_1/${cloud}/image/upload`, { method: 'POST', body: fd, signal: externalSignal() });
     let d={}; try{d=await r.json()}catch{}
-    if (!r.ok) throw new Error(d?.error?.message || 'Falha no upload');
-    return res.status(201).json({ url: d.secure_url, public_id: d.public_id, width: d.width, height: d.height });
+    if (!r.ok) throw new Error(`Cloudinary HTTP ${r.status}`);
+    const secureUrl=String(d.secure_url||'');let parsed;try{parsed=new URL(secureUrl)}catch{}
+    if(!parsed||parsed.protocol!=='https:'||parsed.hostname!=='res.cloudinary.com')throw new Error('Resposta de upload inválida');
+    return res.status(201).json({ url: parsed.href, public_id: String(d.public_id||'').slice(0,300), width: Number(d.width)||meta.width, height: Number(d.height)||meta.height });
   } catch (e) {
     console.error('upload_image_failed',{request_id:req.requestId,message:e.message});
     return res.status(500).json({ erro: 'Erro ao enviar imagem', request_id:req.requestId });

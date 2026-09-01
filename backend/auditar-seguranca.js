@@ -56,11 +56,13 @@ const frontFiles = filesRecursive(path.resolve(root, '../frontend'));
 const front = frontFiles.map(p => fs.readFileSync(p, 'utf8')).join('\n');
 const runtime = filesRecursive(path.join(root, 'src'), /\.js$/i).map(p => fs.readFileSync(p, 'utf8')).join('\n');
 
-console.log('=== Auditoria estática de regressão de segurança V2 ===');
+console.log('=== Auditoria estática de regressão de segurança 4.3.0 ===');
 check(/contentSecurityPolicy\s*:\s*\{/.test(app) && !/contentSecurityPolicy\s*:\s*false/.test(app), 'CSP está habilitada');
 check(/bf_session/.test(mw) && /httpOnly\s*:\s*true/.test(sec) && /validateCsrf/.test(mw), 'Sessão usa cookie HttpOnly e CSRF');
 check(/token_version/.test(auth) && /token_version/.test(mw), 'Versão de sessão revoga JWTs antigos');
-check(/algorithm\s*:\s*['\"]HS256['\"]/.test(auth) && /algorithms\s*:\s*\[\s*['\"]HS256['\"]\s*\]/.test(auth) && /algorithms\s*:\s*\[\s*['\"]HS256['\"]\s*\]/.test(mw), 'JWT fixa explicitamente HS256 em emissão e verificação');
+check(/email_verification_tokens/.test(auth) && /EMAIL_NAO_VERIFICADO/.test(auth) && /email_verificado=true/.test(auth), 'Cadastro exige comprovação de e-mail antes de liberar a conta');
+check(/checkLoginThrottle/.test(auth) && /recordLoginFailure/.test(auth) && /auth_login_attempts/.test(mig), 'Login e step-up usam bloqueio persistente por conta');
+check(/algorithm\s*:\s*['\"]HS256['\"]/.test(sec) && /algorithms\s*:\s*\[\s*['\"]HS256['\"]\s*\]/.test(sec) && /verifyAppToken/.test(auth) && /verifyAppToken/.test(mw), 'JWT fixa explicitamente HS256 em emissão e verificação centralizadas');
 check(/exigirStepUp/.test(master) && /mfa_enabled/.test(auth), 'Supermaster usa MFA + step-up');
 check(/if \(usuario\.mfa_enabled\)/.test(auth) && /\/mfa\/enroll/.test(auth) && /\/mfa\/enable/.test(auth) && /encrypt\(secret\)/.test(auth), 'Usuários podem ativar MFA TOTP opcional com segredo criptografado');
 check(/\/change-password/.test(auth) && /strongPassword\(novaSenha\)/.test(auth) && /token_version=COALESCE\(token_version,0\)\+1/.test(auth), 'Troca de senha exige senha forte e revoga sessões antigas');
@@ -91,18 +93,21 @@ check(/ck_vendas_recebimento/.test(mig) && /valor_pre_pago/.test(operacao) && /v
 check(/safeCsvCell/.test(validation) && /csvQuote/.test(operacao), 'Exportação CSV neutraliza Formula Injection');
 check(/inspectImage/.test(upload) && /fl_strip_profile/.test(upload), 'Upload valida bytes/dimensões e remove metadados');
 check(/FOR UPDATE/.test(oauth) && /refreshIntegration\(barbeariaId\)/.test(oauth), 'Refresh OAuth Mercado Pago é serializado');
+check(/stateHash\(state\)/.test(oauth) && /encrypt\(verifier\)/.test(oauth) && /decrypt\(st\.rows\[0\]\.code_verifier\)/.test(oauth), 'OAuth armazena state em hash e PKCE verifier criptografado');
 check(/claimDelivery/.test(automacoes) && /status='processando'/.test(automacoes) && /tentativas/.test(automacoes) && /atualizado_em/.test(automacoes), 'Lembretes têm claim atômico, timestamp próprio e limite de tentativas');
 check(/timingSafeText/.test(automacoes) && /x-cron-secret/.test(automacoes), 'Cron usa comparação constante de segredo');
 check(/AND c\.barbearia_id=a\.barbearia_id/.test(tenant) && /AND s\.barbearia_id=a\.barbearia_id/.test(tenant), 'Consultas tenant usam joins defensivos por barbearia');
 check(!/localStorage\.(getItem|setItem)\(['"](?:token|bf_token|jwt|access_token)/i.test(front), 'Frontend não persiste token de autenticação em localStorage');
 check(!Object.prototype.hasOwnProperty.call(pkg.dependencies || {}, 'multer'), 'Dependência Multer vulnerável/dispensável foi removida do runtime');
 check(/feePct>30/.test(mp), 'Taxa marketplace tem teto defensivo de 30% também no runtime');
+check(/providerCauses/.test(mp) && !/erro\.data\s*=/.test(mp) && !/d\.message|c\?\.description/.test(tenant), 'Erros Mercado Pago não preservam payload bruto ou mensagem não confiável');
+check(/function integrationError/.test(wa) && !/json\(\{erro:e\.message/.test(wa) && !/return\{provider,messages:[^}]*raw:/.test(whatsappProviders), 'Erros WhatsApp não expõem resposta bruta do provedor');
 check(/return `mp:\$\{String\(type\|\|'unknown'\).*:\$\{own\}`/.test(mpRoute), 'Webhook Mercado Pago prioriza ID lógico da notificação para idempotência');
 check(!/eval\s*\(|new Function\s*\(/.test(runtime), 'Runtime não usa eval/new Function');
 check(/barbearia_id INTEGER PRIMARY KEY REFERENCES barbearias/.test(aiConfig) && /req\.usuario\.barbearia_id/.test(aiRoute), 'Preparação da IA mantém configuração isolada por tenant');
 check(/allowedAiTools/.test(aiRoute) && /TOOL_MAP/.test(aiPolicy) && !/SELECT|INSERT|UPDATE|DELETE/i.test(aiPolicy), 'IA futura usa allowlist de ferramentas sem SQL gerado pelo modelo');
 check(/OPENAI_API_KEY/.test(aiRoute) && /exigirStepUp/.test(aiRoute) && !/router\.post\(['"]\/(?:chat|mensagem|responder)/.test(aiRoute) && /\/v1\/responses/.test(aiAgent) && /json_schema/.test(aiAgent) && /Não execute ações/.test(aiAgent), 'Motor de IA exige infraestrutura, step-up e saída estruturada sem execução direta');
-check(/getPlatformMercadoPagoCredentials/.test(tenant) && /status:\s*'pending'/.test(mp) && /checkoutUrlAssinatura\(mp\)/.test(tenant) && /subscription\?\.init_point\|\|subscription\?\.sandbox_init_point/.test(mp) && /subscriptions\/checkout\?preapproval_id=/.test(mp) && /window\.location\.assign\(r\.checkout_url\)/.test(front) && !/sdk\.mercadopago\.com/.test(app), 'Checkout de cartão usa URL oficial do Mercado Pago sem coletar cartão no BarberFlow');
+check(/getPlatformMercadoPagoCredentials/.test(tenant) && /status:\s*'pending'/.test(mp) && /checkoutUrlAssinatura\(mp\)/.test(tenant) && /safeMercadoPagoCheckoutUrl/.test(mp) && /subscriptions\/checkout\?preapproval_id=/.test(mp) && /safeMercadoPagoUrl\(r\.checkout_url\)/.test(front) && /window\.location\.assign\(checkout\)/.test(front) && !/sdk\.mercadopago\.com/.test(app), 'Checkout de cartão valida URL oficial do Mercado Pago e não coleta cartão no BarberFlow');
 check(/qr_code_base64/.test(tenant) && /payment_method_id:'pix'/.test(mp) && /X-Idempotency-Key/.test(mp), 'Checkout Pix da assinatura usa QR interno e idempotência');
 check(/barberflow-subscription-pix/.test(subPayments) && /expectedTenantId/.test(subPayments) && /Math\.abs\(amount-Number\(row\.valor\)\)>0\.01/.test(subPayments), 'Pagamento Pix do SaaS reconcilia tenant e valor antes de ativar plano');
 check(/atualizarPlanoAssinatura/.test(tenant) && /auto_recurring/.test(mp), 'Migração de plano atualiza assinatura recorrente existente sem duplicar contrato');
@@ -213,4 +218,4 @@ if (leaked) {
 }
 console.log(`Resumo: ${fail} falha(s), ${warn} aviso(s).`);
 process.exitCode = fail ? 1 : 0;
-if (!fail) console.log('🔐 Auditoria estática V2 passou.');
+if (!fail) console.log('🔐 Auditoria estática 4.3.0 passou.');

@@ -3,7 +3,8 @@ const {recordSystemEvent}=require('../services/launchReadiness');
 const {notifyOps}=require('../services/opsAlerts');
 
 function requestContext(req,res,next){
-  const requestId = String(req.headers['x-request-id'] || crypto.randomUUID()).slice(0,128);
+  const incoming=String(req.headers['x-request-id']||'');
+  const requestId = /^[A-Za-z0-9._:-]{1,64}$/.test(incoming)?incoming:crypto.randomUUID();
   req.requestId = requestId;
   res.setHeader('X-Request-Id',requestId);
   const inicio = process.hrtime.bigint();

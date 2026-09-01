@@ -1,12 +1,16 @@
 # Backup de produção
 
-O projeto inclui `npm run backup`.
+Execute `npm run backup` por um job isolado e periódico. O processo gera backup lógico, compacta com gzip, cifra com AES-256-GCM usando `BACKUP_ENCRYPTION_KEY` e envia para `BACKUP_UPLOAD_URL`.
 
-Ele cria um backup lógico completo em JSON, compacta com gzip e criptografa com AES-256-GCM antes de gravar o arquivo `.bfbackup`. A chave vem de `BACKUP_ENCRYPTION_KEY` e nunca deve ser versionada.
+Em produção, um arquivo apenas no disco local não deve ser considerado backup durável e é tratado como falha: esse disco pode ser efêmero. Use storage externo com controle de acesso, criptografia, retenção, versionamento/imutabilidade e registro de auditoria.
 
-## Importante
-O disco local de um serviço web pode ser efêmero. Um arquivo criado apenas em `BACKUP_DIR` **não deve ser considerado backup durável**.
+Requisitos:
 
-Para produção configure `BACKUP_UPLOAD_URL` para um storage externo/endpoint de retenção e agende `npm run backup` em um job periódico da infraestrutura. O Supermaster mostra o resultado do último backup em Saúde do sistema.
+- chave aleatória exclusiva de 48+ caracteres, armazenada fora do banco e do backup;
+- política de retenção compatível com LGPD e necessidade do negócio;
+- cópia em domínio de falha diferente do banco principal;
+- alerta automático para execução ausente ou falha;
+- teste periódico de restauração em ambiente isolado;
+- rotação documentada da chave sem perder acesso às cópias antigas.
 
-Para escala maior, prefira também backups/PITR gerenciados pelo provedor PostgreSQL.
+Para recuperação ponto no tempo e escala maior, habilite também backup/PITR gerenciado no provedor PostgreSQL. Um backup só é confiável depois que a restauração foi comprovada.

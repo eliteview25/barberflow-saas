@@ -53,7 +53,8 @@ async function done(provider,eventId){
 
 async function fail(provider,eventId,error,attempt=1){
   const permanent=Number(attempt)>=maxAttempts();const mins=backoffMinutes(attempt);
-  await pool.query(`UPDATE webhook_events SET status=$3,erro=$4,proxima_tentativa=CASE WHEN $3='falha_permanente' THEN NULL ELSE NOW()+($5*INTERVAL '1 minute') END,atualizado_em=NOW() WHERE provider=$1 AND event_id=$2`,[provider,String(eventId),permanent?'falha_permanente':'erro',String(error?.message||error||'erro').slice(0,2000),mins]);
+  const rawCode=String(error?.providerCode||error?.code||'processing_error').slice(0,120),safeCode=/^[A-Za-z0-9_.:-]+$/.test(rawCode)?rawCode:'processing_error';
+  await pool.query(`UPDATE webhook_events SET status=$3,erro=$4,proxima_tentativa=CASE WHEN $3='falha_permanente' THEN NULL ELSE NOW()+($5*INTERVAL '1 minute') END,atualizado_em=NOW() WHERE provider=$1 AND event_id=$2`,[provider,String(eventId),permanent?'falha_permanente':'erro',safeCode,mins]);
 }
 
 async function processEvent(provider,eventId,processor){
