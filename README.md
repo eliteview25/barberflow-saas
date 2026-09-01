@@ -1,4 +1,4 @@
-# BarberFlow SaaS 4.4.8 — Pix em um clique + card compacto no mobile
+# BarberFlow SaaS 4.4.9 — WhatsApp respeita almoço em tempo real
 
 SaaS multiempresa para gestão de barbearias com agenda, clientes, equipe, serviços, página pública, pagamentos, PDV/estoque, CRM, fidelidade, automações, Supermaster e planos Starter/Pro/Premium.
 
@@ -121,3 +121,10 @@ Aprovação de Pix manual em um clique, sem segundo modal de step-up, com regist
 - Card de confirmação/recebimento de Pix menor e centralizado no mobile.
 - Mantida a confirmação Pix em um clique da 4.4.7.
 - Sem alteração de regras de segurança, agenda ou pagamento.
+
+## 4.4.9
+
+- WhatsApp revalida o horário escolhido antes de avançar no fluxo.
+- Sessões antigas não conseguem reutilizar horários que passaram a cair no intervalo de almoço.
+- Consultas de disponibilidade pela IA só respondem depois de validar a agenda real.
+- O intervalo de almoço continua protegido também pela regra central de criação do agendamento.
