@@ -1919,3 +1919,53 @@ body.notifications-open{overflow:hidden}
   .bf-notification-copy small{font-size:10px}
   .bf-notification-panel>footer{padding-bottom:max(10px,env(safe-area-inset-bottom))}
 }
+
+/* =========================================================
+   BarberFlow 4.4 — construtor visual de fluxo do WhatsApp
+   ========================================================= */
+.whatsapp-flow-builder{overflow:hidden}
+.flow-builder-head{align-items:flex-start}
+.flow-kicker{display:block;margin-bottom:5px;color:#d9a21b;font-size:9px;font-weight:900;letter-spacing:.14em}
+.flow-builder-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 0 15px;border-bottom:1px solid var(--line)}
+.flow-builder-toolbar>div{display:flex;flex-direction:column;gap:3px}.flow-builder-toolbar strong{font-size:13px}.flow-builder-toolbar small{color:var(--muted);font-size:10.5px;line-height:1.45}
+.flow-new-form{display:grid;grid-template-columns:minmax(180px,.7fr) minmax(240px,1fr) auto;gap:12px;align-items:end;margin:14px 0;padding:14px;border:1px solid #d8dee6;border-radius:14px;background:#f8fafc}.flow-new-form .actions{padding-bottom:1px}
+.flow-builder-grid{display:grid;grid-template-columns:230px minmax(0,1fr);gap:16px;margin-top:16px;min-width:0}
+.flow-library,.flow-editor-shell{min-width:0}.flow-list{display:grid;gap:8px}
+.flow-list-card{appearance:none;width:100%;display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:9px;align-items:start;text-align:left;padding:11px;border:1px solid #dfe5ec;border-radius:13px;background:#fff;color:inherit;cursor:pointer;transition:.16s ease}
+.flow-list-card:hover{border-color:#aeb7c2}.flow-list-card.selected{border-color:#d6a321;box-shadow:0 0 0 2px rgba(214,163,33,.1)}.flow-list-card.active{background:linear-gradient(145deg,#fffdf6,#fff)}
+.flow-list-icon{padding-top:2px;color:#9ca3af;font-size:12px}.flow-list-card.active .flow-list-icon{color:#16a34a}.flow-list-card strong{display:block;font-size:11.5px;line-height:1.3}.flow-list-card small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:4px;color:var(--muted);font-size:9.5px;line-height:1.4}.flow-list-card em{font-style:normal;padding:4px 6px;border-radius:999px;background:#dcfce7;color:#166534;font-size:7.5px;font-weight:900;letter-spacing:.08em}
+.flow-list-empty,.flow-editor-empty{padding:22px;border:1px dashed #cbd5e1;border-radius:14px;text-align:center;color:var(--muted)}.flow-editor-empty{display:flex;min-height:260px;flex-direction:column;align-items:center;justify-content:center;gap:5px}.flow-editor-empty strong{color:var(--text);font-size:14px}.flow-editor-empty span{font-size:11px}
+.flow-editor-meta{display:grid;grid-template-columns:minmax(180px,.55fr) minmax(240px,1fr);gap:12px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.flow-editor-workspace{display:grid;grid-template-columns:170px minmax(260px,1fr) 250px;gap:14px;margin-top:14px;min-width:0;align-items:start}
+.flow-node-rail{display:flex;flex-direction:column;gap:7px;min-width:0}.flow-node{appearance:none;position:relative;width:100%;display:grid;grid-template-columns:23px 28px minmax(0,1fr);gap:7px;align-items:center;padding:9px;border:1px solid #dfe5ec;border-radius:12px;background:#fff;color:inherit;text-align:left;cursor:pointer}.flow-node:not(:last-child):after{content:"";position:absolute;left:19px;bottom:-8px;width:1px;height:8px;background:#cbd5e1}.flow-node:hover,.flow-node.selected{border-color:#d6a321}.flow-node.selected{background:#fffaf0;box-shadow:0 0 0 2px rgba(214,163,33,.09)}
+.flow-node-index{width:22px;height:22px;display:grid;place-items:center;border-radius:999px;background:#eef1f5;color:#64748b;font-size:8px;font-weight:900}.flow-node.selected .flow-node-index{background:#d6a321;color:#111}.flow-node-icon{font-size:16px;text-align:center}.flow-node strong{display:block;font-size:10.5px;line-height:1.25}.flow-node small{display:block;margin-top:2px;color:var(--muted);font-size:8px;line-height:1.25}
+.flow-message-editor{min-width:0;padding:15px;border:1px solid #dfe5ec;border-radius:14px;background:#fff}.flow-message-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:13px}.flow-message-head h3{margin:2px 0 3px;font-size:16px}.flow-message-head p{margin:0}.flow-step-number{color:#b9870d;font-size:8px;font-weight:900;letter-spacing:.12em}.flow-step-icon{width:38px;height:38px;display:grid;place-items:center;border-radius:11px;background:#f5f6f8;font-size:19px}.flow-fields{display:grid;gap:12px}.flow-message-field textarea{min-height:104px;line-height:1.5}.flow-message-field small,.flow-trigger-field small{color:var(--muted);font-size:9px;line-height:1.4}
+.flow-variable-box{margin:14px 0;padding:11px;border:1px dashed #cbd5e1;border-radius:12px;background:#f8fafc}.flow-variable-box>strong{font-size:10.5px}.flow-variable-box>p{margin:3px 0 8px;font-size:9px}.flow-variable-chips{display:flex;gap:6px;flex-wrap:wrap}.flow-var-chip{appearance:none;border:1px solid #d7dde5;border-radius:999px;padding:5px 7px;background:#fff;color:#475569;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:8.5px;font-weight:700;cursor:pointer}.flow-var-chip:hover{border-color:#d6a321;color:#9a6b00}.flow-trigger-field{margin-top:14px}
+.flow-phone-preview{overflow:hidden;min-width:0;border:1px solid #cfd6df;border-radius:22px;background:#efeae2;box-shadow:0 14px 35px rgba(15,23,42,.08)}.flow-phone-top{display:flex;align-items:center;gap:9px;padding:12px 13px;background:#182d28;color:#fff}.flow-phone-top>span{color:#25d366;font-size:10px}.flow-phone-top strong{display:block;font-size:10.5px}.flow-phone-top small{display:block;margin-top:1px;color:#cbd5d1;font-size:8px}.flow-phone-body{min-height:310px;padding:16px 11px 12px;background-color:#efeae2;background-image:radial-gradient(rgba(0,0,0,.035) 1px,transparent 1px);background-size:12px 12px}.flow-preview-bubble{position:relative;width:min(94%,230px);margin-left:auto;padding:9px 10px;border-radius:10px 2px 10px 10px;background:#d9fdd3;color:#17201d;font-size:9.5px;line-height:1.52;white-space:pre-wrap;overflow-wrap:anywhere;box-shadow:0 1px 1px rgba(0,0,0,.08)}.flow-preview-time{display:block;margin:3px 6px 0 auto;width:max-content;color:#63736e;font-size:7.5px}
+.flow-editor-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}.flow-safety-note{margin:11px 0 0;color:var(--muted);font-size:9.5px;line-height:1.5}.flow-delete-confirm .actions,.notice.warning .actions{margin-top:9px}
+
+body:not(.public-bg):not(.auth-body):not(.legal-page) .flow-new-form,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .flow-list-card,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .flow-node,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .flow-message-editor,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .flow-variable-box,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .flow-editor-empty{
+  background:linear-gradient(145deg,#12151a,#0d1014)!important;color:#f2f4f6!important;border-color:#2a3037!important;box-shadow:none!important
+}
+body:not(.public-bg):not(.auth-body):not(.legal-page) .flow-list-card.selected,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .flow-node.selected{background:linear-gradient(145deg,#1b1a15,#111317)!important;border-color:rgba(212,160,23,.58)!important;box-shadow:0 0 0 1px rgba(212,160,23,.1)!important}
+body:not(.public-bg):not(.auth-body):not(.legal-page) .flow-list-card.active{background:linear-gradient(145deg,#121914,#0d1110)!important}
+body:not(.public-bg):not(.auth-body):not(.legal-page) .flow-node-index,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .flow-step-icon{background:#191d22;color:#d9a21b;border-color:#30363d}
+body:not(.public-bg):not(.auth-body):not(.legal-page) .flow-message-editor textarea,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .flow-editor-meta input,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .flow-new-form input,
+body:not(.public-bg):not(.auth-body):not(.legal-page) .flow-trigger-field textarea{background:#0b0e12!important;color:#eef1f4!important;border-color:#30363d!important}
+body:not(.public-bg):not(.auth-body):not(.legal-page) .flow-var-chip{background:#171b20;color:#cbd2da;border-color:#343b43}
+body:not(.public-bg):not(.auth-body):not(.legal-page) .flow-var-chip:hover{color:#f0b529;border-color:#80631b}
+body:not(.public-bg):not(.auth-body):not(.legal-page) .flow-editor-empty strong{color:#f2f4f6}
+
+@media(max-width:1180px){.flow-editor-workspace{grid-template-columns:160px minmax(260px,1fr)}.flow-phone-preview{grid-column:1/-1}.flow-phone-body{min-height:210px}.flow-preview-bubble{width:min(82%,420px);max-width:420px}}
+@media(max-width:900px){.flow-builder-grid{grid-template-columns:1fr}.flow-list{grid-template-columns:repeat(2,minmax(0,1fr))}.flow-editor-workspace{grid-template-columns:1fr}.flow-node-rail{flex-direction:row;overflow-x:auto;overscroll-behavior-inline:contain;padding-bottom:4px}.flow-node{min-width:160px}.flow-node:not(:last-child):after{display:none}.flow-phone-preview{grid-column:auto}.flow-editor-meta{grid-template-columns:1fr 1fr}}
+@media(max-width:650px){.flow-builder-toolbar{align-items:stretch;flex-direction:column}.flow-builder-toolbar .btn{width:100%}.flow-new-form{grid-template-columns:1fr}.flow-new-form .actions{display:grid;grid-template-columns:1fr 1fr}.flow-list{grid-template-columns:1fr}.flow-editor-meta{grid-template-columns:1fr}.flow-message-editor{padding:12px}.flow-node{min-width:148px}.flow-phone-preview{border-radius:16px}.flow-phone-body{min-height:200px}.flow-editor-actions{display:grid;grid-template-columns:1fr 1fr}.flow-editor-actions .btn{width:100%;min-width:0}.flow-variable-chips{gap:5px}.flow-var-chip{min-height:34px;padding:7px 8px}.flow-message-field textarea,.flow-trigger-field textarea{font-size:16px!important}.flow-builder-grid{gap:12px}.whatsapp-flow-builder{padding-left:12px!important;padding-right:12px!important}}
+@media(max-width:390px){.flow-editor-actions,.flow-new-form .actions{grid-template-columns:1fr}.flow-node{min-width:138px}.flow-list-card{grid-template-columns:16px minmax(0,1fr) auto}.flow-phone-body{padding:12px 9px}}

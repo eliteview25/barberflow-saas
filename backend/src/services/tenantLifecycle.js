@@ -18,7 +18,7 @@ async function deleteTenantData(id,db){
     'marketing_envios','marketing_cupom_usos','marketing_indicacao_conversoes','marketing_indicacao_codigos','marketing_campanhas','marketing_links','marketing_modelos','marketing_cupons','marketing_indicacoes_config',
     'automacoes_envios','avaliacoes','reservas_pagamento','fila_espera','fidelidade_saldos','vendas','horarios_trabalho','agendamentos',
     'legal_acceptances','support_tickets','notificacoes','booking_otps','metas_financeiras','ai_uso_mensal','ai_config','automacoes_config','fidelidade_config','pacotes',
-    'whatsapp_conexoes','integracoes_whatsapp_qr','whatsapp_verify_tokens','whatsapp_sessoes','integracoes_whatsapp','oauth_states','integracoes_pagamento',
+    'whatsapp_fluxos','whatsapp_conexoes','integracoes_whatsapp_qr','whatsapp_verify_tokens','whatsapp_sessoes','integracoes_whatsapp','oauth_states','integracoes_pagamento',
     'assinaturas_pagamentos','assinaturas_cobrancas','produtos','clientes','usuarios','barbeiros','servicos','assinaturas'
   ];
   for(const table of ordered){

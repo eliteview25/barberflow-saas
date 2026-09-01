@@ -312,3 +312,18 @@ CREATE TABLE IF NOT EXISTS auth_login_attempts(
   atualizado_em TIMESTAMP NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS ix_auth_login_attempts_cleanup ON auth_login_attempts(atualizado_em);
+
+-- BarberFlow 4.4.0 — construtor de fluxos WhatsApp por barbearia
+CREATE TABLE IF NOT EXISTS whatsapp_fluxos(
+  id BIGSERIAL PRIMARY KEY,
+  barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,
+  nome VARCHAR(100) NOT NULL,
+  descricao VARCHAR(240),
+  ativo BOOLEAN NOT NULL DEFAULT false,
+  gatilhos JSONB NOT NULL DEFAULT '[]'::jsonb,
+  mensagens JSONB NOT NULL DEFAULT '{}'::jsonb,
+  criado_em TIMESTAMP NOT NULL DEFAULT NOW(),
+  atualizado_em TIMESTAMP NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS ix_whatsapp_fluxos_tenant ON whatsapp_fluxos(barbearia_id,atualizado_em DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_whatsapp_fluxos_ativo_tenant ON whatsapp_fluxos(barbearia_id) WHERE ativo=true;

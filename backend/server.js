@@ -17,6 +17,7 @@ const {ensureTenantLifecycleSchema,purgeExpiredTenants}=require('./src/services/
 const {notifyOps}=require('./src/services/opsAlerts');
 const {ensureMarketingSchema,processMarketingCampaigns}=require('./src/services/marketing');
 const {ensureWhatsAppProviderSchema}=require('./src/services/whatsappProviders');
+const {ensureWhatsAppFlowSchema}=require('./src/services/whatsappFlows');
 const {ensureAdvancedOpsSchema}=require('./src/services/advancedOps');
 const {ensureBookingTrackingSchema}=require('./src/services/bookingTracking');
 const {ensureBarberProfileSchema}=require('./src/services/barberProfiles');
@@ -63,6 +64,7 @@ async function iniciar(){
     await ensureTenantLifecycleSchema();
     await ensureMarketingSchema();
     await ensureWhatsAppProviderSchema();
+    await ensureWhatsAppFlowSchema();
     await ensureAdvancedOpsSchema();
     await ensureBookingTrackingSchema();
     await ensureBarberProfileSchema();
@@ -82,6 +84,7 @@ async function iniciar(){
     console.log('Ciclo de exclusão de 30 dias preparado.');
     console.log('Marketing, cupons, públicos e indicações preparados.');
     console.log('Provedores WhatsApp preparados (Meta, 360dialog, Twilio e Evolution).');
+    console.log('Construtor de fluxos WhatsApp por barbearia preparado.');
     console.log('Comandas, clube, CRM avançado, pacotes, fila inteligente, BI e fiscal preparados.');
     console.log('Acompanhamento de agendamentos por código e WhatsApp preparado.');
     console.log('Perfis e fotos dos barbeiros preparados.');

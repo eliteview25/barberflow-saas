@@ -50,13 +50,14 @@ const marketingPublic = read('src/routes/marketingPublic.js');
 const marketingService = read('src/services/marketing.js');
 const whatsappService = read('src/services/whatsapp.js');
 const whatsappProviders = read('src/services/whatsappProviders.js');
+const whatsappFlows = read('src/services/whatsappFlows.js');
 const storeCommerce = read('src/services/storeCommerce.js');
 const pkg = JSON.parse(read('package.json'));
 const frontFiles = filesRecursive(path.resolve(root, '../frontend'));
 const front = frontFiles.map(p => fs.readFileSync(p, 'utf8')).join('\n');
 const runtime = filesRecursive(path.join(root, 'src'), /\.js$/i).map(p => fs.readFileSync(p, 'utf8')).join('\n');
 
-console.log('=== Auditoria estática de regressão de segurança 4.3.1 ===');
+console.log('=== Auditoria estática de regressão de segurança 4.4.0 ===');
 check(/contentSecurityPolicy\s*:\s*\{/.test(app) && !/contentSecurityPolicy\s*:\s*false/.test(app), 'CSP está habilitada');
 check(/bf_session/.test(mw) && /httpOnly\s*:\s*true/.test(sec) && /validateCsrf/.test(mw), 'Sessão usa cookie HttpOnly e CSRF');
 check(/token_version/.test(auth) && /token_version/.test(mw), 'Versão de sessão revoga JWTs antigos');
@@ -83,6 +84,9 @@ check(/PROVIDERS=\['meta','360dialog','twilio','evolution'\]/.test(whatsappProvi
 check(/secretValue\?encrypt\(secretValue\)/.test(whatsappProviders) && /webhookToken\?encrypt\(webhookToken\)/.test(whatsappProviders), 'Credenciais e tokens privados dos provedores WhatsApp ficam criptografados');
 check(/x-twilio-signature/.test(whatsappProviders) && /timingSafeEqual/.test(whatsappProviders) && /webhook\/twilio\/:token/.test(wa), 'Webhook Twilio valida assinatura e token privado da conexão');
 check(/providers\/:provider\/connect'.*exigirStepUp/s.test(wa) && /providers\/:provider\/activate'.*exigirStepUp/s.test(wa) && /delete\('\/providers\/:provider'.*exigirStepUp/s.test(wa), 'Alterações de provedor WhatsApp exigem step-up');
+check(/ux_whatsapp_fluxos_ativo_tenant/.test(whatsappFlows) && /WHERE id=\$1 AND barbearia_id=\$2/.test(whatsappFlows), 'Fluxos WhatsApp são isolados por tenant e possuem somente um fluxo ativo');
+check(/REQUIRED_VARS/.test(whatsappFlows) && /reserva_pix:\['valor','pix_chave'\]/.test(whatsappFlows) && /reserva_mercado_pago:\['link'\]/.test(whatsappFlows), 'Editor de fluxo preserva variáveis críticas de pagamento');
+check(/flows\/:id\/activate/.test(wa) && /exigirRecurso\('automacoes'\)/.test(wa), 'Gestão de fluxos WhatsApp exige autenticação e recurso de automações');
 check(/webhook_events/.test(mig) && /ON CONFLICT\(provider,event_id\)/.test(webhook) && /proxima_tentativa/.test(webhook), 'Webhooks usam inbox persistente, idempotência e retry');
 check(/WHEN webhook_events\.status IN \('processado','processando','falha_permanente'\) THEN webhook_events\.atualizado_em/.test(webhook), 'Retry duplicado não renova artificialmente claim de webhook em processamento');
 check(/paymentMatchesReservation/.test(reservations) && /external_reference/.test(reservations) && /currency/.test(reservations), 'Pagamento é reconciliado por referência, moeda e valor');
@@ -218,4 +222,4 @@ if (leaked) {
 }
 console.log(`Resumo: ${fail} falha(s), ${warn} aviso(s).`);
 process.exitCode = fail ? 1 : 0;
-if (!fail) console.log('🔐 Auditoria estática 4.3.1 passou.');
+if (!fail) console.log('🔐 Auditoria estática 4.4.0 passou.');

@@ -37,6 +37,41 @@
 <div class="provider-bottom-actions"><div class="field provider-test-field"><label>Número para teste</label><input id="providerTestPhone" inputmode="tel" placeholder="5586999999999"></div><div class="actions"><button id="testProvider" type="button" class="btn btn-secondary">Enviar teste</button><button id="activateProvider" type="button" class="btn btn-dark owner-provider-action">Usar este provedor</button><button id="disconnectProvider" type="button" class="btn btn-danger owner-provider-action">Desconectar</button></div></div>
 </section>
 
+<section class="panel whatsapp-flow-builder" id="whatsappFlowBuilder">
+  <div class="panel-head flow-builder-head"><div><span class="flow-kicker">AGENDAMENTO AUTOMÁTICO</span><h2>Construtor de fluxo do WhatsApp</h2><p class="muted">Crie experiências diferentes para cada barbearia sem alterar as regras seguras de agenda e pagamento.</p></div><span id="flowActiveBadge" class="badge">Carregando...</span></div>
+  <div class="flow-builder-toolbar">
+    <div><strong>Fluxos desta barbearia</strong><small>Somente o fluxo marcado como ativo atende novos agendamentos.</small></div>
+    <button id="newFlowBtn" type="button" class="btn btn-primary">+ Novo fluxo</button>
+  </div>
+  <div id="newFlowForm" class="flow-new-form hidden">
+    <div class="field"><label>Nome do novo fluxo</label><input id="newFlowName" maxlength="100" placeholder="Ex.: Atendimento Premium"></div>
+    <div class="field"><label>Descrição</label><input id="newFlowDescription" maxlength="240" placeholder="Ex.: Fluxo mais acolhedor para novos clientes"></div>
+    <div class="actions"><button id="createFlowBtn" type="button" class="btn btn-primary">Criar fluxo</button><button id="cancelNewFlowBtn" type="button" class="btn btn-secondary">Cancelar</button></div>
+  </div>
+  <div class="flow-builder-grid">
+    <aside class="flow-library"><div id="flowList" class="flow-list" aria-live="polite"></div></aside>
+    <div class="flow-editor-shell">
+      <div id="flowEditorEmpty" class="flow-editor-empty"><strong>Selecione um fluxo</strong><span>Edite as mensagens, gatilhos e a experiência de agendamento.</span></div>
+      <div id="flowEditor" class="hidden">
+        <div class="flow-editor-meta"><div class="field"><label>Nome do fluxo</label><input id="flowName" maxlength="100"></div><div class="field"><label>Descrição</label><input id="flowDescription" maxlength="240"></div></div>
+        <div class="flow-editor-workspace">
+          <nav id="flowNodeRail" class="flow-node-rail" aria-label="Etapas do fluxo"></nav>
+          <section class="flow-message-editor">
+            <div class="flow-message-head"><div><span id="flowStepNumber" class="flow-step-number">ETAPA</span><h3 id="flowStepTitle">Mensagem</h3><p id="flowStepHelp" class="muted"></p></div><span id="flowStepIcon" class="flow-step-icon">💬</span></div>
+            <div id="flowFields" class="flow-fields"></div>
+            <div class="flow-variable-box"><strong>Variáveis disponíveis</strong><p class="muted">Clique para inserir no campo que estiver editando.</p><div id="flowVariables" class="flow-variable-chips"></div></div>
+            <div class="field flow-trigger-field"><label>Palavras que iniciam/reiniciam este fluxo</label><textarea id="flowTriggers" rows="2" maxlength="700" placeholder="oi, olá, menu, agendar, marcar horário"></textarea><small>Separe por vírgula. Até 20 gatilhos.</small></div>
+          </section>
+          <aside class="flow-phone-preview"><div class="flow-phone-top"><span>●</span><div><strong>WhatsApp</strong><small>Prévia da etapa</small></div></div><div class="flow-phone-body"><div id="flowPreviewBubble" class="flow-preview-bubble">Selecione uma etapa para visualizar.</div><span class="flow-preview-time">agora ✓✓</span></div></aside>
+        </div>
+        <div id="flowDeleteConfirm" class="notice warning hidden"><strong>Excluir este fluxo?</strong> Esta ação não afeta os agendamentos já criados.<div class="actions"><button id="confirmDeleteFlowBtn" type="button" class="btn btn-danger">Excluir fluxo</button><button id="cancelDeleteFlowBtn" type="button" class="btn btn-secondary">Cancelar</button></div></div>
+        <div class="flow-editor-actions"><button id="saveFlowBtn" type="button" class="btn btn-primary">Salvar alterações</button><button id="activateFlowBtn" type="button" class="btn btn-dark">Definir como ativo</button><button id="duplicateFlowBtn" type="button" class="btn btn-secondary">Duplicar</button><button id="deleteFlowBtn" type="button" class="btn btn-danger">Excluir</button></div>
+        <p class="flow-safety-note">🔒 Serviço, profissional, disponibilidade, reserva de horário e pagamento continuam validados pelo BarberFlow no servidor. A personalização altera a conversa, não as regras de segurança.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="panel"><div class="panel-head"><div><h2>Lembretes automáticos</h2><p class="muted">Os lembretes usam o provedor WhatsApp definido como ativo.</p></div><span id="reminderProvider" class="badge">-</span></div>
 <div class="toggle-grid"><label class="check-row"><input id="lembrete_24h" type="checkbox"> Lembrete 24h antes</label><label class="check-row"><input id="lembrete_2h" type="checkbox"> Lembrete 2h antes</label><label class="check-row"><input id="pos_atendimento" type="checkbox"> Mensagem pós-atendimento</label></div>
 <div id="officialTemplateFields" class="form-grid three" style="margin-top:16px"><div class="field"><label id="labelTemplate24">Template 24h</label><input id="template_lembrete_24h" placeholder="barberflow_lembrete_24h"></div><div class="field"><label id="labelTemplate2">Template 2h</label><input id="template_lembrete_2h" placeholder="barberflow_lembrete_2h"></div><div class="field"><label id="labelTemplatePos">Template pós-atendimento</label><input id="template_pos_atendimento" placeholder="barberflow_pos_atendimento"></div></div>
@@ -64,4 +99,4 @@
 
 
 <section class="panel"><h2>Compatibilidade dos provedores</h2><div class="provider-compat-grid"><div><strong>Meta Cloud API</strong><span>Atendimento, templates, Marketing, entrega/leitura</span></div><div><strong>360dialog</strong><span>Atendimento, templates Meta, Marketing, entrega/leitura</span></div><div><strong>Twilio</strong><span>Atendimento, Content SID, Marketing e status</span></div><div><strong>Evolution / QR</strong><span>Atendimento e mensagens livres; sem templates oficiais</span></div></div><p class="muted">Fora da janela de atendimento, provedores oficiais exigem templates aprovados. No Evolution, a barbearia assume o risco operacional da conexão não oficial.</p></section>
-</main><script src="/js/common.js?v=20260901-v430"></script><script src="/js/automacoes.js?v=20260901-v430"></script></body></html>
+</main><script src="/js/common.js?v=20260901-v440"></script><script src="/js/automacoes.js?v=20260901-v440"></script></body></html>
