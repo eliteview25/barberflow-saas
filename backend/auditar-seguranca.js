@@ -61,7 +61,7 @@ const frontFiles = filesRecursive(path.resolve(root, '../frontend'));
 const front = frontFiles.map(p => fs.readFileSync(p, 'utf8')).join('\n');
 const runtime = filesRecursive(path.join(root, 'src'), /\.js$/i).map(p => fs.readFileSync(p, 'utf8')).join('\n');
 
-console.log('=== Auditoria estática de regressão de segurança 4.4.6 ===');
+console.log('=== Auditoria estática de regressão de segurança 4.4.7 ===');
 check(/contentSecurityPolicy\s*:\s*\{/.test(app) && !/contentSecurityPolicy\s*:\s*false/.test(app), 'CSP está habilitada');
 check(/bf_session/.test(mw) && /httpOnly\s*:\s*true/.test(sec) && /validateCsrf/.test(mw), 'Sessão usa cookie HttpOnly e CSRF');
 check(/token_version/.test(auth) && /token_version/.test(mw), 'Versão de sessão revoga JWTs antigos');
@@ -95,7 +95,7 @@ check(/webhook_events/.test(mig) && /ON CONFLICT\(provider,event_id\)/.test(webh
 check(/WHEN webhook_events\.status IN \('processado','processando','falha_permanente'\) THEN webhook_events\.atualizado_em/.test(webhook), 'Retry duplicado não renova artificialmente claim de webhook em processamento');
 check(/paymentMatchesReservation/.test(reservations) && /external_reference/.test(reservations) && /currency/.test(reservations), 'Pagamento é reconciliado por referência, moeda e valor');
 check(/WHERE id=\$1 AND barbearia_id=\$2 FOR UPDATE/.test(reservations) && /sendAppointmentTracking/.test(reservations) && /paymentConfirmed:true/.test(reservations), 'Pix manual é confirmado com lock de tenant e aviso WhatsApp pós-commit');
-check(/pagamentos-pendentes\/:id\/confirmar/.test(tenant) && /exigirStepUp/.test(tenant) && /whatsapp_enviado/.test(tenant), 'Aprovação manual de Pix exige step-up e informa entrega da confirmação');
+check(/router\.post\('\/pagamentos-pendentes\/:id\/confirmar',exigirPapel\('dono','gerente','recepcao'\),exigirAssinatura,async/.test(tenant) && /pagamento\.pix_manual\.confirmado/.test(tenant) && /whatsapp_enviado/.test(tenant), 'Aprovação manual de Pix é um clique autenticado, isolado por tenant e auditado');
 check(/Pagamento confirmado ✅/.test(bookingTracking) && /Código de acompanhamento/.test(bookingTracking), 'Confirmação WhatsApp de Pix contém dados e código de acompanhamento');
 check(/ck_horarios_intervalo_valido/.test(barberSchedule) && /hora_inicio < intervalo_inicio/.test(barberSchedule) && /intervalo_fim < hora_fim/.test(barberSchedule), 'Banco restringe intervalo de almoço ao interior do expediente');
 check(/code:'INTERVALO'/.test(booking) && /intervalo de almoço do barbeiro/.test(booking), 'Validação central bloqueia agendamento que atravesse o intervalo do barbeiro');
@@ -232,4 +232,4 @@ if (leaked) {
 }
 console.log(`Resumo: ${fail} falha(s), ${warn} aviso(s).`);
 process.exitCode = fail ? 1 : 0;
-if (!fail) console.log('🔐 Auditoria estática 4.4.6 passou.');
+if (!fail) console.log('🔐 Auditoria estática 4.4.7 passou.');

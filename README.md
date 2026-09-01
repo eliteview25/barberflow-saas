@@ -1,4 +1,4 @@
-# BarberFlow SaaS 4.4.6 — UI mobile refinada + segurança preservada
+# BarberFlow SaaS 4.4.7 — Pix em um clique + UI mobile refinada
 
 SaaS multiempresa para gestão de barbearias com agenda, clientes, equipe, serviços, página pública, pagamentos, PDV/estoque, CRM, fidelidade, automações, Supermaster e planos Starter/Pro/Premium.
 
@@ -110,3 +110,7 @@ Dashboards por perfil e revisão de responsividade/mobile. Consulte `BARBERFLOW-
 - A exclusão normal continua recuperável por 30 dias; a permanente continua irreversível.
 
 Para upload real das fotos, configure `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` e `CLOUDINARY_API_SECRET` no ambiente de produção. Não armazene imagens no disco efêmero do Render.
+
+
+## 4.4.7
+Aprovação de Pix manual em um clique, sem segundo modal de step-up, com registro de auditoria e controles de tenant/papel preservados.
