@@ -29,7 +29,7 @@ test('tema é carregado antes do CSS em todas as telas administrativas e de aces
   for(const file of files){
     const html=read(file);
     const theme=html.indexOf('/js/theme.js?v=20260901-v453');
-    const css=html.indexOf('/style.css?v=20260901-v453');
+    const css=html.indexOf('/style.css?v=20260901-v454');
     assert.ok(theme>=0,`${file} precisa carregar theme.js`);
     assert.ok(css>theme,`${file} precisa aplicar o tema antes do CSS`);
   }

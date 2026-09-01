@@ -1,4 +1,4 @@
-# EliteFlow: Gestão de Barbearia 4.5.3
+# EliteFlow: Gestão de Barbearia 4.5.4
 
 SaaS multiempresa para gestão de barbearias com agenda, clientes, equipe, serviços, página pública, pagamentos, PDV/estoque, CRM, fidelidade, automações, Supermaster e planos Starter/Pro/Premium.
 
@@ -152,6 +152,15 @@ Aprovação de Pix manual em um clique, sem segundo modal de step-up, com regist
 - Sidebar carvão, modo escuro, estrutura, responsividade e regras funcionais foram preservados.
 
 Consulte `ELITEFLOW-4.5.2.md` para a especificação visual e as referências utilizadas.
+
+## 4.5.4
+
+- conclui o modo claro no menu lateral;
+- corrige remanescentes escuros em Clientes;
+- corrige superfícies e seleções em WhatsApp/Automações;
+- preserva integralmente o modo escuro 4.5.3.
+
+Consulte `ELITEFLOW-4.5.4.md` para os detalhes.
 
 ## 4.5.3
 

@@ -19,10 +19,10 @@ test('identidade visível usa EliteFlow e o nome completo',()=>{
   assert.match(read('frontend/favicon.svg'),/aria-label="EliteFlow"/);
 });
 
-test('pacote e artefatos novos usam EliteFlow 4.5.3',()=>{
+test('pacote e artefatos novos usam EliteFlow 4.5.4',()=>{
   const pkg=JSON.parse(read('backend/package.json'));
   assert.equal(pkg.name,'eliteflow-saas');
-  assert.equal(pkg.version,'4.5.3');
+  assert.equal(pkg.version,'4.5.4');
   assert.match(pkg.description,/EliteFlow: Gestão de Barbearia/);
   assert.match(read('backend/src/config/db.js'),/application_name: 'eliteflow-saas'/);
   assert.match(read('backend/backup.js'),/filename=`eliteflow-/);

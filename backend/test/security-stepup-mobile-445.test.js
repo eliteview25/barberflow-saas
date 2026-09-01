@@ -28,8 +28,8 @@ test('step-up acompanha viewport visual quando teclado mobile abre',()=>{
   assert.match(js,/removeEventListener\('resize',fitSecurityViewport\)/);
 });
 
-test('cache de common e css foi renovado para 4.5.3 no dashboard',()=>{
+test('cache do CSS foi renovado para 4.5.4 no dashboard',()=>{
   const html=read('frontend/index.html');
-  assert.match(html,/style\.css\?v=20260901-v453/);
+  assert.match(html,/style\.css\?v=20260901-v454/);
   assert.match(html,/common\.js\?v=20260901-v453/);
 });

@@ -8,7 +8,9 @@ const root=path.resolve(__dirname,'../..');
 const css=fs.readFileSync(path.join(root,'frontend/style.css'),'utf8');
 const marker='/* =========================================================\n   EliteFlow 4.5.3';
 const markerIndex=css.indexOf(marker);
-const dark453=markerIndex>=0?css.slice(markerIndex):'';
+const nextMarker='/* =========================================================\n   EliteFlow 4.5.4';
+const nextMarkerIndex=css.indexOf(nextMarker,markerIndex+1);
+const dark453=markerIndex>=0?css.slice(markerIndex,nextMarkerIndex>=0?nextMarkerIndex:undefined):'';
 
 function luminance(hex){
   const rgb=hex.replace('#','').match(/../g).map(value=>{
