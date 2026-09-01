@@ -20,9 +20,9 @@ test('alteração 4.4.8 é visual e mantém endpoint one-click sem step-up',()=>
   assert.doesNotMatch(routeLine,/exigirStepUp/);
 });
 
-test('páginas carregam CSS v448',()=>{
+test('páginas carregam CSS v450',()=>{
   for(const f of ['frontend/index.html','frontend/pages/pagamentos.html']){
     const html=fs.readFileSync(path.join(root,f),'utf8');
-    assert.match(html,/style\.css\?v=20260901-v448/);
+    assert.match(html,/style\.css\?v=20260901-v450/);
   }
 });

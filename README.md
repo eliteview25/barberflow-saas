@@ -1,4 +1,4 @@
-# BarberFlow SaaS 4.4.9 — WhatsApp respeita almoço em tempo real
+# BarberFlow SaaS 4.5.0 — temas e tipografia responsiva
 
 SaaS multiempresa para gestão de barbearias com agenda, clientes, equipe, serviços, página pública, pagamentos, PDV/estoque, CRM, fidelidade, automações, Supermaster e planos Starter/Pro/Premium.
 
@@ -128,3 +128,12 @@ Aprovação de Pix manual em um clique, sem segundo modal de step-up, com regist
 - Sessões antigas não conseguem reutilizar horários que passaram a cair no intervalo de almoço.
 - Consultas de disponibilidade pela IA só respondem depois de validar a agenda real.
 - O intervalo de almoço continua protegido também pela regra central de criação do agendamento.
+
+## 4.5.0
+
+- Aparência do painel com modos Claro, Escuro e Sistema para todos os perfis, incluindo Supermaster.
+- Preferência salva no navegador e sincronizada entre abas; o modo Sistema acompanha mudanças do dispositivo em tempo real.
+- Controle disponível no menu lateral, no drawer mobile e nas telas de autenticação e documentos legais.
+- Tema claro completo para cards, tabelas, formulários, modais, notificações, dashboards e telas operacionais.
+- Escala tipográfica aumentada no desktop e mobile, com ajustes próprios para cards compactos, tabelas, agenda, clientes, serviços, Pix e WhatsApp.
+- Regras de largura, quebra e truncamento preservam a responsividade até 320 px sem criar rolagem horizontal indevida.
