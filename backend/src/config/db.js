@@ -1,12 +1,25 @@
 const { Pool } = require('pg');
 
 const prod=process.env.NODE_ENV==='production';
-const dbSsl=/^(?:1|true|require|verify-full)$/i.test(String(process.env.DB_SSL||''));
-const rejectUnauthorized=String(process.env.DB_SSL_REJECT_UNAUTHORIZED||'true').toLowerCase()!=='false';
+const dbSsl=/^(?:1|true|require|verify-ca|verify-full)$/i.test(String(process.env.DB_SSL||''));
 if(prod&&!dbSsl)throw new Error('DB_SSL=true é obrigatório em produção');
-if(prod&&!rejectUnauthorized)throw new Error('DB_SSL_REJECT_UNAUTHORIZED=false não é permitido em produção');
+
+// Render Postgres external connections use TLS with sslmode=require by default.
+// In node-postgres, rejectUnauthorized:false is the equivalent compatibility mode:
+// traffic remains encrypted, while CA validation is not enforced. Strict CA/hostname
+// validation remains available by setting DB_SSL_REJECT_UNAUTHORIZED=true and,
+// for private/self-managed CAs, DB_SSL_CA with the PEM certificate.
+const explicitReject=process.env.DB_SSL_REJECT_UNAUTHORIZED;
+const hasCa=Boolean(process.env.DB_SSL_CA);
+const rejectUnauthorized=explicitReject==null||explicitReject===''
+  ? hasCa
+  : String(explicitReject).toLowerCase()!=='false';
+
 function boundedInt(value,fallback,min,max){const n=Number(value);return Number.isInteger(n)&&n>=min&&n<=max?n:fallback}
-const ssl=dbSsl?{rejectUnauthorized,...(process.env.DB_SSL_CA?{ca:String(process.env.DB_SSL_CA).replace(/\\n/g,'\n')}:{})}:false;
+const ssl=dbSsl?{
+  rejectUnauthorized,
+  ...(hasCa?{ca:String(process.env.DB_SSL_CA).replace(/\\n/g,'\n')}:{})
+}:false;
 
 const pool = new Pool({
   host: process.env.DB_HOST,

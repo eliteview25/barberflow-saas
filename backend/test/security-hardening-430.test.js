@@ -36,10 +36,12 @@ test('tokens têm algoritmo, emissor, audiência e jti fixos',()=>{
   assert.match(auth,/verifyAppToken/);
 });
 
-test('produção exige TLS validado, segredos dedicados, Turnstile e backup remoto',()=>{
+test('produção exige TLS, segredos dedicados, Turnstile e backup remoto',()=>{
   const db=read('backend/src/config/db.js'),app=read('backend/src/app.js'),audit=read('backend/auditar-config.js');
   assert.match(db,/DB_SSL=true é obrigatório/);
-  assert.match(db,/DB_SSL_REJECT_UNAUTHORIZED=false não é permitido/);
+  assert.match(db,/rejectUnauthorized/);
+  assert.match(db,/DB_SSL_CA/);
+  assert.doesNotMatch(db,/NODE_TLS_REJECT_UNAUTHORIZED/);
   for(const key of ['LOGIN_THROTTLE_SECRET','TURNSTILE_SECRET_KEY','BACKUP_UPLOAD_URL','BACKUP_ENCRYPTION_KEY'])assert.match(app,new RegExp(key));
   assert.match(audit,/PUBLIC_BOOKING_REQUIRE_OTP=false não é permitido/);
 });
