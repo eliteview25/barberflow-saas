@@ -18,11 +18,12 @@ async function slotContext(db,{barbeariaId,barbeiroId,servicoId,data,horario,ign
   if(!serv.rowCount||serv.rows[0].ativo!==true)return {ok:false,code:'SERVICO_INVALIDO',error:'Serviço indisponível'};
   if(!barb.rowCount||barb.rows[0].ativo!==true)return {ok:false,code:'BARBEIRO_INVALIDO',error:'Barbeiro indisponível'};
   const dow=Number((await db.query(`SELECT EXTRACT(ISODOW FROM $1::date) dia`,[data])).rows[0].dia);
-  const exp=await db.query(`SELECT hora_inicio,hora_fim FROM horarios_trabalho WHERE barbearia_id=$1 AND barbeiro_id=$2 AND dia_semana=$3`,[barbeariaId,barbeiroId,dow]);
+  const exp=await db.query(`SELECT hora_inicio,hora_fim,intervalo_inicio,intervalo_fim FROM horarios_trabalho WHERE barbearia_id=$1 AND barbeiro_id=$2 AND dia_semana=$3`,[barbeariaId,barbeiroId,dow]);
   if(!exp.rowCount)return {ok:false,code:'FORA_EXPEDIENTE',error:'Barbeiro não trabalha nessa data'};
   const dur=Number(serv.rows[0].duracao);
   const valid=(await db.query(`SELECT $1::time >= $2::time AND $1::time+($3*INTERVAL '1 minute') <= $4::time ok`,[horario,exp.rows[0].hora_inicio,dur,exp.rows[0].hora_fim])).rows[0].ok;
   if(!valid)return {ok:false,code:'FORA_EXPEDIENTE',error:'Horário fora do expediente'};
+  if(exp.rows[0].intervalo_inicio&&exp.rows[0].intervalo_fim){const intervalo=(await db.query(`SELECT $1::time < $2::time AND $1::time+($3*INTERVAL '1 minute') > $4::time conflito`,[horario,exp.rows[0].intervalo_fim,dur,exp.rows[0].intervalo_inicio])).rows[0].conflito;if(intervalo)return {ok:false,code:'INTERVALO',error:'Horário coincide com o intervalo de almoço do barbeiro'};}
   const vals=[barbeariaId,barbeiroId,data,horario,dur];let ignore='';
   if(ignoreAppointmentId){vals.push(intId(ignoreAppointmentId));ignore=` AND a.id<>$6`;}
   const conflict=await db.query(`SELECT 1 FROM agendamentos a JOIN servicos s ON s.id=a.servico_id AND s.barbearia_id=a.barbearia_id WHERE a.barbearia_id=$1 AND a.barbeiro_id=$2 AND a.data=$3 AND a.status=ANY(${'ARRAY['+BUSY_STATUSES.map((_,i)=>`'${BUSY_STATUSES[i]}'`).join(',')+']'}) ${ignore} AND $4::time<a.horario+(s.duracao*INTERVAL '1 minute') AND $4::time+($5*INTERVAL '1 minute')>a.horario LIMIT 1`,vals);

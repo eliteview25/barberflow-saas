@@ -53,12 +53,15 @@ const whatsappService = read('src/services/whatsapp.js');
 const whatsappProviders = read('src/services/whatsappProviders.js');
 const whatsappFlows = read('src/services/whatsappFlows.js');
 const storeCommerce = read('src/services/storeCommerce.js');
+const barberSchedule = read('src/services/barberSchedule.js');
+const barberRoute = read('src/routes/barbeiros.js');
+const booking = read('src/services/booking.js');
 const pkg = JSON.parse(read('package.json'));
 const frontFiles = filesRecursive(path.resolve(root, '../frontend'));
 const front = frontFiles.map(p => fs.readFileSync(p, 'utf8')).join('\n');
 const runtime = filesRecursive(path.join(root, 'src'), /\.js$/i).map(p => fs.readFileSync(p, 'utf8')).join('\n');
 
-console.log('=== Auditoria estática de regressão de segurança 4.4.2 ===');
+console.log('=== Auditoria estática de regressão de segurança 4.4.3 ===');
 check(/contentSecurityPolicy\s*:\s*\{/.test(app) && !/contentSecurityPolicy\s*:\s*false/.test(app), 'CSP está habilitada');
 check(/bf_session/.test(mw) && /httpOnly\s*:\s*true/.test(sec) && /validateCsrf/.test(mw), 'Sessão usa cookie HttpOnly e CSRF');
 check(/token_version/.test(auth) && /token_version/.test(mw), 'Versão de sessão revoga JWTs antigos');
@@ -94,6 +97,9 @@ check(/paymentMatchesReservation/.test(reservations) && /external_reference/.tes
 check(/WHERE id=\$1 AND barbearia_id=\$2 FOR UPDATE/.test(reservations) && /sendAppointmentTracking/.test(reservations) && /paymentConfirmed:true/.test(reservations), 'Pix manual é confirmado com lock de tenant e aviso WhatsApp pós-commit');
 check(/pagamentos-pendentes\/:id\/confirmar/.test(tenant) && /exigirStepUp/.test(tenant) && /whatsapp_enviado/.test(tenant), 'Aprovação manual de Pix exige step-up e informa entrega da confirmação');
 check(/Pagamento confirmado ✅/.test(bookingTracking) && /Código de acompanhamento/.test(bookingTracking), 'Confirmação WhatsApp de Pix contém dados e código de acompanhamento');
+check(/ck_horarios_intervalo_valido/.test(barberSchedule) && /hora_inicio < intervalo_inicio/.test(barberSchedule) && /intervalo_fim < hora_fim/.test(barberSchedule), 'Banco restringe intervalo de almoço ao interior do expediente');
+check(/code:'INTERVALO'/.test(booking) && /intervalo de almoço do barbeiro/.test(booking), 'Validação central bloqueia agendamento que atravesse o intervalo do barbeiro');
+check(/barbearia_id=\$2/.test(barberRoute) && /intervalo_inicio,intervalo_fim/.test(barberRoute), 'Configuração de intervalo permanece isolada por barbeiro e tenant');
 check(/mp_payment_id/.test(mig) && /ux_reserva_mp_payment/.test(mig) && /ux_venda_final_agendamento/.test(mig), 'Banco impede pagamento/venda final duplicados');
 check(/fk_ag_cliente_tenant/.test(mig) && /fk_venda_cliente_tenant/.test(mig) && /VALIDATE CONSTRAINT/.test(mig), 'FKs compostas multi-tenant são criadas e validadas');
 check(/bf_enforce_user_tenant_kind/.test(mig), 'Trigger impede papel Supermaster em tenant de cliente');
@@ -226,4 +232,4 @@ if (leaked) {
 }
 console.log(`Resumo: ${fail} falha(s), ${warn} aviso(s).`);
 process.exitCode = fail ? 1 : 0;
-if (!fail) console.log('🔐 Auditoria estática 4.4.2 passou.');
+if (!fail) console.log('🔐 Auditoria estática 4.4.3 passou.');

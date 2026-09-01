@@ -8,6 +8,11 @@
 -- password_resets -> recuperação de senha com token de uso único
 
 
+
+-- Intervalo de almoço/pausa por dia de trabalho do barbeiro
+ALTER TABLE horarios_trabalho ADD COLUMN IF NOT EXISTS intervalo_inicio TIME;
+ALTER TABLE horarios_trabalho ADD COLUMN IF NOT EXISTS intervalo_fim TIME;
+
 -- Segurança 2FA do Supermaster: chave de troca pendente sem invalidar o autenticador atual
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS mfa_pending_secret_enc TEXT;
 

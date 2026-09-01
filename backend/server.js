@@ -21,6 +21,7 @@ const {ensureWhatsAppFlowSchema}=require('./src/services/whatsappFlows');
 const {ensureAdvancedOpsSchema}=require('./src/services/advancedOps');
 const {ensureBookingTrackingSchema}=require('./src/services/bookingTracking');
 const {ensureBarberProfileSchema}=require('./src/services/barberProfiles');
+const {ensureBarberScheduleSchema}=require('./src/services/barberSchedule');
 const {ensureNotificationSchema}=require('./src/services/notificationCenter');
 const PORT=Number(process.env.PORT||3001);
 let server;
@@ -68,6 +69,7 @@ async function iniciar(){
     await ensureAdvancedOpsSchema();
     await ensureBookingTrackingSchema();
     await ensureBarberProfileSchema();
+    await ensureBarberScheduleSchema();
     await ensureNotificationSchema();
     const purged=await purgeExpiredTenants();
     if(purged)console.log(`Barbearias expiradas eliminadas permanentemente: ${purged}`);
@@ -88,6 +90,7 @@ async function iniciar(){
     console.log('Comandas, clube, CRM avançado, pacotes, fila inteligente, BI e fiscal preparados.');
     console.log('Acompanhamento de agendamentos por código e WhatsApp preparado.');
     console.log('Perfis e fotos dos barbeiros preparados.');
+    console.log('Expedientes e intervalos dos barbeiros preparados.');
     console.log('Central de notificações preparada.');
     console.log('PostgreSQL conectado!');
     server=app.listen(PORT,()=>{
