@@ -29,11 +29,13 @@ function ensureSecurityChallengeModal(){
   root.innerHTML=`<div class="security-challenge-card">
     <div class="security-challenge-head"><div class="security-challenge-icon">${iconSVG('shield',20)}</div><div><span>VERIFICAÇÃO DE SEGURANÇA</span><h2 id="bfSecurityTitle">Confirme sua identidade</h2><p id="bfSecuritySubtitle"></p></div><button type="button" class="modal-close" id="bfSecurityClose" aria-label="Fechar">×</button></div>
     <form id="bfSecurityForm" novalidate>
-      <div id="bfSecuritySecretBox" class="security-secret-box hidden"><small>CHAVE DO AUTENTICADOR</small><div><code id="bfSecuritySecret"></code><button type="button" class="btn btn-secondary" id="bfSecurityCopySecret">Copiar</button></div><p>Adicione esta chave no Google Authenticator, Microsoft Authenticator, Authy, 1Password, Bitwarden, Aegis ou outro app TOTP.</p></div>
-      <div id="bfSecurityError" class="notice error hidden"></div>
-      <div class="field"><label id="bfSecurityLabel" for="bfSecurityInput">Código de autenticação</label><input id="bfSecurityInput" autocomplete="one-time-code"></div>
-      <label id="bfSecurityShowPasswordWrap" class="show-password-check hidden"><input id="bfSecurityShowPassword" type="checkbox"> <span>Ver senha</span></label>
-      <div class="security-challenge-note" id="bfSecurityNote"></div>
+      <div class="security-challenge-body">
+        <div id="bfSecuritySecretBox" class="security-secret-box hidden"><small>CHAVE DO AUTENTICADOR</small><div><code id="bfSecuritySecret"></code><button type="button" class="btn btn-secondary" id="bfSecurityCopySecret">Copiar</button></div><p>Adicione esta chave no Google Authenticator, Microsoft Authenticator, Authy, 1Password, Bitwarden, Aegis ou outro app TOTP.</p></div>
+        <div id="bfSecurityError" class="notice error hidden"></div>
+        <div class="field"><label id="bfSecurityLabel" for="bfSecurityInput">Código de autenticação</label><input id="bfSecurityInput" autocomplete="one-time-code"></div>
+        <label id="bfSecurityShowPasswordWrap" class="show-password-check hidden"><input id="bfSecurityShowPassword" type="checkbox"> <span>Ver senha</span></label>
+        <div class="security-challenge-note" id="bfSecurityNote"></div>
+      </div>
       <div class="security-challenge-actions"><button type="button" class="btn btn-secondary" id="bfSecurityCancel">Cancelar</button><button type="submit" class="btn btn-dark" id="bfSecurityConfirm">Confirmar</button></div>
     </form>
   </div>`;
@@ -47,8 +49,10 @@ function securityChallenge({mode='totp',title='Confirme sua identidade',subtitle
     titleEl.textContent=title;subtitleEl.textContent=subtitle||'';subtitleEl.classList.toggle('hidden',!subtitle);noteEl.textContent=note||'';noteEl.classList.toggle('hidden',!note);confirm.textContent=confirmLabel;error.classList.add('hidden');error.textContent='';
     const isPassword=mode==='password';label.textContent=isPassword?'Senha atual':'Código de 6 dígitos';input.type=isPassword?'password':'text';input.value='';input.inputMode=isPassword?'text':'numeric';input.autocomplete=isPassword?'current-password':'one-time-code';input.maxLength=isPassword?128:6;input.placeholder=isPassword?'Digite sua senha':'000000';input.classList.toggle('totp-input',!isPassword);showWrap.classList.toggle('hidden',!isPassword);show.checked=false;
     secretBox.classList.toggle('hidden',!secret);secretEl.textContent=secret||'';
+    const fitSecurityViewport=()=>{const vv=window.visualViewport;if(!vv){root.style.removeProperty('--bf-security-height');root.style.removeProperty('--bf-security-top');return}root.style.setProperty('--bf-security-height',`${Math.max(280,Math.floor(vv.height))}px`);root.style.setProperty('--bf-security-top',`${Math.max(0,Math.floor(vv.offsetTop||0))}px`)};
+    fitSecurityViewport();window.visualViewport?.addEventListener('resize',fitSecurityViewport);window.visualViewport?.addEventListener('scroll',fitSecurityViewport);
     root.classList.remove('hidden');document.body.classList.add('modal-open');
-    const cleanup=(ok,value)=>{if(finished)return;finished=true;root.classList.add('hidden');document.body.classList.remove('modal-open');form.onsubmit=null;cancel.onclick=null;close.onclick=null;root.onclick=null;document.removeEventListener('keydown',onKey);show.onchange=null;copy.onclick=null;setTimeout(()=>previous?.focus?.(),0);ok?resolve(value):reject(new Error('Confirmação cancelada'));};
+    const cleanup=(ok,value)=>{if(finished)return;finished=true;root.classList.add('hidden');document.body.classList.remove('modal-open');form.onsubmit=null;cancel.onclick=null;close.onclick=null;root.onclick=null;document.removeEventListener('keydown',onKey);window.visualViewport?.removeEventListener('resize',fitSecurityViewport);window.visualViewport?.removeEventListener('scroll',fitSecurityViewport);root.style.removeProperty('--bf-security-height');root.style.removeProperty('--bf-security-top');show.onchange=null;copy.onclick=null;setTimeout(()=>previous?.focus?.(),0);ok?resolve(value):reject(new Error('Confirmação cancelada'));};
     const onKey=e=>{if(e.key==='Escape')cleanup(false)};document.addEventListener('keydown',onKey);
     show.onchange=()=>{input.type=show.checked?'text':'password'};
     if(!isPassword)input.oninput=()=>{input.value=String(input.value||'').replace(/\D/g,'').slice(0,6)};else input.oninput=null;

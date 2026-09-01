@@ -2044,3 +2044,59 @@ body:not(.public-bg):not(.auth-body):not(.legal-page) .flow-editor-empty strong{
   #dashboardPixModal .dashboard-pix-modal-box>.notice,
   #pixManualConfirmModal .dashboard-pix-modal-box>.notice{margin-left:12px!important;margin-right:12px!important}
 }
+
+/* BarberFlow 4.4.5 — segundo modal de confirmação (step-up) realmente utilizável no mobile */
+.security-challenge-card form{
+  display:flex!important;
+  flex-direction:column!important;
+  min-height:0!important;
+  overflow:hidden!important;
+  padding:0!important;
+}
+.security-challenge-body{
+  min-height:0;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  padding:18px 20px 8px;
+}
+.security-challenge-actions{
+  flex:none;
+  position:relative!important;
+  bottom:auto!important;
+  z-index:12;
+  margin:0!important;
+  padding:12px 20px 20px;
+  background:#fff;
+  border-top:1px solid var(--line);
+  box-shadow:0 -8px 20px rgba(15,23,42,.08);
+  pointer-events:auto!important;
+}
+.security-challenge-actions .btn{pointer-events:auto!important;touch-action:manipulation}
+body:not(.public-bg):not(.auth-body) .security-challenge-actions{background:#111419!important;border-top-color:#30363d!important}
+@media(max-width:600px){
+  .security-challenge-backdrop{
+    top:var(--bf-security-top,0)!important;
+    bottom:auto!important;
+    height:var(--bf-security-height,100dvh)!important;
+    min-height:0!important;
+    align-items:flex-end!important;
+  }
+  .security-challenge-card{
+    height:auto!important;
+    max-height:calc(var(--bf-security-height,100dvh) - 8px)!important;
+    min-height:0!important;
+  }
+  .security-challenge-card form{flex:1 1 auto!important;min-height:0!important}
+  .security-challenge-body{padding:14px 14px 10px!important;flex:1 1 auto!important;min-height:0!important}
+  .security-challenge-actions{
+    display:grid!important;
+    grid-template-columns:minmax(88px,.72fr) minmax(0,1.28fr)!important;
+    gap:8px!important;
+    padding:12px 14px max(14px,env(safe-area-inset-bottom))!important;
+    flex:0 0 auto!important;
+  }
+  .security-challenge-actions .btn{width:100%!important;min-width:0!important;min-height:50px!important;font-size:13px!important}
+  #bfSecurityConfirm{position:relative!important;z-index:13!important}
+}
+@media(max-width:350px){.security-challenge-actions{grid-template-columns:78px minmax(0,1fr)!important;padding-left:10px!important;padding-right:10px!important}}
