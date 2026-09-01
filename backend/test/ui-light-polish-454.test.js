@@ -7,7 +7,7 @@ const root=path.resolve(__dirname,'../..');
 const css=fs.readFileSync(path.join(root,'frontend/style.css'),'utf8');
 const marker='/* =========================================================\n   EliteFlow 4.5.4';
 const markerIndex=css.indexOf(marker);
-const light454=markerIndex>=0?css.slice(markerIndex):'';
+const nextMarker='/* =========================================================\n   EliteFlow 4.5.5';const nextIndex=css.indexOf(nextMarker,markerIndex+1);const light454=markerIndex>=0?css.slice(markerIndex,nextIndex>=0?nextIndex:undefined):'';
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 
 test('4.5.4 é uma camada estritamente do modo claro',()=>{
@@ -45,7 +45,7 @@ test('WhatsApp e construtor de fluxo usam superfícies claras e seleção por bo
 test('páginas administrativas recebem cache novo do CSS sem trocar JS desnecessariamente',()=>{
   for(const file of ['frontend/index.html','frontend/master.html','frontend/pages/clientes.html','frontend/pages/automacoes.html']){
     const html=read(file);
-    assert.match(html,/style\.css\?v=20260901-v454/);
+    assert.match(html,/style\.css\?v=20260901-v455/);
     assert.match(html,/theme\.js\?v=20260901-v453/);
   }
 });

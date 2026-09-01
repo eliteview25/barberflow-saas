@@ -1,4 +1,4 @@
-# Checklist de segurança pré-deploy — 4.3.0
+# Checklist de segurança pré-deploy — EliteFlow 4.5.5
 
 ## Código e dependências
 

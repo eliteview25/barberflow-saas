@@ -26,6 +26,6 @@ test('assets 4.5.4 quebram o cache antigo do CSS em todas as páginas',()=>{
   walk(path.join(root,'frontend'));
   for(const file of pages){
     const html=fs.readFileSync(file,'utf8');
-    if(html.includes('/style.css'))assert.match(html,/style\.css\?v=20260901-v454/,path.relative(root,file));
+    if(html.includes('/style.css'))assert.match(html,/style\.css\?v=20260901-v455/,path.relative(root,file));
   }
 });

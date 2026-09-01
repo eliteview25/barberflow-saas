@@ -1,7 +1,7 @@
 const pool=require('../config/db');
 const {criarNotificacao}=require('./notificationCenter');
 
-const LEGAL_VERSION='2026-08-27';
+const LEGAL_VERSION='2026-09-01';
 
 async function ensureLaunchSchema(){
   await pool.query(`ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS mostrar_whatsapp_publico BOOLEAN NOT NULL DEFAULT true`);

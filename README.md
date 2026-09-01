@@ -1,14 +1,14 @@
-# EliteFlow: Gestão de Barbearia 4.5.4
+# EliteFlow: Gestão de Barbearia 4.5.5
 
-SaaS multiempresa para gestão de barbearias com agenda, clientes, equipe, serviços, página pública, pagamentos, PDV/estoque, CRM, fidelidade, automações, Supermaster e planos Starter/Pro/Premium.
+SaaS multiempresa para gestão de barbearias com agenda, clientes, equipe, serviços, página pública, pagamentos, PDV/estoque, CRM, marketing, automações, WhatsApp, financeiro, Supermaster e planos Starter/Pro/Premium.
 
-## Segurança desta versão
+## Estrutura
 
-A base 4.3.0 passou por revisão integral do código seguindo OWASP Top 10 2025, OWASP API Security 2023, ASVS e OWASP Top 10 para aplicações com IA. Foram reforçados autenticação, autorização multi-tenant, MFA, sessões, webhooks, pagamentos, OAuth, uploads, erros, segredos, banco, backups e o agente de IA.
+- `backend/` — API Node.js/Express, serviços, segurança, jobs e testes.
+- `frontend/` — painel, páginas públicas, autenticação e documentos legais.
+- `database/` — schema e dados/migrações de apoio.
 
-Leia **`HOTFIX-4.3.1.md`**, **`SECURITY-AUDIT-4.3.0.md`**, **`ELITEFLOW-4.3.0.md`** e **`PRE-DEPLOY-SECURITY.md`** antes do deploy.
-
-## Local
+## Desenvolvimento local
 
 ```powershell
 cd backend
@@ -18,9 +18,9 @@ npm run migrate
 npm start
 ```
 
-## Produção
+## Validação antes do deploy
 
-Use `backend` como diretório raiz, preserve `backend/package-lock.json` e instale sempre com `npm ci`. Após configurar o ambiente:
+Dentro de `backend/`:
 
 ```bash
 npm run migrate
@@ -32,142 +32,48 @@ npm run audit:security
 npm run smoke:security
 ```
 
+Use `backend` como diretório raiz do serviço e preserve `backend/package-lock.json`. Em produção, prefira `npm ci`.
+
 ## Trial e planos
 
-Novos tenants entram como `trial_pendente`; após verificar e-mail, começam Premium por 7 dias. Starter/Pro/Premium têm autorização aplicada no backend.
+Novas contas entram como `trial_pendente`. Após a verificação do e-mail, o trial Premium é ativado por 7 dias.
 
-## Importante
+- Starter — R$ 69,90/mês ou R$ 699/ano — até 2 profissionais.
+- Pro — R$ 119,90/mês ou R$ 1.199/ano — até 5 profissionais.
+- Premium — R$ 199,90/mês ou R$ 1.999/ano — até 10 profissionais.
+- Enterprise — contratação comercial para operações acima dos limites do Premium.
 
-Nenhuma revisão estática torna um sistema invulnerável. Antes de clientes pagantes em escala, use staging, execute testes dinâmicos autorizados e mantenha WAF/rate limit distribuído, monitoramento, rotação de segredos, atualização de dependências e testes reais de restauração de backup.
+O anual corresponde a 10 mensalidades e libera 12 meses de uso.
 
+## Segurança
 
-## Planos comerciais atuais
-- Starter — R$ 69,90/mês ou R$ 699/ano — até 2 profissionais; agenda, clientes, serviços, página pública, financeiro, gráficos, produtos/estoque, PDV, comandas e comissões.
-- Pro — R$ 119,90/mês ou R$ 1.199/ano — até 5 profissionais; tudo do Starter + equipe, pagamentos online, WhatsApp/automações, CRM, fila, avaliações, fidelidade, clube, marketing inteligente e relatórios avançados.
-- Premium — R$ 199,90/mês ou R$ 1.999/ano — até 10 profissionais; tudo do Pro + página personalizada, BI avançado, exportação, NFS-e preparada e IA no WhatsApp com limite padrão de 500 atendimentos/mês quando configurada.
-- Enterprise — sob consulta — operações com 11+ profissionais; contratação comercial, sem checkout automático.
+A aplicação mantém isolamento multi-tenant, sessão por cookie HttpOnly, CSRF, CSP, MFA/TOTP, step-up para ações sensíveis, rate limit, validação de webhooks, idempotência financeira, auditoria, proteção de uploads e validações de autorização por papel e tenant.
 
-O anual equivale a 10 mensalidades e libera 12 meses de uso. O trial permanece em 7 dias com recursos Premium.
+Nunca versione `.env`, credenciais, backups, dumps, logs ou arquivos de produção.
 
-### IA no WhatsApp
-A IA é opcional e usa ferramentas controladas do EliteFlow, sem acesso direto ao banco. Quando `OPENAI_API_KEY` não está configurada ou a integração falha, o atendimento clássico continua funcionando. As ações continuam validadas pelo contexto do tenant e pelas regras de agenda.
+## LGPD e documentos legais
 
-## Pré-lançamento 2.1
-- Onboarding guiado no Dashboard com progresso real.
-- Central de Suporte acessível mesmo com assinatura inativa; gestão no Supermaster.
-- Termos, Privacidade, LGPD e Cancelamento + registro de aceite no cadastro.
-- Saúde operacional no Supermaster e alertas webhook opcionais para falhas 5xx.
-- Backup lógico criptografado (`npm run backup`) com upload remoto opcional.
-- Checkout interno Pix/cartão, migração de planos, 2FA e preparação para IA mantidos.
+A versão 4.5.5 inclui revisão de privacidade e conformidade. Antes do lançamento comercial, configure os dados jurídicos reais da operação no ambiente.
 
-Consulte `LANCAMENTO.md`, `BACKUP-PRODUCAO.md` e `LEGAL-README.md` antes de abrir o SaaS ao público.
+Documentos atuais mantidos no repositório:
 
-## Pagamentos 2.2
-- Nova área **Pagamentos** no menu para Dono/Gerente.
-- Mercado Pago: conta da própria barbearia conectada por OAuth, com Pix/cartão já processados pelo EliteFlow.
-- PagBank: conector Connect preparado.
-- Asaas: conexão por API Key da própria barbearia, validada e criptografada.
-- Pagar.me: conexão por Secret/Public Key da própria barbearia, validada e criptografada.
-- Stripe: scaffold de Connect preparado; antes de ativar pagamentos, será adotado/revisado o onboarding recomendado pela Stripe.
-- Conexões são isoladas por `barbearia_id`; segredos não são enviados ao frontend após o cadastro.
+- `ELITEFLOW-4.5.5.md` — resumo da versão atual.
+- `LEGAL-README.md` — configuração e publicação das páginas legais.
+- `LGPD-COMPLIANCE-4.5.5.md` — matriz de conformidade.
+- `MAPA-DADOS-LGPD.md` — mapa resumido de dados pessoais.
+- `RETENCAO-DADOS-LGPD.md` — política técnica de retenção.
+- `PLANO-INCIDENTES-LGPD.md` — resposta a incidentes com dados pessoais.
+- `AUDITORIA-SEGURANCA-V2.md` — auditoria técnica consolidada.
+- `PRE-DEPLOY-SECURITY.md` — checklist de segurança.
+- `BACKUP-PRODUCAO.md` — política operacional de backup.
+- `PRODUCAO.md` — implantação em produção.
+- `QA-PILOTO.md` — checklist de QA/piloto.
+- `CHECKOUT-PLANOS.md` — fluxo atual de assinatura e checkout.
 
-Consulte `PAGAMENTOS-GATEWAYS.md` para configuração e limites desta versão.
+As páginas públicas legais ficam em `frontend/`: Termos, Privacidade, LGPD, Cancelamento, Cookies, DPA e Terceiros.
 
+## Git limpo
 
-## Pagamentos 2.3
+O `.gitignore` da raiz impede a inclusão acidental de dependências, segredos, ZIPs de release, hashes, logs, backups e arquivos temporários.
 
-Gateways e checkout agora ficam totalmente centralizados em **Pagamentos**. A aba Configurações não possui mais recebimentos. Mercado Pago, PagBank, Asaas, Pagar.me e Stripe ficam prontos para receber as credenciais do dono da barbearia; apenas o driver Mercado Pago está ativo no checkout nesta etapa. Veja `PAGAMENTOS-GATEWAYS.md`.
-
-## EliteFlow 2.8 — Marketing
-- Central Premium com visão geral, campanhas, públicos, cupons, indicações, links rastreáveis e modelos WhatsApp.
-- Segmentação por aniversariantes, novos, inativos, VIP, frequência, faltas, compradores e carrinho abandonado.
-- Consentimento promocional explícito no cliente, agendamento público e checkout da loja, com opt-out por SAIR/PARAR.
-- Campanhas pelo provedor WhatsApp ativo; provedores oficiais usam templates aprovados e Evolution/QR usa mensagem livre, com lotes, retry e métricas compatíveis com cada conexão.
-- Links rastreáveis conectam campanhas à agenda/loja e atribuem conversões e receita.
-- Cupons server-side e programa de indicação com recompensas automáticas.
-- Schema preparado automaticamente no boot; não depende de comandos manuais no Render.
-
-
-## EliteFlow 2.9 — WhatsApp com 4 provedores
-- Cada barbearia escolhe entre Meta Cloud API, 360dialog, Twilio ou Evolution/QR Code.
-- É possível manter várias conexões configuradas e definir uma como ativa.
-- Marketing, lembretes, atendimento e futura IA usam a conexão ativa.
-- Meta, 360dialog e Twilio são apresentados como opções oficiais; Evolution/QR é alternativa com aviso de estabilidade.
-- Segredos ficam criptografados; webhooks e mudanças de provedor possuem proteções próprias.
-- Conexões Meta/Evolution anteriores são migradas automaticamente no boot.
-
-## EliteFlow 3.2
-
-Dashboards por perfil e revisão de responsividade/mobile. Consulte `ELITEFLOW-3.2.md`.
-
-## EliteFlow 3.3 — fotos dos profissionais e exclusão por 2FA
-
-- Dono e gerente podem adicionar ou remover foto no cadastro do barbeiro.
-- O upload reutiliza o pipeline seguro de imagens e salva em Cloudinary; JPG/PNG de até 5 MB, com recorte quadrado e remoção de metadados.
-- A página pública mostra os profissionais em cards com foto; quando não houver foto, exibe as iniciais.
-- O banco recebe `barbeiros.foto_url` de forma idempotente durante o boot/migração.
-- Exclusão de barbearia no Supermaster não exige mais digitar o nome. Cada exclusão normal ou permanente exige código TOTP do 2FA no próprio modal e possui rate limit dedicado.
-- A exclusão normal continua recuperável por 30 dias; a permanente continua irreversível.
-
-Para upload real das fotos, configure `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` e `CLOUDINARY_API_SECRET` no ambiente de produção. Não armazene imagens no disco efêmero do Render.
-
-
-## 4.4.7
-Aprovação de Pix manual em um clique, sem segundo modal de step-up, com registro de auditoria e controles de tenant/papel preservados.
-
-
-## 4.4.8
-
-- Card de confirmação/recebimento de Pix menor e centralizado no mobile.
-- Mantida a confirmação Pix em um clique da 4.4.7.
-- Sem alteração de regras de segurança, agenda ou pagamento.
-
-## 4.4.9
-
-- WhatsApp revalida o horário escolhido antes de avançar no fluxo.
-- Sessões antigas não conseguem reutilizar horários que passaram a cair no intervalo de almoço.
-- Consultas de disponibilidade pela IA só respondem depois de validar a agenda real.
-- O intervalo de almoço continua protegido também pela regra central de criação do agendamento.
-
-## 4.5.0
-
-- Aparência do painel com modos Claro, Escuro e Sistema para todos os perfis, incluindo Supermaster.
-- Preferência salva no navegador e sincronizada entre abas; o modo Sistema acompanha mudanças do dispositivo em tempo real.
-- Controle disponível no menu lateral, no drawer mobile e nas telas de autenticação e documentos legais.
-- Tema claro completo para cards, tabelas, formulários, modais, notificações, dashboards e telas operacionais.
-- Escala tipográfica aumentada no desktop e mobile, com ajustes próprios para cards compactos, tabelas, agenda, clientes, serviços, Pix e WhatsApp.
-- Regras de largura, quebra e truncamento preservam a responsividade até 320 px sem criar rolagem horizontal indevida.
-
-## 4.5.1
-
-- Identidade textual renomeada para **EliteFlow: Gestão de Barbearia** em login, painel, Supermaster, comunicações, documentos, títulos e arquivos exportados.
-- Logo textual compacta mantida como **EliteFlow**, preservando exatamente a estrutura visual, cores, espaçamentos e responsividade da versão 4.5.0.
-- Identificadores técnicos legados de sessão, pagamentos, webhooks e tenant de sistema foram preservados para não interromper integrações e dados existentes.
-
-## 4.5.2
-
-- Modo claro refeito com hierarquia de superfícies, contraste WCAG AA, campos delimitados e estados semânticos consistentes.
-- Dashboard, Agenda, Financeiro, WhatsApp, Pagamentos, Assinatura, Segurança, Suporte, configurações e Supermaster seguem a mesma paleta clara.
-- Busca, notificações, modais, tabelas e cards carregados dinamicamente não preservam mais fundos escuros indevidos no tema claro.
-- Sidebar carvão, modo escuro, estrutura, responsividade e regras funcionais foram preservados.
-
-Consulte `ELITEFLOW-4.5.2.md` para a especificação visual e as referências utilizadas.
-
-## 4.5.4
-
-- conclui o modo claro no menu lateral;
-- corrige remanescentes escuros em Clientes;
-- corrige superfícies e seleções em WhatsApp/Automações;
-- preserva integralmente o modo escuro 4.5.3.
-
-Consulte `ELITEFLOW-4.5.4.md` para os detalhes.
-
-## 4.5.3
-
-- Modo principal escuro revisado a partir dos sistemas de design de GitHub, Atlassian, IBM Carbon e Material Design 3.
-- Canvas, cards, superfícies internas e overlays agora seguem camadas progressivamente mais claras, sem fundos internos arbitrariamente mais escuros.
-- Textos auxiliares, placeholders, campos e estados semânticos receberam contraste WCAG AA e limites de controle perceptíveis.
-- Dashboard, Agenda, Financeiro, WhatsApp, Pagamentos, Assinatura, Segurança, Suporte, Supermaster e mobile usam os mesmos tokens funcionais.
-- Modo claro 4.5.2, layout, tamanhos, breakpoints e regras funcionais foram preservados.
-
-Consulte `ELITEFLOW-4.5.3.md` para o diagnóstico, a paleta e as referências.
+O histórico detalhado das versões anteriores deve permanecer no próprio histórico de commits/tags do Git, e não em dezenas de arquivos `.md` na raiz do projeto.

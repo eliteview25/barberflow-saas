@@ -3322,3 +3322,11 @@ html[data-bf-theme="light"] .check-row:has(input:checked){background:#fff!import
   html[data-bf-theme="light"] .client-search{width:100%!important}
   html[data-bf-theme="light"] :is(.provider-choice-card,.flow-list-card,.flow-node,.flow-message-editor,.ai-roadmap-card){box-shadow:none!important}
 }
+
+
+/* =========================================================
+   EliteFlow 4.5.5 — conformidade LGPD e páginas legais
+   ========================================================= */
+.legal-page{max-width:940px}.legal-page h1{line-height:1.15}.legal-page h2{margin-top:30px}.legal-page h3{margin-top:22px}.legal-page p,.legal-page li{line-height:1.72}.legal-box{margin:22px 0;padding:18px;border:1px solid var(--line);border-radius:14px;background:rgba(148,163,184,.05)}.legal-box h2{margin-top:0}.legal-box p{margin:7px 0}.legal-list{padding-left:22px;color:inherit}.legal-list li{margin:7px 0}.legal-table-wrap{overflow-x:auto;margin:16px 0;border:1px solid var(--line);border-radius:13px}.legal-table{width:100%;border-collapse:collapse;min-width:620px}.legal-table th,.legal-table td{padding:12px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line);line-height:1.55}.legal-table th{font-size:12px;text-transform:uppercase;letter-spacing:.04em}.legal-table tr:last-child td{border-bottom:0}.legal-page code{font-size:.9em}.store-legal-links{padding:14px 16px 28px}
+html[data-bf-theme="dark"] .legal-box{background:#11151a!important;border-color:#2a3037!important}html[data-bf-theme="dark"] .legal-table-wrap{border-color:#2a3037!important}html[data-bf-theme="dark"] .legal-table th,html[data-bf-theme="dark"] .legal-table td{border-color:#2a3037!important;color:#d8dde5!important}html[data-bf-theme="dark"] .legal-table th{background:#11151a!important;color:#f2b322!important}html[data-bf-theme="light"] .legal-box{background:#f8fafc!important}html[data-bf-theme="light"] .legal-table th{background:#f8fafc!important;color:#475569!important}
+@media(max-width:760px){.legal-page{padding:20px 16px}.legal-table{min-width:560px}.legal-table th,.legal-table td{padding:10px 11px;font-size:12px}}

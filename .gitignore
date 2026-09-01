@@ -1,0 +1,59 @@
+# Dependências
+node_modules/
+**/node_modules/
+
+# Segredos e ambiente
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Releases e artefatos
+*.zip
+*.zip.sha256
+*.sha256
+*.tgz
+*.tar
+*.tar.gz
+
+# Logs e temporários
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+
+# Backups / dumps / dados locais
+*.sql.gz
+*.dump
+*.backup
+backups/
+backup/
+
+# Cobertura e caches
+coverage/
+.nyc_output/
+.cache/
+.eslintcache
+
+# Editor / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Python eventual
+__pycache__/
+*.py[cod]
+
+# Arquivos locais de runtime
+*.pid
+*.pid.lock

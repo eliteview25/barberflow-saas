@@ -1,4 +1,4 @@
-# EliteFlow 4.3.1 — produção segura
+# EliteFlow 4.5.5 — produção segura
 
 ## Implantação
 
