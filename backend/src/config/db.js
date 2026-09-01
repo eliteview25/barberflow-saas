@@ -34,7 +34,7 @@ const pool = new Pool({
   statement_timeout: boundedInt(process.env.DB_STATEMENT_TIMEOUT_MS,15000,1000,120000),
   query_timeout: boundedInt(process.env.DB_QUERY_TIMEOUT_MS,20000,1000,180000),
   idle_in_transaction_session_timeout: boundedInt(process.env.DB_IDLE_TRANSACTION_TIMEOUT_MS,15000,1000,120000),
-  application_name: 'barberflow-saas'
+  application_name: 'eliteflow-saas'
 });
 
 pool.on('error',(erro)=>{

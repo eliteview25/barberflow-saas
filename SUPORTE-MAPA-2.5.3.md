@@ -1,4 +1,4 @@
-# BarberFlow 2.5.3 — Suporte WhatsApp e localização pública
+# EliteFlow 2.5.3 — Suporte WhatsApp e localização pública
 
 - O Supermaster configura o WhatsApp oficial do suporte em **Supermaster > Suporte**.
 - O número aparece automaticamente na Central de Suporte das barbearias.

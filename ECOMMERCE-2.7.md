@@ -1,8 +1,8 @@
-# BarberFlow 2.7 — E-commerce, frete e step-up de segurança
+# EliteFlow 2.7 — E-commerce, frete e step-up de segurança
 
 ## Segurança de ações importantes
 
-O BarberFlow usa confirmação adicional (step-up) antes de alterações sensíveis.
+O EliteFlow usa confirmação adicional (step-up) antes de alterações sensíveis.
 
 - Se o usuário possui 2FA ativo, a confirmação pede somente o código TOTP atual de 6 dígitos.
 - Se o usuário não possui 2FA ativo, a confirmação pede somente a senha da conta.
@@ -11,12 +11,12 @@ O BarberFlow usa confirmação adicional (step-up) antes de alterações sensív
 
 ## Loja / e-commerce
 
-A loja pública usa os produtos e o estoque já cadastrados no BarberFlow.
+A loja pública usa os produtos e o estoque já cadastrados no EliteFlow.
 
 Fluxo principal:
 
 1. Cliente adiciona produtos ao carrinho.
-2. BarberFlow recalcula preços e disponibilidade no servidor.
+2. EliteFlow recalcula preços e disponibilidade no servidor.
 3. Cliente escolhe retirada ou entrega.
 4. Para entrega, o servidor calcula a distância e o frete.
 5. O estoque é reservado temporariamente durante o pagamento.
@@ -47,7 +47,7 @@ Para produção, configure no Render Environment:
 GOOGLE_MAPS_ROUTES_API_KEY=
 ```
 
-Quando a chave estiver presente, o backend usa Google Routes para distância por rota. Sem chave, o BarberFlow pode usar o fallback OpenStreetMap/Nominatim + OSRM quando `ROUTING_FALLBACK_OSM=true`.
+Quando a chave estiver presente, o backend usa Google Routes para distância por rota. Sem chave, o EliteFlow pode usar o fallback OpenStreetMap/Nominatim + OSRM quando `ROUTING_FALLBACK_OSM=true`.
 
 O fallback é útil para piloto e contingência. Para volume comercial, recomenda-se configurar um provedor de rotas com SLA e limites adequados ao uso.
 
@@ -61,7 +61,7 @@ Em **Configurações → Pagamentos → Mercado Pago**, o dono informa:
 
 A Public Key pode ser enviada ao navegador. Access Token e segredo do webhook permanecem criptografados no backend.
 
-O cartão é tokenizado no navegador pelo SDK do Mercado Pago; o BarberFlow não armazena número completo do cartão nem CVV.
+O cartão é tokenizado no navegador pelo SDK do Mercado Pago; o EliteFlow não armazena número completo do cartão nem CVV.
 
 O Pix mostra QR Code/copia e cola dentro da loja. A confirmação pode ocorrer pelo webhook e também por sincronização com o Mercado Pago.
 

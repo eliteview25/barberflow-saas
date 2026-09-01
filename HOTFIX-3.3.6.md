@@ -1,4 +1,4 @@
-# BarberFlow 3.3.6 — Diagnóstico e resiliência Mercado Pago
+# EliteFlow 3.3.6 — Diagnóstico e resiliência Mercado Pago
 
 - Valida se Access Token e Public Key pertencem ao mesmo ambiente.
 - Consulta os meios de pagamento disponíveis na conta Mercado Pago central.

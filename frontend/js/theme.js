@@ -20,7 +20,7 @@
 
   function updateThemeColor(theme){
     const meta=document.querySelector('meta[name="theme-color"]');
-    if(meta)meta.setAttribute('content',theme==='dark'?'#080a0d':'#f4f6f8');
+    if(meta)meta.setAttribute('content',theme==='dark'?'#0a0c0f':'#f7f8fa');
   }
 
   function syncControls(){
@@ -46,7 +46,7 @@
   function controlElement(location){
     const control=document.createElement('label');
     control.className=`bf-theme-control bf-theme-control-${location}`;
-    control.innerHTML=`<span class="bf-theme-control-icon" aria-hidden="true">◐</span><span class="bf-theme-control-copy"><strong>Aparência</strong><small>Claro, escuro ou sistema</small></span><select data-bf-theme-select aria-label="Escolher aparência do BarberFlow"><option value="light">Claro</option><option value="dark">Escuro</option><option value="system">Sistema</option></select>`;
+    control.innerHTML=`<span class="bf-theme-control-icon" aria-hidden="true">◐</span><span class="bf-theme-control-copy"><strong>Aparência</strong><small>Claro, escuro ou sistema</small></span><select data-bf-theme-select aria-label="Escolher aparência do EliteFlow"><option value="light">Claro</option><option value="dark">Escuro</option><option value="system">Sistema</option></select>`;
     const select=control.querySelector('select');
     select.value=preference;
     select.addEventListener('change',()=>applyTheme(select.value,{persist:true,notify:true}));

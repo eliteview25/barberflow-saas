@@ -1,4 +1,4 @@
-# BarberFlow — Pós-auditoria de segurança
+# EliteFlow — Pós-auditoria de segurança
 
 Esta versão corrige os achados da primeira auditoria estática defensiva.
 
@@ -36,7 +36,7 @@ REQUIRE_TURNSTILE=true
 TURNSTILE_SITE_KEY=<site key>
 TURNSTILE_SECRET_KEY=<secret key>
 RESEND_API_KEY=<chave Resend>
-EMAIL_FROM=BarberFlow <no-reply@seudominio.com>
+EMAIL_FROM=EliteFlow <no-reply@seudominio.com>
 PUBLIC_BOOKING_REQUIRE_OTP=true
 ```
 

@@ -1,4 +1,4 @@
-# BarberFlow 4.3.2 — Hotfix PostgreSQL TLS / Render
+# EliteFlow 4.3.2 — Hotfix PostgreSQL TLS / Render
 
 ## Problema corrigido
 
@@ -14,4 +14,4 @@ A 4.3.1 exigia `rejectUnauthorized=true` em toda conexão PostgreSQL de produç�
 
 ## Render
 
-Com a configuração já usada no BarberFlow (`DB_SSL=true`), não é necessário adicionar uma variável insegura global. Faça apenas o deploy da 4.3.2. Se `DB_SSL_REJECT_UNAUTHORIZED=true` estiver atualmente definido no Render, altere para `false` ou remova a variável para usar o modo compatível `require`.
+Com a configuração já usada no EliteFlow (`DB_SSL=true`), não é necessário adicionar uma variável insegura global. Faça apenas o deploy da 4.3.2. Se `DB_SSL_REJECT_UNAUTHORIZED=true` estiver atualmente definido no Render, altere para `false` ou remova a variável para usar o modo compatível `require`.

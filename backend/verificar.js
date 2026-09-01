@@ -1,7 +1,7 @@
 require('dotenv').config();
 const pool=require('./src/config/db');
 (async()=>{let fail=0;try{
- console.log('=== Verificação estrutural BarberFlow V2 ===');
+ console.log('=== Verificação estrutural EliteFlow V2 ===');
  await pool.query('SELECT 1');console.log('✅ Conexão PostgreSQL: OK');
  const required=['barbearias','usuarios','assinaturas','clientes','barbeiros','servicos','horarios_trabalho','agendamentos','reservas_pagamento','integracoes_pagamento','webhook_events','booking_otps','email_verification_tokens','auth_login_attempts','produtos','vendas','venda_itens','fila_espera','avaliacoes','automacoes_config','automacoes_envios','audit_logs','ai_config','ai_uso_mensal','assinaturas_pagamentos','legal_acceptances','support_tickets','system_events','backup_runs','metas_financeiras','platform_payment_gateways','platform_settings','loja_pedidos','loja_pedido_itens','marketing_modelos','marketing_cupons','marketing_campanhas','marketing_envios','marketing_links','marketing_cupom_usos','marketing_indicacoes_config','marketing_indicacao_codigos','marketing_indicacao_conversoes','whatsapp_conexoes','whatsapp_fluxos'];
  const r=await pool.query(`SELECT unnest($1::text[]) nome`,[required]);

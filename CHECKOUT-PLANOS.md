@@ -1,8 +1,8 @@
-# Checkout dos planos BarberFlow
+# Checkout dos planos EliteFlow
 
 ## Fluxos atuais
-- **Pix:** cobrança criada dentro do BarberFlow com QR Code Mercado Pago. A aprovação é reconciliada por webhook e consulta de status.
-- **Cartão:** o BarberFlow cria uma assinatura `pending` na conta Mercado Pago configurada pelo Supermaster e redireciona o dono da barbearia para o **checkout oficial do Mercado Pago**. O BarberFlow não coleta número do cartão, validade nem CVV.
+- **Pix:** cobrança criada dentro do EliteFlow com QR Code Mercado Pago. A aprovação é reconciliada por webhook e consulta de status.
+- **Cartão:** o EliteFlow cria uma assinatura `pending` na conta Mercado Pago configurada pelo Supermaster e redireciona o dono da barbearia para o **checkout oficial do Mercado Pago**. O EliteFlow não coleta número do cartão, validade nem CVV.
 - **Migração de plano com cartão recorrente ativo:** atualiza a assinatura Mercado Pago existente, sem criar uma segunda assinatura.
 
 ## Credenciais
@@ -20,4 +20,4 @@ O checkout 4.1 é tolerante a respostas incompletas/timeouts:
 4. se o Mercado Pago não devolver `init_point`, constrói a URL oficial usando o `preapproval_id`;
 5. o webhook reconcilia `barberflow:<tenant>:<plano>:<mensal|anual>`.
 
-Isso evita o caso em que o Mercado Pago cria a assinatura, mas o BarberFlow exibe erro e cria outra tentativa.
+Isso evita o caso em que o Mercado Pago cria a assinatura, mas o EliteFlow exibe erro e cria outra tentativa.

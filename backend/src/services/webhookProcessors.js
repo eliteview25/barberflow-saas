@@ -38,10 +38,10 @@ async function processMercado(payload){
     }
     const seller=await getSellerAccessToken(tenantId),payment=await obterPagamento(dataId,seller);
     if(payload?.paymentScope==='store'){
-      const m=String(payment.external_reference||'').match(/^barberflow-store:(\d+)$/);if(!m)throw new Error('Pagamento da loja sem referência BarberFlow válida');
+      const m=String(payment.external_reference||'').match(/^barberflow-store:(\d+)$/);if(!m)throw new Error('Pagamento da loja sem referência EliteFlow válida');
       const oid=Number(m[1]);const rr=await pool.query(`SELECT id,barbearia_id FROM loja_pedidos WHERE id=$1 AND barbearia_id=$2`,[oid,tenantId]);if(!rr.rowCount)throw new Error('Pedido da loja não pertence ao tenant informado');await markOrderPayment(oid,payment);return;
     }
-    const m=String(payment.external_reference||'').match(/^barberflow-booking:(\d+)$/);if(!m)throw new Error('Pagamento sem referência BarberFlow válida');
+    const m=String(payment.external_reference||'').match(/^barberflow-booking:(\d+)$/);if(!m)throw new Error('Pagamento sem referência EliteFlow válida');
     const rid=Number(m[1]);const rr=await pool.query(`SELECT id,barbearia_id FROM reservas_pagamento WHERE id=$1 AND barbearia_id=$2`,[rid,tenantId]);if(!rr.rowCount)throw new Error('Reserva do pagamento não pertence ao tenant informado');
     const out=await finalizePaidReservation(rid,payment);if(out?.error&&!out.pending&&!out.conflict)throw new Error(out.error);return;
   }

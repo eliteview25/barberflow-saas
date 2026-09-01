@@ -1,6 +1,6 @@
-# WhatsApp no BarberFlow
+# WhatsApp no EliteFlow
 
-O BarberFlow oferece dois modos separados no plano Premium.
+O EliteFlow oferece dois modos separados no plano Premium.
 
 ## 1. WhatsApp Oficial — Cloud API
 
@@ -12,7 +12,7 @@ A barbearia configura no painel:
 - número;
 - Access Token.
 
-O **Verify Token não fica mais no Render**. O dono clica em **Gerar Verify Token** na área Automações, copia o token e informa esse mesmo valor na configuração de webhook da Meta. O BarberFlow salva apenas o hash desse token; se ele for perdido, basta gerar outro.
+O **Verify Token não fica mais no Render**. O dono clica em **Gerar Verify Token** na área Automações, copia o token e informa esse mesmo valor na configuração de webhook da Meta. O EliteFlow salva apenas o hash desse token; se ele for perdido, basta gerar outro.
 
 Callback compartilhado:
 
@@ -20,7 +20,7 @@ Callback compartilhado:
 https://SEU_DOMINIO/api/whatsapp/webhook
 ```
 
-A Meta envia o `hub.verify_token` na validação; o BarberFlow identifica qual token cadastrado corresponde ao valor recebido.
+A Meta envia o `hub.verify_token` na validação; o EliteFlow identifica qual token cadastrado corresponde ao valor recebido.
 
 ## 2. WhatsApp por QR — somente lembretes
 
@@ -32,7 +32,7 @@ A interface mostra um QR Code que o dono escaneia em:
 WhatsApp > Dispositivos conectados > Conectar dispositivo
 ```
 
-Para manter as sessões QR fora do processo principal do SaaS, o BarberFlow usa um conector Evolution API separado. Configure na infraestrutura:
+Para manter as sessões QR fora do processo principal do SaaS, o EliteFlow usa um conector Evolution API separado. Configure na infraestrutura:
 
 ```env
 EVOLUTION_API_URL=https://evolution.seu-dominio.com

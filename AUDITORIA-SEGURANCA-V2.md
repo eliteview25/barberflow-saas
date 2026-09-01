@@ -1,4 +1,4 @@
-# BarberFlow — Auditoria de Segurança V2
+# EliteFlow — Auditoria de Segurança V2
 
 Data da revisão: 26/08/2026.
 
@@ -40,7 +40,7 @@ Esta revisão também tratou falhas de **integridade financeira, concorrência e
 - venda final duplicada do mesmo agendamento é bloqueada;
 - estoque, quantidade, desconto e comissão recebem validação de aplicação + constraints;
 - Mercado Pago reconcilia `external_reference`, moeda e valor esperado;
-- roteamento de credencial por tenant no webhook usa HMAC próprio do BarberFlow;
+- roteamento de credencial por tenant no webhook usa HMAC próprio do EliteFlow;
 - mudança manual de plano é conciliada com o provedor para não criar divergência silenciosa.
 
 ### Webhooks e integrações
@@ -98,4 +98,4 @@ Também é necessário testar dinamicamente, com contas de tenants diferentes:
 
 ## Limite da auditoria
 
-Este documento **não certifica o BarberFlow como 100% seguro**. É uma revisão estática e de regressão muito mais profunda da base atual. Segurança de produção exige teste dinâmico, monitoramento, atualização contínua de dependências, backups e resposta a incidentes.
+Este documento **não certifica o EliteFlow como 100% seguro**. É uma revisão estática e de regressão muito mais profunda da base atual. Segurança de produção exige teste dinâmico, monitoramento, atualização contínua de dependências, backups e resposta a incidentes.

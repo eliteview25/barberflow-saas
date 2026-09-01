@@ -1,4 +1,4 @@
-# BarberFlow 2.5 — Estrutura, catálogo e Supermaster
+# EliteFlow 2.5 — Estrutura, catálogo e Supermaster
 
 - Menu lateral agrupado em **Barbearia** e **Configurações**.
 - Equipe: dono pode excluir acessos, sem apagar o cadastro do barbeiro.

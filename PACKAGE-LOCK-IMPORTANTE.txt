@@ -1,4 +1,4 @@
-BARBERFLOW 4.3.0 — PACKAGE-LOCK
+ELITEFLOW 4.3.0 — PACKAGE-LOCK
 
 O lockfile válido está em backend/package-lock.json e acompanha o package.json da aplicação.
 Não gere nem mantenha um package-lock.json vazio na raiz do projeto.

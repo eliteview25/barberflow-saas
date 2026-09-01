@@ -1,4 +1,4 @@
-# BarberFlow 2.9 — 4 provedores de WhatsApp
+# EliteFlow 2.9 — 4 provedores de WhatsApp
 
 A conexão do WhatsApp passa a ser escolhida por barbearia em **Configurações → Automações → WhatsApp**. É possível manter mais de um provedor salvo e definir somente um como ativo.
 
@@ -15,7 +15,7 @@ A conexão do WhatsApp passa a ser escolhida por barbearia em **Configurações 
 - Parceiro oficial.
 - A barbearia informa sua API Key e número.
 - A API Key é criptografada.
-- O BarberFlow tenta cadastrar automaticamente o webhook; se a conta não permitir, mostra a URL para cadastro manual.
+- O EliteFlow tenta cadastrar automaticamente o webhook; se a conta não permitir, mostra a URL para cadastro manual.
 - A estrutura de mensagens/templates segue o formato WhatsApp Business.
 
 ### Twilio
@@ -28,7 +28,7 @@ A conexão do WhatsApp passa a ser escolhida por barbearia em **Configurações 
 
 ### Evolution / QR Code
 - Alternativa baseada em sessão do WhatsApp vinculada por QR Code.
-- Requer `EVOLUTION_API_URL` e `EVOLUTION_API_KEY` configurados na infraestrutura do BarberFlow.
+- Requer `EVOLUTION_API_URL` e `EVOLUTION_API_KEY` configurados na infraestrutura do EliteFlow.
 - O cliente escaneia o QR Code em Dispositivos conectados.
 - Pode atender e enviar mensagens livres; automações/Marketing usam texto em vez de template oficial.
 - O painel exibe aviso de que essa alternativa pode ser menos estável e não é a API oficial da Meta.
@@ -41,7 +41,7 @@ Uma barbearia pode deixar, por exemplo, Meta e Twilio conectados simultaneamente
 - Marketing;
 - futura IA.
 
-A troca do provedor ativo é protegida pelo step-up do BarberFlow. Se 2FA estiver ativo, pede o código; caso contrário, pede a senha. Ao desconectar o provedor ativo, o sistema seleciona automaticamente outra conexão disponível quando existir.
+A troca do provedor ativo é protegida pelo step-up do EliteFlow. Se 2FA estiver ativo, pede o código; caso contrário, pede a senha. Ao desconectar o provedor ativo, o sistema seleciona automaticamente outra conexão disponível quando existir.
 
 ## Compatibilidade
 
@@ -49,7 +49,7 @@ As conexões Meta e Evolution que já existiam antes da 2.9 são migradas automa
 
 ## Segurança
 
-- segredos ficam criptografados com AES-GCM pelo serviço de secrets do BarberFlow;
+- segredos ficam criptografados com AES-GCM pelo serviço de secrets do EliteFlow;
 - tokens privados de webhook são armazenados criptografados e também por hash para identificação;
 - webhooks Meta validam HMAC SHA-256;
 - webhooks Twilio validam `X-Twilio-Signature`;

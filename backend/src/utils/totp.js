@@ -7,5 +7,5 @@ function hotp(secret,counter){const key=base32Decode(secret);const buf=Buffer.al
 function totp(secret,time=Date.now()){return hotp(secret,Math.floor(time/30000))}
 function matchingTotpStep(secret,code,window=1,time=Date.now()){const c=String(code||'').replace(/\D/g,'');if(c.length!==6)return null;const base=Math.floor(time/30000);for(let i=-window;i<=window;i++){const step=base+i,x=hotp(secret,step),a=Buffer.from(x),b=Buffer.from(c);if(a.length===b.length&&crypto.timingSafeEqual(a,b))return step}return null}
 function verifyTotp(secret,code,window=1){return matchingTotpStep(secret,code,window)!==null}
-function otpauthUri({secret,email,issuer='BarberFlow'}){return `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(email)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`}
+function otpauthUri({secret,email,issuer='EliteFlow'}){return `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(email)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`}
 module.exports={generateSecret,verifyTotp,matchingTotpStep,otpauthUri};

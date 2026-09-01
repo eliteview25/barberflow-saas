@@ -1,4 +1,4 @@
-# BarberFlow 3.3.3
+# EliteFlow 3.3.3
 
 ## Página pública — seletor de barbeiros
 

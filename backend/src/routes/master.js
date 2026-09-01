@@ -109,7 +109,7 @@ router.get('/financeiro',async(req,res)=>{
     res.json({
       resumo:{mrr,arr:mrr*12,realizado_mes:mesAtual.realizado,em_aberto:mesAtual.em_aberto,realizado_12m:realizado12,projetado_12m:projetado12},
       historico,futuro,planos:planosMix,cobrancas_status:cobrancasStatus.rows.map(x=>({...x,total:Number(x.total||0)})),
-      aviso_historico:'O realizado considera cobranças registradas pelo BarberFlow a partir desta atualização; períodos anteriores sem registro permanecem zerados.'
+      aviso_historico:'O realizado considera cobranças registradas pelo EliteFlow a partir desta atualização; períodos anteriores sem registro permanecem zerados.'
     });
   }catch(e){console.error(e);res.status(500).json({erro:'Erro ao carregar financeiro do SaaS'});}
 });
@@ -248,7 +248,7 @@ router.get('/system/health',async(req,res)=>{
       pool.query(`SELECT status,destino,criado_em FROM backup_runs ORDER BY id DESC LIMIT 1`)
     ]);
     const mem=process.memoryUsage();
-    res.json({ok:true,db_latency_ms:dbLatency,uptime_seconds:Math.round(process.uptime()),memory_mb:Math.round(mem.rss/1024/1024),errors_24h:errors.rows[0].n,support_open:support.rows[0].n,webhook_errors:webhooks.rows[0].n,automation_errors:autos.rows[0].n,stale_payments:payments.rows[0].n,backup:backup.rows[0]||null,backup_remote_configured:!!(process.env.BACKUP_UPLOAD_URL&&process.env.BACKUP_ENCRYPTION_KEY),release:process.env.RELEASE_VERSION||'4.5.0'});
+    res.json({ok:true,db_latency_ms:dbLatency,uptime_seconds:Math.round(process.uptime()),memory_mb:Math.round(mem.rss/1024/1024),errors_24h:errors.rows[0].n,support_open:support.rows[0].n,webhook_errors:webhooks.rows[0].n,automation_errors:autos.rows[0].n,stale_payments:payments.rows[0].n,backup:backup.rows[0]||null,backup_remote_configured:!!(process.env.BACKUP_UPLOAD_URL&&process.env.BACKUP_ENCRYPTION_KEY),release:process.env.RELEASE_VERSION||'4.5.3'});
   }catch(e){res.status(503).json({ok:false,erro:'Diagnóstico indisponível'})}
 });
 

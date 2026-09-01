@@ -1,4 +1,4 @@
-# BarberFlow 3.3.1
+# EliteFlow 3.3.1
 
 ## Página pública — seleção de barbeiro
 

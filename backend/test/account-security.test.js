@@ -20,7 +20,7 @@ function currentTotp(secret){
   return String(n).padStart(6,'0');
 }
 
-test('TOTP do BarberFlow gera segredo e valida código atual',()=>{
+test('TOTP do EliteFlow gera segredo e valida código atual',()=>{
   const secret=generateSecret();
   assert.match(secret,/^[A-Z2-7]+$/);
   assert.equal(verifyTotp(secret,currentTotp(secret)),true);

@@ -8,8 +8,8 @@ if(process.env.NODE_ENV==='production'){
   const missing=required.filter(k=>!process.env[k]);if(missing.length)throw new Error(`Configuração segura ausente: ${missing.join(', ')}`);
   const mandatorySecrets=['JWT_SECRET','APP_SECRETS_ENCRYPTION_KEY','BOOKING_OTP_PEPPER','CRON_SECRET','MP_WEBHOOK_TENANT_SECRET'];
   const optionalSecrets=['LOGIN_THROTTLE_SECRET','BILLING_WEBHOOK_SECRET','BACKUP_ENCRYPTION_KEY'];
-  for(const k of mandatorySecrets)if(String(process.env[k]).length<48||/change.?me|troque|example|barberflow/i.test(process.env[k]))throw new Error(`Segredo inseguro em ${k}`);
-  for(const k of optionalSecrets)if(process.env[k]&&(String(process.env[k]).length<48||/change.?me|troque|example|barberflow/i.test(process.env[k])))throw new Error(`Segredo inseguro em ${k}`);
+  for(const k of mandatorySecrets)if(String(process.env[k]).length<48||/change.?me|troque|example|barberflow|eliteflow/i.test(process.env[k]))throw new Error(`Segredo inseguro em ${k}`);
+  for(const k of optionalSecrets)if(process.env[k]&&(String(process.env[k]).length<48||/change.?me|troque|example|barberflow|eliteflow/i.test(process.env[k])))throw new Error(`Segredo inseguro em ${k}`);
   const configuredSecrets=[...mandatorySecrets,...optionalSecrets].filter(k=>process.env[k]);
   if(new Set(configuredSecrets.map(k=>process.env[k])).size!==configuredSecrets.length)throw new Error('Cada finalidade sensível configurada deve usar um segredo diferente');
   {const u=new URL(process.env.APP_URL);if(u.protocol!=='https:'||u.username||u.password)throw new Error('APP_URL deve ser HTTPS e não pode conter credenciais')}

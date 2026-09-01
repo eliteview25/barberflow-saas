@@ -1,4 +1,4 @@
-# BarberFlow 4.3.1 — produção segura
+# EliteFlow 4.3.1 — produção segura
 
 ## Implantação
 
@@ -57,7 +57,7 @@ REQUIRE_TURNSTILE=true
 PUBLIC_BOOKING_REQUIRE_OTP=true
 
 RESEND_API_KEY=
-EMAIL_FROM=BarberFlow <no-reply@seu-dominio.example>
+EMAIL_FROM=EliteFlow <no-reply@seu-dominio.example>
 
 BACKUP_UPLOAD_URL=https://storage-externo.example/upload
 ```

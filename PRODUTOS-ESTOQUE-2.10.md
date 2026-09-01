@@ -1,4 +1,4 @@
-# BarberFlow 2.10 — foco operacional
+# EliteFlow 2.10 — foco operacional
 
 - Loja/e-commerce removida da navegação principal.
 - Produtos viraram módulo próprio: Produtos & Estoque.

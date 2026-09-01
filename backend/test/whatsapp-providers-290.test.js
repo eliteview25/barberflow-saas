@@ -77,7 +77,7 @@ test('Evolution 2.3.7 envia texto no formato exigido pela API',()=>{
 
 
 
-test('Evolution usa webhook único compatível com a rota BarberFlow',()=>{
+test('Evolution usa webhook único compatível com a rota EliteFlow',()=>{
   const s=read('src/services/whatsappQr.js');
   assert.match(s,/webhookByEvents:false/);
   assert.doesNotMatch(s,/webhookByEvents:true/);
@@ -116,5 +116,5 @@ test('status Evolution expõe diagnóstico da última entrada',()=>{
   const routes=read('src/routes/whatsapp.js'),frontend=read('../frontend/js/automacoes.js');
   assert.match(routes,/ultimo_webhook_em/);
   assert.match(routes,/ultimo_webhook_evento/);
-  assert.match(frontend,/Nenhuma mensagem de entrada chegou ao BarberFlow ainda/);
+  assert.match(frontend,/Nenhuma mensagem de entrada chegou ao EliteFlow ainda/);
 });

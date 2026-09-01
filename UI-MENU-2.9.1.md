@@ -1,4 +1,4 @@
-# BarberFlow 2.9.1 — organização do menu
+# EliteFlow 2.9.1 — organização do menu
 
 - Produtos removidos do grupo Gestão e mantidos somente em Barbearia > Loja > Produtos.
 - Links antigos de Gestão > estoque redirecionam para o contexto da Loja.

@@ -8,7 +8,7 @@ async function notifyOps(payload){
   lastAlertAt=now;
   try{
     const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),5000);
-    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json',...(process.env.ALERT_WEBHOOK_TOKEN?{'Authorization':`Bearer ${process.env.ALERT_WEBHOOK_TOKEN}`}:{})},body:JSON.stringify({servico:'BarberFlow',ambiente:process.env.NODE_ENV||'development',timestamp:new Date().toISOString(),...payload}),signal:ctrl.signal});
+    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json',...(process.env.ALERT_WEBHOOK_TOKEN?{'Authorization':`Bearer ${process.env.ALERT_WEBHOOK_TOKEN}`}:{})},body:JSON.stringify({servico:'EliteFlow',ambiente:process.env.NODE_ENV||'development',timestamp:new Date().toISOString(),...payload}),signal:ctrl.signal});
     clearTimeout(timer);return r.ok;
   }catch{return false}
 }

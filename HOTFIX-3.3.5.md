@@ -1,4 +1,4 @@
-# BarberFlow 3.3.5 — Recebimento central das assinaturas
+# EliteFlow 3.3.5 — Recebimento central das assinaturas
 
 - Pix e cartão das assinaturas Starter, Pro e Premium usam exclusivamente as credenciais da plataforma configuradas pelo Supermaster.
 - Credenciais de gateways das barbearias continuam isoladas e servem apenas para pagamentos dos próprios clientes da barbearia.

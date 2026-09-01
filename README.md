@@ -1,4 +1,4 @@
-# BarberFlow SaaS 4.5.0 — temas e tipografia responsiva
+# EliteFlow: Gestão de Barbearia 4.5.3
 
 SaaS multiempresa para gestão de barbearias com agenda, clientes, equipe, serviços, página pública, pagamentos, PDV/estoque, CRM, fidelidade, automações, Supermaster e planos Starter/Pro/Premium.
 
@@ -6,7 +6,7 @@ SaaS multiempresa para gestão de barbearias com agenda, clientes, equipe, servi
 
 A base 4.3.0 passou por revisão integral do código seguindo OWASP Top 10 2025, OWASP API Security 2023, ASVS e OWASP Top 10 para aplicações com IA. Foram reforçados autenticação, autorização multi-tenant, MFA, sessões, webhooks, pagamentos, OAuth, uploads, erros, segredos, banco, backups e o agente de IA.
 
-Leia **`HOTFIX-4.3.1.md`**, **`SECURITY-AUDIT-4.3.0.md`**, **`BARBERFLOW-4.3.0.md`** e **`PRE-DEPLOY-SECURITY.md`** antes do deploy.
+Leia **`HOTFIX-4.3.1.md`**, **`SECURITY-AUDIT-4.3.0.md`**, **`ELITEFLOW-4.3.0.md`** e **`PRE-DEPLOY-SECURITY.md`** antes do deploy.
 
 ## Local
 
@@ -50,7 +50,7 @@ Nenhuma revisão estática torna um sistema invulnerável. Antes de clientes pag
 O anual equivale a 10 mensalidades e libera 12 meses de uso. O trial permanece em 7 dias com recursos Premium.
 
 ### IA no WhatsApp
-A IA é opcional e usa ferramentas controladas do BarberFlow, sem acesso direto ao banco. Quando `OPENAI_API_KEY` não está configurada ou a integração falha, o atendimento clássico continua funcionando. As ações continuam validadas pelo contexto do tenant e pelas regras de agenda.
+A IA é opcional e usa ferramentas controladas do EliteFlow, sem acesso direto ao banco. Quando `OPENAI_API_KEY` não está configurada ou a integração falha, o atendimento clássico continua funcionando. As ações continuam validadas pelo contexto do tenant e pelas regras de agenda.
 
 ## Pré-lançamento 2.1
 - Onboarding guiado no Dashboard com progresso real.
@@ -64,7 +64,7 @@ Consulte `LANCAMENTO.md`, `BACKUP-PRODUCAO.md` e `LEGAL-README.md` antes de abri
 
 ## Pagamentos 2.2
 - Nova área **Pagamentos** no menu para Dono/Gerente.
-- Mercado Pago: conta da própria barbearia conectada por OAuth, com Pix/cartão já processados pelo BarberFlow.
+- Mercado Pago: conta da própria barbearia conectada por OAuth, com Pix/cartão já processados pelo EliteFlow.
 - PagBank: conector Connect preparado.
 - Asaas: conexão por API Key da própria barbearia, validada e criptografada.
 - Pagar.me: conexão por Secret/Public Key da própria barbearia, validada e criptografada.
@@ -78,7 +78,7 @@ Consulte `PAGAMENTOS-GATEWAYS.md` para configuração e limites desta versão.
 
 Gateways e checkout agora ficam totalmente centralizados em **Pagamentos**. A aba Configurações não possui mais recebimentos. Mercado Pago, PagBank, Asaas, Pagar.me e Stripe ficam prontos para receber as credenciais do dono da barbearia; apenas o driver Mercado Pago está ativo no checkout nesta etapa. Veja `PAGAMENTOS-GATEWAYS.md`.
 
-## BarberFlow 2.8 — Marketing
+## EliteFlow 2.8 — Marketing
 - Central Premium com visão geral, campanhas, públicos, cupons, indicações, links rastreáveis e modelos WhatsApp.
 - Segmentação por aniversariantes, novos, inativos, VIP, frequência, faltas, compradores e carrinho abandonado.
 - Consentimento promocional explícito no cliente, agendamento público e checkout da loja, com opt-out por SAIR/PARAR.
@@ -88,7 +88,7 @@ Gateways e checkout agora ficam totalmente centralizados em **Pagamentos**. A ab
 - Schema preparado automaticamente no boot; não depende de comandos manuais no Render.
 
 
-## BarberFlow 2.9 — WhatsApp com 4 provedores
+## EliteFlow 2.9 — WhatsApp com 4 provedores
 - Cada barbearia escolhe entre Meta Cloud API, 360dialog, Twilio ou Evolution/QR Code.
 - É possível manter várias conexões configuradas e definir uma como ativa.
 - Marketing, lembretes, atendimento e futura IA usam a conexão ativa.
@@ -96,11 +96,11 @@ Gateways e checkout agora ficam totalmente centralizados em **Pagamentos**. A ab
 - Segredos ficam criptografados; webhooks e mudanças de provedor possuem proteções próprias.
 - Conexões Meta/Evolution anteriores são migradas automaticamente no boot.
 
-## BarberFlow 3.2
+## EliteFlow 3.2
 
-Dashboards por perfil e revisão de responsividade/mobile. Consulte `BARBERFLOW-3.2.md`.
+Dashboards por perfil e revisão de responsividade/mobile. Consulte `ELITEFLOW-3.2.md`.
 
-## BarberFlow 3.3 — fotos dos profissionais e exclusão por 2FA
+## EliteFlow 3.3 — fotos dos profissionais e exclusão por 2FA
 
 - Dono e gerente podem adicionar ou remover foto no cadastro do barbeiro.
 - O upload reutiliza o pipeline seguro de imagens e salva em Cloudinary; JPG/PNG de até 5 MB, com recorte quadrado e remoção de metadados.
@@ -137,3 +137,28 @@ Aprovação de Pix manual em um clique, sem segundo modal de step-up, com regist
 - Tema claro completo para cards, tabelas, formulários, modais, notificações, dashboards e telas operacionais.
 - Escala tipográfica aumentada no desktop e mobile, com ajustes próprios para cards compactos, tabelas, agenda, clientes, serviços, Pix e WhatsApp.
 - Regras de largura, quebra e truncamento preservam a responsividade até 320 px sem criar rolagem horizontal indevida.
+
+## 4.5.1
+
+- Identidade textual renomeada para **EliteFlow: Gestão de Barbearia** em login, painel, Supermaster, comunicações, documentos, títulos e arquivos exportados.
+- Logo textual compacta mantida como **EliteFlow**, preservando exatamente a estrutura visual, cores, espaçamentos e responsividade da versão 4.5.0.
+- Identificadores técnicos legados de sessão, pagamentos, webhooks e tenant de sistema foram preservados para não interromper integrações e dados existentes.
+
+## 4.5.2
+
+- Modo claro refeito com hierarquia de superfícies, contraste WCAG AA, campos delimitados e estados semânticos consistentes.
+- Dashboard, Agenda, Financeiro, WhatsApp, Pagamentos, Assinatura, Segurança, Suporte, configurações e Supermaster seguem a mesma paleta clara.
+- Busca, notificações, modais, tabelas e cards carregados dinamicamente não preservam mais fundos escuros indevidos no tema claro.
+- Sidebar carvão, modo escuro, estrutura, responsividade e regras funcionais foram preservados.
+
+Consulte `ELITEFLOW-4.5.2.md` para a especificação visual e as referências utilizadas.
+
+## 4.5.3
+
+- Modo principal escuro revisado a partir dos sistemas de design de GitHub, Atlassian, IBM Carbon e Material Design 3.
+- Canvas, cards, superfícies internas e overlays agora seguem camadas progressivamente mais claras, sem fundos internos arbitrariamente mais escuros.
+- Textos auxiliares, placeholders, campos e estados semânticos receberam contraste WCAG AA e limites de controle perceptíveis.
+- Dashboard, Agenda, Financeiro, WhatsApp, Pagamentos, Assinatura, Segurança, Suporte, Supermaster e mobile usam os mesmos tokens funcionais.
+- Modo claro 4.5.2, layout, tamanhos, breakpoints e regras funcionais foram preservados.
+
+Consulte `ELITEFLOW-4.5.3.md` para o diagnóstico, a paleta e as referências.

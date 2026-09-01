@@ -1,4 +1,4 @@
-# BarberFlow 2.4 — Financeiro e Dashboard
+# EliteFlow 2.4 — Financeiro e Dashboard
 
 ## O que mudou
 

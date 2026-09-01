@@ -1,10 +1,10 @@
-# BarberFlow — preparação para IA no WhatsApp
+# EliteFlow — preparação para IA no WhatsApp
 
 ## Estado desta versão
 A base está preparada, mas o motor de IA ainda não responde clientes. Isso é intencional para não colocar um agente sem guardrails em produção.
 
 ## Arquitetura preparada
-Cliente → WhatsApp → webhook BarberFlow → orquestrador de IA → ferramentas controladas → serviços BarberFlow → PostgreSQL.
+Cliente → WhatsApp → webhook EliteFlow → orquestrador de IA → ferramentas controladas → serviços EliteFlow → PostgreSQL.
 
 A IA nunca deve receber uma conexão SQL nem gerar SQL. As ações previstas são uma allowlist:
 - consultar_horarios

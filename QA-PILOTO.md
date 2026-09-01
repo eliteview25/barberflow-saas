@@ -1,4 +1,4 @@
-# BarberFlow — QA e segurança antes do piloto
+# EliteFlow — QA e segurança antes do piloto
 
 Execute:
 

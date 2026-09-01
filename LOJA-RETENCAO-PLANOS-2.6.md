@@ -1,4 +1,4 @@
-# BarberFlow 2.6 — Loja, retenção e planos anuais
+# EliteFlow 2.6 — Loja, retenção e planos anuais
 
 ## Exclusão de barbearias pelo Supermaster
 - Exclusão recuperável exige o nome exato da barbearia + o código TOTP atual do Supermaster.

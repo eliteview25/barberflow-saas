@@ -1,10 +1,10 @@
-# Auditoria de segurança — BarberFlow 4.3.0
+# Auditoria de segurança — EliteFlow 4.3.0
 
 Data da revisão: 1 de setembro de 2026.
 
 ## Resultado executivo
 
-Todo o código-fonte do pacote BarberFlow 4.2.0 foi percorrido e a versão corrigida foi promovida para 4.3.0. No escopo estático revisado, não permaneceu achado conhecido de severidade alta ou crítica. A entrega passou em checagem de sintaxe, 258 testes, auditoria estática interna e auditoria offline do lockfile.
+Todo o código-fonte do pacote EliteFlow 4.2.0 foi percorrido e a versão corrigida foi promovida para 4.3.0. No escopo estático revisado, não permaneceu achado conhecido de severidade alta ou crítica. A entrega passou em checagem de sintaxe, 258 testes, auditoria estática interna e auditoria offline do lockfile.
 
 Isso não é uma promessa de invulnerabilidade: testes dinâmicos com infraestrutura real, configuração do provedor, WAF, monitoramento, rotação de chaves e restauração de backup continuam sendo controles obrigatórios.
 

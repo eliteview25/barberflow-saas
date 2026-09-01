@@ -22,16 +22,16 @@ test('design system 4.0 usa carvão e âmbar em superfícies principais',()=>{
   assert.match(css,/\.public-card/);
 });
 
-test('shell usa lockup BarberFlow com favicon preservado',()=>{
+test('shell usa lockup EliteFlow com favicon preservado',()=>{
   assert.match(common,/function brandLockup/);
-  assert.match(common,/favicon\.svg\?v=20260830-v332/);
+  assert.match(common,/favicon\.svg\?v=20260901-v453/);
   assert.match(common,/bf-brand-word/);
 });
 
 test('todas as páginas carregam o CSS premium versionado',()=>{
   const pages=htmlFiles(frontend);
   assert.equal(pages.length,27);
-  for(const file of pages){assert.match(fs.readFileSync(file,'utf8'),/style\.css\?v=20260901-v450/,path.relative(root,file));}
+  for(const file of pages){assert.match(fs.readFileSync(file,'utf8'),/style\.css\?v=20260901-v453/,path.relative(root,file));}
 });
 
 test('cartão de assinatura usa checkout externo oficial e não Brick embutido',()=>{

@@ -94,7 +94,7 @@ async function iniciar(){
     console.log('Central de notificações preparada.');
     console.log('PostgreSQL conectado!');
     server=app.listen(PORT,()=>{
-      console.log(`BarberFlow SaaS: http://localhost:${PORT}`);
+      console.log(`EliteFlow SaaS: http://localhost:${PORT}`);
       console.log(`Agendamento público: http://localhost:${PORT}/agendar/SEU-SLUG`);
       if(process.env.ENABLE_PUBLIC_STORE==='true')console.log(`Vitrine opcional: http://localhost:${PORT}/loja/SEU-SLUG`);
     });
@@ -111,7 +111,7 @@ async function iniciar(){
 async function encerrar(sinal){
   if(encerrando)return;
   encerrando=true;
-  console.log(`Recebido ${sinal}. Encerrando BarberFlow...`);
+  console.log(`Recebido ${sinal}. Encerrando EliteFlow...`);
   const timer=setTimeout(()=>process.exit(1),10000);timer.unref();
   try{
     if(server) await new Promise(resolve=>server.close(resolve));

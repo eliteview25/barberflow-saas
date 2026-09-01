@@ -1,4 +1,4 @@
-# BarberFlow 2.7.1 — Hotfix de inicialização
+# EliteFlow 2.7.1 — Hotfix de inicialização
 
 - Corrige import ausente de `exigirStepUp` em `backend/src/routes/operacao.js`.
 - Corrige import ausente de `exigirStepUp` em `backend/src/routes/ai.js`.

@@ -1,4 +1,4 @@
-# BarberFlow 3.0.1 — preços e posicionamento
+# EliteFlow 3.0.1 — preços e posicionamento
 
 ## Preços oficiais
 - Starter: R$ 69,90/mês ou R$ 699/ano — até 2 profissionais.

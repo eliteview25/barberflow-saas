@@ -5,7 +5,7 @@ const {sendTemplate}=require('./whatsapp');
 const wp=require('./whatsappProviders');
 
 function round2(n){return Math.round(Number(n||0)*100)/100}
-function code(prefix='BF'){return `${prefix}${crypto.randomBytes(4).toString('hex').toUpperCase()}`}
+function code(prefix='EF'){return `${prefix}${crypto.randomBytes(4).toString('hex').toUpperCase()}`}
 function linkToken(){return crypto.randomBytes(12).toString('base64url')}
 
 async function ensureMarketingSchema(db=pool){

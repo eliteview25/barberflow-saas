@@ -29,7 +29,7 @@ async function sendVerificationEmail({to,token}){
   const link=`${base}/verificar-email.html?token=${encodeURIComponent(token)}`;
   return sendEmail({
     to,
-    subject:'Confirme seu e-mail no BarberFlow',
+    subject:'Confirme seu e-mail no EliteFlow',
     html:`<p>Confirme seu e-mail para ativar o trial Premium de 7 dias.</p><p><a href="${htmlEscape(link)}">Confirmar meu e-mail</a></p><p>O link expira em 24 horas. Se você não criou esta conta, ignore esta mensagem.</p>`
   });
 }

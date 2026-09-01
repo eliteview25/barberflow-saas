@@ -41,7 +41,7 @@ async function uploadImage(req,res,{folderSuffix='',transformation='c_limit,w_24
     if (!/^[a-zA-Z0-9_-]{1,80}$/.test(String(cloud||'')) || !key || !secret) return res.status(503).json({ erro: 'Upload ainda não configurado' });
 
     const timestamp = Math.floor(Date.now() / 1000);
-    const folder = `barberflow/${req.usuario.barbearia_id}${folderSuffix?`/${folderSuffix}`:''}`;
+    const folder = `eliteflow/${req.usuario.barbearia_id}${folderSuffix?`/${folderSuffix}`:''}`;
     const signBase = `folder=${folder}&timestamp=${timestamp}&transformation=${transformation}${secret}`;
     const signature = crypto.createHash('sha1').update(signBase).digest('hex');
     const fd = new FormData();

@@ -23,7 +23,7 @@ test('Gestão oferece PDV, histórico e Produtos & Estoque como áreas reais',()
 
 test('Produtos usam contexto operacional e não exibem publicação em loja',()=>{
   const gestao=read('frontend/js/gestao.js');
-  assert.match(gestao,/document.title='Produtos & Estoque - BarberFlow'/);
+  assert.match(gestao,/document.title='Produtos & Estoque - EliteFlow'/);
   assert.match(gestao,/h1\.textContent='Produtos & Estoque'/);
   assert.doesNotMatch(gestao,/Mostrar na loja|produtoMostrarLoja|origemLoja/);
 });

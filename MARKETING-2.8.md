@@ -1,4 +1,4 @@
-# BarberFlow 2.8 — Central de Marketing
+# EliteFlow 2.8 — Central de Marketing
 
 ## Plano
 O módulo Marketing é um recurso do plano Premium. O trial Premium também permite testar a área enquanto estiver ativo.
@@ -31,7 +31,7 @@ Segmentos disponíveis:
 
 ## Campanhas WhatsApp
 Campanhas usam a conexão oficial da Meta WhatsApp Cloud API já configurada em Automações.
-Para disparos fora da janela de atendimento, use um template aprovado pela Meta e cadastre no BarberFlow exatamente o nome do template e idioma.
+Para disparos fora da janela de atendimento, use um template aprovado pela Meta e cadastre no EliteFlow exatamente o nome do template e idioma.
 
 O processador roda automaticamente no servidor, em lotes de até 25 destinatários por ciclo, com retry controlado. A entrega utiliza somente clientes do tenant e com consentimento.
 
@@ -40,7 +40,7 @@ Para campanhas com botão para Agenda ou Loja, crie no template da Meta um botã
 
 `https://SEU-DOMINIO/m/{{1}}`
 
-O BarberFlow envia somente o token dinâmico como parâmetro do botão. O clique é redirecionado para a agenda ou loja da própria barbearia e fica atribuído à campanha.
+O EliteFlow envia somente o token dinâmico como parâmetro do botão. O clique é redirecionado para a agenda ou loja da própria barbearia e fica atribuído à campanha.
 
 ## Métricas
 A Central acompanha:
@@ -78,11 +78,11 @@ Links próprios `/m/<token>` podem apontar para:
 - agendamento
 - loja
 
-Podem ser usados em Instagram, bio, anúncios, QR Code ou campanhas. O BarberFlow mede clique, conversão e receita atribuída. A rota possui rate limit próprio.
+Podem ser usados em Instagram, bio, anúncios, QR Code ou campanhas. O EliteFlow mede clique, conversão e receita atribuída. A rota possui rate limit próprio.
 
 ## Privacidade e boas práticas
-O BarberFlow fornece ferramentas de consentimento e opt-out, mas a barbearia continua responsável pela base legal, conteúdo, frequência e adequação das comunicações que realiza com seus clientes.
+O EliteFlow fornece ferramentas de consentimento e opt-out, mas a barbearia continua responsável pela base legal, conteúdo, frequência e adequação das comunicações que realiza com seus clientes.
 
 
 ## Segurança de ações sensíveis — 2.8.1
-A confirmação de senha/2FA agora usa um modal responsivo do BarberFlow, com erro inline, mostrar senha, suporte a TOTP e sem prompt/alert do navegador. O primeiro setup obrigatório de 2FA do Supermaster usa o mesmo componente.
+A confirmação de senha/2FA agora usa um modal responsivo do EliteFlow, com erro inline, mostrar senha, suporte a TOTP e sem prompt/alert do navegador. O primeiro setup obrigatório de 2FA do Supermaster usa o mesmo componente.

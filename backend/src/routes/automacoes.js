@@ -26,7 +26,7 @@ async function candidates(kind){
 }
 function interpolate(template,x){
   const data=String(x.data).slice(0,10).split('-').reverse().join('/'),hora=String(x.horario).slice(0,5),defaults={lembrete_24h:'Olá {cliente}! 👋 Lembrete: você tem {servico} com {barbeiro} em {data}, às {hora}.',lembrete_2h:'Olá {cliente}! Seu horário para {servico} com {barbeiro} é hoje às {hora}. Até já! 💈',pos_atendimento:'Obrigado pela visita, {cliente}! Esperamos que tenha gostado do atendimento. 💈'};
-  return String(template||defaults[x.kind]||'Lembrete BarberFlow').replace(/\{cliente\}/g,x.cliente).replace(/\{servico\}/g,x.servico).replace(/\{barbeiro\}/g,x.barbeiro).replace(/\{data\}/g,data).replace(/\{hora\}/g,hora)
+  return String(template||defaults[x.kind]||'Lembrete EliteFlow').replace(/\{cliente\}/g,x.cliente).replace(/\{servico\}/g,x.servico).replace(/\{barbeiro\}/g,x.barbeiro).replace(/\{data\}/g,data).replace(/\{hora\}/g,hora)
 }
 async function claimDelivery(x,kind){const r=await pool.query(`INSERT INTO automacoes_envios(barbearia_id,agendamento_id,tipo,status,erro,enviado_em,tentativas,proxima_tentativa,atualizado_em) VALUES($1,$2,$3,'processando',NULL,NULL,1,NULL,NOW()) ON CONFLICT(agendamento_id,tipo) DO UPDATE SET status='processando',erro=NULL,tentativas=automacoes_envios.tentativas+1,proxima_tentativa=NULL,atualizado_em=NOW() WHERE automacoes_envios.status='erro' AND automacoes_envios.tentativas<5 AND (automacoes_envios.proxima_tentativa IS NULL OR automacoes_envios.proxima_tentativa<=NOW()) RETURNING id,tentativas`,[x.barbearia_id,x.id,kind]);return r.rows[0]||null}
 async function processKind(kind){

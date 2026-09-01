@@ -13,7 +13,7 @@ if(currentUser().papel==='super_admin'){location.href='/master.html'}else if(req
   setIcon('kpiCalendar','calendar');setIcon('kpiRevenue','wallet');setIcon('kpiTicket','users');setIcon('kpiOccupancy','chart');setIcon('dashboardPixIcon','wallet');
   if(role==='barbeiro'){E('dashboardPrimaryAction').href='/pages/agendamentos.html';E('dashboardPrimaryAction').textContent='Minha agenda'}
 
-  const initials=name=>String(name||'BF').split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase();
+  const initials=name=>String(name||'EF').split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase();
   const avatar=(name,url,cls='')=>{const safe=safeClientUrl(url);return `<span class="bf-data-avatar ${cls}">${safe?`<img src="${esc(safe)}" alt="${esc(name||'Profissional')}">`:`<span>${esc(initials(name))}</span>`}</span>`};
   function sparkline(values){const nums=(values||[]).map(x=>Number(x?.total ?? x ?? 0)),w=92,h=30,p=2,max=Math.max(1,...nums),min=Math.min(0,...nums),range=Math.max(1,max-min);if(!nums.length)return '';const pts=nums.map((v,i)=>`${p+(i*(w-p*2)/Math.max(1,nums.length-1))},${h-p-((v-min)/range)*(h-p*2)}`).join(' ');return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}"/></svg>`}
   function compactMoney(v){const n=Number(v||0);return n>=1000?`R$ ${(n/1000).toLocaleString('pt-BR',{maximumFractionDigits:1})}k`:money(n)}

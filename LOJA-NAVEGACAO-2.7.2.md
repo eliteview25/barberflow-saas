@@ -1,4 +1,4 @@
-# BarberFlow 2.7.2 — Organização da Loja
+# EliteFlow 2.7.2 — Organização da Loja
 
 - `Barbearia → Loja` virou submenu: Configurações, Produtos, Frete e retirada, Checkout e Pedidos.
 - `Loja → Produtos` abre a gestão central de Produtos e Estoque (`origem=loja`).

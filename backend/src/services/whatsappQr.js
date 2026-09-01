@@ -9,7 +9,7 @@ function validPhone(v){const d=digits(v);return d.length>=10&&d.length<=15}
 function providerCode(value){const s=String(value||'').trim().slice(0,120);return /^[A-Za-z0-9_.:-]+$/.test(s)?s:''}
 
 async function call(path,{method='GET',body,allow404=false}={}){
-  if(!configured())throw new Error('Conector QR não configurado na infraestrutura do BarberFlow');
+  if(!configured())throw new Error('Conector QR não configurado na infraestrutura do EliteFlow');
   const r=await fetch(`${base()}${path}`,{
     method,
     headers:{apikey:key(),...(body?{'Content-Type':'application/json'}:{})},

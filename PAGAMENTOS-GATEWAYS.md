@@ -1,4 +1,4 @@
-# BarberFlow 2.3 — Pagamentos centralizados
+# EliteFlow 2.3 — Pagamentos centralizados
 
 ## Estrutura da tela
 
@@ -87,6 +87,6 @@ PagBank, Asaas, Pagar.me e Stripe aparecem como gateways preparados para credenc
 
 ## Importante
 
-As credenciais Mercado Pago da **barbearia** são diferentes das credenciais globais usadas pelo BarberFlow para cobrar a assinatura do SaaS.
+As credenciais Mercado Pago da **barbearia** são diferentes das credenciais globais usadas pelo EliteFlow para cobrar a assinatura do SaaS.
 
-As variáveis `MP_ACCESS_TOKEN` e `MP_PUBLIC_KEY` do ambiente do servidor continuam sendo as credenciais da operação de assinatura do BarberFlow. As credenciais que o dono informa em **Pagamentos** ficam armazenadas por barbearia no banco, isoladas por tenant.
+As variáveis `MP_ACCESS_TOKEN` e `MP_PUBLIC_KEY` do ambiente do servidor continuam sendo as credenciais da operação de assinatura do EliteFlow. As credenciais que o dono informa em **Pagamentos** ficam armazenadas por barbearia no banco, isoladas por tenant.

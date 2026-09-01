@@ -1,4 +1,4 @@
-# BarberFlow — checklist de lançamento real
+# EliteFlow — checklist de lançamento real
 
 Esta versão foi preparada para piloto e lançamento comercial controlado.
 

@@ -87,7 +87,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_meta_financeira_barbeiro_mes ON metas_finan
 CREATE INDEX IF NOT EXISTS ix_metas_financeiras_tenant_mes ON metas_financeiras(barbearia_id,mes DESC);
 
 
--- BarberFlow 2.5 — catálogo de produtos e gateways da plataforma
+-- EliteFlow 2.5 — catálogo de produtos e gateways da plataforma
 ALTER TABLE produtos ADD COLUMN IF NOT EXISTS imagem_url TEXT;
 ALTER TABLE produtos ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMP DEFAULT NOW();
 CREATE TABLE IF NOT EXISTS platform_payment_gateways(
@@ -115,7 +115,7 @@ CREATE TABLE IF NOT EXISTS platform_settings(
 );
 
 
--- BarberFlow 2.6: loja pública, retenção de exclusões e ciclo anual
+-- EliteFlow 2.6: loja pública, retenção de exclusões e ciclo anual
 ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_ativa BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_titulo VARCHAR(160);
 ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_descricao TEXT;
@@ -132,7 +132,7 @@ CREATE INDEX IF NOT EXISTS ix_produtos_loja ON produtos(barbearia_id,mostrar_na_
 CREATE INDEX IF NOT EXISTS ix_barbearias_exclusao_programada ON barbearias(exclusao_programada_em) WHERE exclusao_programada_em IS NOT NULL;
 
 
--- BarberFlow 2.7: e-commerce, checkout automático e entrega por distância
+-- EliteFlow 2.7: e-commerce, checkout automático e entrega por distância
 ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_aceitar_retirada BOOLEAN NOT NULL DEFAULT true;
 ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_aceitar_entrega BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS loja_retirada_instrucao TEXT;
@@ -162,7 +162,7 @@ CREATE INDEX IF NOT EXISTS ix_loja_pedidos_tenant_status ON loja_pedidos(barbear
 CREATE INDEX IF NOT EXISTS ix_loja_pedidos_expira ON loja_pedidos(status_pagamento,expira_em) WHERE status_pagamento='pendente';
 
 
--- BarberFlow 2.8: Marketing, campanhas, cupons, indicação e atribuição
+-- EliteFlow 2.8: Marketing, campanhas, cupons, indicação e atribuição
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS data_nascimento DATE;
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS marketing_opt_in BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS marketing_opt_out_em TIMESTAMP;
@@ -186,7 +186,7 @@ ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS marketing_campanha_id BIGINT R
 ALTER TABLE reservas_pagamento ADD COLUMN IF NOT EXISTS marketing_link_id BIGINT REFERENCES marketing_links(id) ON DELETE SET NULL;
 ALTER TABLE reservas_pagamento ADD COLUMN IF NOT EXISTS marketing_campanha_id BIGINT REFERENCES marketing_campanhas(id) ON DELETE SET NULL;
 
--- BarberFlow 2.8.0 — complementos de consentimento, entrega/leitura e atribuição
+-- EliteFlow 2.8.0 — complementos de consentimento, entrega/leitura e atribuição
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS marketing_opt_in_em TIMESTAMP;
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS marketing_opt_in_origem VARCHAR(40);
 ALTER TABLE marketing_campanhas ADD COLUMN IF NOT EXISTS link_destino VARCHAR(30);
@@ -222,7 +222,7 @@ ALTER TABLE automacoes_config ADD COLUMN IF NOT EXISTS whatsapp_provedor VARCHAR
 CREATE UNIQUE INDEX IF NOT EXISTS ux_whatsapp_conexao_webhook_token ON whatsapp_conexoes(webhook_token_hash) WHERE webhook_token_hash IS NOT NULL;
 CREATE INDEX IF NOT EXISTS ix_whatsapp_conexoes_tenant_status ON whatsapp_conexoes(barbearia_id,status,provedor);
 
--- BarberFlow 3.0 — operação avançada
+-- EliteFlow 3.0 — operação avançada
 CREATE TABLE IF NOT EXISTS comandas(id BIGSERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,cliente_id INTEGER REFERENCES clientes(id) ON DELETE SET NULL,barbeiro_id INTEGER REFERENCES barbeiros(id) ON DELETE SET NULL,agendamento_id INTEGER REFERENCES agendamentos(id) ON DELETE SET NULL,status VARCHAR(20) NOT NULL DEFAULT 'aberta',subtotal_servicos NUMERIC(12,2) NOT NULL DEFAULT 0,subtotal_produtos NUMERIC(12,2) NOT NULL DEFAULT 0,desconto NUMERIC(12,2) NOT NULL DEFAULT 0,total NUMERIC(12,2) NOT NULL DEFAULT 0,forma_pagamento VARCHAR(30),venda_id INTEGER REFERENCES vendas(id) ON DELETE SET NULL,observacoes TEXT,aberta_em TIMESTAMP NOT NULL DEFAULT NOW(),fechada_em TIMESTAMP,atualizado_em TIMESTAMP NOT NULL DEFAULT NOW(),UNIQUE(barbearia_id,agendamento_id));
 CREATE TABLE IF NOT EXISTS comanda_itens(id BIGSERIAL PRIMARY KEY,comanda_id BIGINT NOT NULL REFERENCES comandas(id) ON DELETE CASCADE,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,tipo VARCHAR(20) NOT NULL,referencia_id INTEGER,descricao VARCHAR(200) NOT NULL,quantidade NUMERIC(10,2) NOT NULL DEFAULT 1,valor_unitario NUMERIC(12,2) NOT NULL DEFAULT 0,subtotal NUMERIC(12,2) NOT NULL DEFAULT 0,criado_em TIMESTAMP NOT NULL DEFAULT NOW());
 CREATE TABLE IF NOT EXISTS clube_planos(id BIGSERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,nome VARCHAR(160) NOT NULL,descricao TEXT,preco_mensal NUMERIC(12,2) NOT NULL DEFAULT 0,dia_cobranca INTEGER,ativo BOOLEAN NOT NULL DEFAULT true,criado_em TIMESTAMP NOT NULL DEFAULT NOW(),atualizado_em TIMESTAMP NOT NULL DEFAULT NOW());
@@ -248,7 +248,7 @@ CREATE TABLE IF NOT EXISTS servico_insumos(barbearia_id INTEGER NOT NULL REFEREN
 CREATE TABLE IF NOT EXISTS fiscal_config(barbearia_id INTEGER PRIMARY KEY REFERENCES barbearias(id) ON DELETE CASCADE,ativo BOOLEAN NOT NULL DEFAULT false,provedor VARCHAR(30) NOT NULL DEFAULT 'manual',regime VARCHAR(40),codigo_servico VARCHAR(40),item_lista_servico VARCHAR(40),aliquota_iss NUMERIC(7,4),municipio_codigo VARCHAR(20),inscricao_municipal VARCHAR(60),observacoes TEXT,atualizado_em TIMESTAMP NOT NULL DEFAULT NOW());
 CREATE TABLE IF NOT EXISTS fiscal_documentos(id BIGSERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,venda_id INTEGER REFERENCES vendas(id) ON DELETE SET NULL,status VARCHAR(30) NOT NULL DEFAULT 'rascunho',valor NUMERIC(12,2) NOT NULL DEFAULT 0,descricao TEXT,numero VARCHAR(80),codigo_verificacao VARCHAR(120),url TEXT,provider_id TEXT,erro TEXT,payload JSONB NOT NULL DEFAULT '{}'::jsonb,criado_em TIMESTAMP NOT NULL DEFAULT NOW(),emitido_em TIMESTAMP,atualizado_em TIMESTAMP NOT NULL DEFAULT NOW());
 
--- BarberFlow 3.1 — código amigável para acompanhamento de agendamentos
+-- EliteFlow 3.1 — código amigável para acompanhamento de agendamentos
 ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS tracking_code VARCHAR(16);
 UPDATE agendamentos SET tracking_code=UPPER(encode(gen_random_bytes(6),'hex')) WHERE tracking_code IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS ux_agendamentos_tracking_code ON agendamentos(barbearia_id,tracking_code) WHERE tracking_code IS NOT NULL;
@@ -257,10 +257,10 @@ DROP TRIGGER IF EXISTS trg_bf_ag_tracking_code ON agendamentos;
 CREATE TRIGGER trg_bf_ag_tracking_code BEFORE INSERT ON agendamentos FOR EACH ROW EXECUTE FUNCTION bf_fill_tracking_code();
 
 
--- BarberFlow 3.3 — perfil visual dos profissionais
+-- EliteFlow 3.3 — perfil visual dos profissionais
 ALTER TABLE barbeiros ADD COLUMN IF NOT EXISTS foto_url TEXT;
 
--- BarberFlow 4.2 — central persistente de notificações
+-- EliteFlow 4.2 — central persistente de notificações
 CREATE TABLE IF NOT EXISTS notificacoes(
   id BIGSERIAL PRIMARY KEY,
   barbearia_id INTEGER REFERENCES barbearias(id) ON DELETE CASCADE,
@@ -291,7 +291,7 @@ CREATE INDEX IF NOT EXISTS ix_notificacoes_tenant_data ON notificacoes(barbearia
 CREATE INDEX IF NOT EXISTS ix_notificacoes_master_data ON notificacoes(criado_em DESC) WHERE audiencia='super_admin';
 CREATE INDEX IF NOT EXISTS ix_notificacoes_leituras_usuario ON notificacoes_leituras(usuario_id,lida_em DESC);
 
--- BarberFlow 4.3 — autenticação, anti-replay e limitação persistente
+-- EliteFlow 4.3 — autenticação, anti-replay e limitação persistente
 ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS email_verificado BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE barbearias ALTER COLUMN email_verificado SET DEFAULT false;
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0;
@@ -318,7 +318,7 @@ CREATE TABLE IF NOT EXISTS auth_login_attempts(
 );
 CREATE INDEX IF NOT EXISTS ix_auth_login_attempts_cleanup ON auth_login_attempts(atualizado_em);
 
--- BarberFlow 4.4.0 — construtor de fluxos WhatsApp por barbearia
+-- EliteFlow 4.4.0 — construtor de fluxos WhatsApp por barbearia
 CREATE TABLE IF NOT EXISTS whatsapp_fluxos(
   id BIGSERIAL PRIMARY KEY,
   barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,

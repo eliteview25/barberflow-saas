@@ -68,7 +68,7 @@ function precoPlano(plano,ciclo='mensal') {
 function recurringFor(ciclo='mensal'){const c=cicloValido(ciclo);return {frequency:c==='anual'?12:1,frequency_type:'months',ciclo:c};}
 
 function tituloPlano(plano) {
-  return ({starter:'BarberFlow Starter', pro:'BarberFlow Pro', premium:'BarberFlow Premium'})[plano] || 'BarberFlow Pro';
+  return ({starter:'EliteFlow Starter', pro:'EliteFlow Pro', premium:'EliteFlow Premium'})[plano] || 'EliteFlow Pro';
 }
 
 function checkoutUrlAssinatura(subscription){
@@ -106,7 +106,7 @@ async function criarPreferenciaAgendamento({ reservaId, reservaToken, barbeariaI
     items: [{
       id: `servico-${servicoId}`,
       title: `${servicoNome} - agendamento`,
-      description: 'Reserva de horário pelo BarberFlow',
+      description: 'Reserva de horário pelo EliteFlow',
       quantity: 1,
       currency_id: 'BRL',
       unit_price: Number(Number(valor).toFixed(2))
@@ -169,7 +169,7 @@ async function criarPagamentoLojaPix({barbeariaId,pedidoId,valor,email,documento
   const appUrl=(process.env.APP_URL||'http://localhost:3001').replace(/\/$/,'');
   const digits=String(documento||'').replace(/\D/g,'');
   if(!/^\d{11,14}$/.test(digits))throw new Error('CPF/CNPJ inválido para o Pix');
-  const body={transaction_amount:Number(Number(valor).toFixed(2)),description:`Pedido BarberFlow #${pedidoId}`,payment_method_id:'pix',external_reference:`barberflow-store:${pedidoId}`,payer:{email,identification:{type:digits.length>11?'CNPJ':'CPF',number:digits}},notification_url:`${appUrl}/api/webhooks/mercadopago?scope=store&barbearia_id=${encodeURIComponent(barbeariaId)}&tenant_sig=${encodeURIComponent(mpTenantSignature(barbeariaId))}`,date_of_expiration:new Date(Date.now()+30*60*1000).toISOString()};
+  const body={transaction_amount:Number(Number(valor).toFixed(2)),description:`Pedido EliteFlow #${pedidoId}`,payment_method_id:'pix',external_reference:`barberflow-store:${pedidoId}`,payer:{email,identification:{type:digits.length>11?'CNPJ':'CPF',number:digits}},notification_url:`${appUrl}/api/webhooks/mercadopago?scope=store&barbearia_id=${encodeURIComponent(barbeariaId)}&tenant_sig=${encodeURIComponent(mpTenantSignature(barbeariaId))}`,date_of_expiration:new Date(Date.now()+30*60*1000).toISOString()};
   return mpFetch('/v1/payments',{method:'POST',body:JSON.stringify(body),accessToken,idempotencyKey});
 }
 async function criarPagamentoLojaCartao({barbeariaId,pedidoId,valor,email,token,installments,paymentMethodId,issuerId,identification,accessToken,idempotencyKey}){
@@ -178,7 +178,7 @@ async function criarPagamentoLojaCartao({barbeariaId,pedidoId,valor,email,token,
   const method=String(paymentMethodId||'').trim();if(!method)throw new Error('Meio de pagamento do cartão inválido');
   const cardToken=String(token||'').trim();if(cardToken.length<10||cardToken.length>400)throw new Error('Token do cartão inválido');
   const payer={email};const number=String(identification?.number||'').replace(/\D/g,'');const type=String(identification?.type||'').toUpperCase();if(number&&['CPF','CNPJ'].includes(type))payer.identification={type,number};
-  const body={transaction_amount:Number(Number(valor).toFixed(2)),description:`Pedido BarberFlow #${pedidoId}`,token:cardToken,installments:parcelas,payment_method_id:method,external_reference:`barberflow-store:${pedidoId}`,payer,notification_url:`${appUrl}/api/webhooks/mercadopago?scope=store&barbearia_id=${encodeURIComponent(barbeariaId)}&tenant_sig=${encodeURIComponent(mpTenantSignature(barbeariaId))}`};
+  const body={transaction_amount:Number(Number(valor).toFixed(2)),description:`Pedido EliteFlow #${pedidoId}`,token:cardToken,installments:parcelas,payment_method_id:method,external_reference:`barberflow-store:${pedidoId}`,payer,notification_url:`${appUrl}/api/webhooks/mercadopago?scope=store&barbearia_id=${encodeURIComponent(barbeariaId)}&tenant_sig=${encodeURIComponent(mpTenantSignature(barbeariaId))}`};
   if(issuerId)body.issuer_id=String(issuerId);
   return mpFetch('/v1/payments',{method:'POST',body:JSON.stringify(body),accessToken,idempotencyKey});
 }

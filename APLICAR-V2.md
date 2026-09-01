@@ -1,4 +1,4 @@
-# Aplicar BarberFlow Segurança V2
+# Aplicar EliteFlow Segurança V2
 
 ## 1. Substitua/mescle os arquivos da V2 no seu projeto
 

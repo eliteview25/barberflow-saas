@@ -45,10 +45,10 @@ test('seleções autenticadas não usam fundo branco e selected usa borda',()=>{
   assert.match(css,/\.slot\.selected\{[\s\S]*background:transparent!important;[\s\S]*border-color:#e1aa1d!important/);
 });
 
-test('assets das páginas alteradas apontam para v446',()=>{
+test('assets das páginas alteradas apontam para v453',()=>{
   for(const rel of ['frontend/pages/agendamentos.html','frontend/pages/clientes.html','frontend/pages/servicos.html']){
     const html=read(rel);
-    assert.match(html,/style\.css\?v=20260901-v450/);
-    assert.match(html,/common\.js\?v=20260901-v446/);
+    assert.match(html,/style\.css\?v=20260901-v453/);
+    assert.match(html,/common\.js\?v=20260901-v453/);
   }
 });

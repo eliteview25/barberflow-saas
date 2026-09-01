@@ -1093,7 +1093,7 @@ router.get(
         return res.json({
             mfa_enabled: !!r.rows[0].mfa_enabled,
             totp: {
-                issuer: 'BarberFlow',
+                issuer: 'EliteFlow',
                 digits: 6,
                 period_seconds: 30,
                 compatible_apps: [
@@ -1224,7 +1224,7 @@ router.post(
             otpauth_uri: otpauthUri({
                 secret,
                 email: usuario.email,
-                issuer: 'BarberFlow'
+                issuer: 'EliteFlow'
             }),
             mensagem: 'Chave criada. Adicione-a ao seu aplicativo e confirme com um código de 6 dígitos.'
         });
@@ -1424,7 +1424,7 @@ router.post(
             otpauth_uri: otpauthUri({
                 secret: novoSecret,
                 email: usuario.email,
-                issuer: 'BarberFlow'
+                issuer: 'EliteFlow'
             }),
             compatible_apps: [
                 'Google Authenticator',
@@ -1738,7 +1738,7 @@ router.post(
                                     ],
 
                                     subject:
-                                        'Redefinição de senha BarberFlow',
+                                        'Redefinição de senha EliteFlow',
 
                                     html:
                                         `

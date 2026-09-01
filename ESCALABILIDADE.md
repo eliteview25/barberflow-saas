@@ -1,4 +1,4 @@
-# BarberFlow — preparação para escalabilidade
+# EliteFlow — preparação para escalabilidade
 
 A versão atual já mantém `barbearia_id` em todos os dados operacionais e índices nas consultas críticas. Para crescer sem reescrever o produto, siga esta ordem:
 
@@ -20,6 +20,6 @@ A versão atual já mantém `barbearia_id` em todos os dados operacionais e índ
 
 ## WhatsApp QR em escala
 
-Não execute sessões WhatsApp Web dentro das instâncias HTTP do BarberFlow. Mantenha o conector QR como serviço separado, com armazenamento persistente próprio, e deixe o BarberFlow apenas criar instâncias, consultar status e disparar mensagens. Isso evita que reinícios/deploys do painel derrubem todas as sessões e reduz consumo de memória por tenant.
+Não execute sessões WhatsApp Web dentro das instâncias HTTP do EliteFlow. Mantenha o conector QR como serviço separado, com armazenamento persistente próprio, e deixe o EliteFlow apenas criar instâncias, consultar status e disparar mensagens. Isso evita que reinícios/deploys do painel derrubem todas as sessões e reduz consumo de memória por tenant.
 
 Para crescimento, separe esse conector em infraestrutura própria e monitore quantidade de sessões conectadas, reconexões e falhas de envio. A Cloud API oficial continua sendo a opção recomendada para operações críticas.
