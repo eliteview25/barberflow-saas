@@ -559,6 +559,7 @@ router.post('/login', async (req, res) => {
             `
             SELECT
                 u.*,
+                COALESCE(NULLIF(u.foto_url,''), br.foto_url) AS foto_perfil_url,
                 b.nome AS barbearia_nome,
                 b.slug,
                 COALESCE(b.email_verificado,false) AS email_verificado,
@@ -566,6 +567,9 @@ router.post('/login', async (req, res) => {
             FROM usuarios u
             JOIN barbearias b
               ON b.id = u.barbearia_id
+            LEFT JOIN barbeiros br
+              ON br.id = u.barbeiro_id
+             AND br.barbearia_id = u.barbearia_id
             WHERE
                 LOWER(u.email) =
                     LOWER($1)
@@ -751,7 +755,7 @@ router.post('/login', async (req, res) => {
                 !!usuario.mfa_enabled,
 
             foto_url:
-                usuario.foto_url || null
+                usuario.foto_perfil_url || usuario.foto_url || null
         },
 
         barbearia: {
@@ -2116,7 +2120,7 @@ router.get(
                     u.papel,
                     u.barbeiro_id,
                     u.mfa_enabled,
-                    u.foto_url,
+                    COALESCE(NULLIF(u.foto_url,''), br.foto_url) AS foto_url,
 
                     b.id
                         AS barbearia_id,
@@ -2131,6 +2135,10 @@ router.get(
                 JOIN barbearias b
                   ON b.id =
                      u.barbearia_id
+
+                LEFT JOIN barbeiros br
+                  ON br.id = u.barbeiro_id
+                 AND br.barbearia_id = u.barbearia_id
 
                 WHERE
                     u.id = $1
