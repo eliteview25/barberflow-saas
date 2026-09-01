@@ -29,23 +29,26 @@ async function ensureTrackingCode(db,barbeariaId,appointmentId){
 }
 
 async function appointmentDetails(barbeariaId,appointmentId,db=pool){
-  const r=await db.query(`SELECT a.id,a.data,a.horario,a.status,a.status_pagamento,a.tracking_code,a.public_token,c.nome cliente,c.telefone,b.nome barbeiro,s.nome servico,br.slug,br.nome barbearia FROM agendamentos a JOIN clientes c ON c.id=a.cliente_id AND c.barbearia_id=a.barbearia_id JOIN barbeiros b ON b.id=a.barbeiro_id AND b.barbearia_id=a.barbearia_id JOIN servicos s ON s.id=a.servico_id AND s.barbearia_id=a.barbearia_id JOIN barbearias br ON br.id=a.barbearia_id WHERE a.id=$1 AND a.barbearia_id=$2`,[appointmentId,barbeariaId]);
+  const r=await db.query(`SELECT a.id,a.data,a.horario,a.status,a.status_pagamento,a.forma_pagamento,a.valor_pago,a.tracking_code,a.public_token,c.nome cliente,c.telefone,b.nome barbeiro,s.nome servico,br.slug,br.nome barbearia FROM agendamentos a JOIN clientes c ON c.id=a.cliente_id AND c.barbearia_id=a.barbearia_id JOIN barbeiros b ON b.id=a.barbeiro_id AND b.barbearia_id=a.barbearia_id JOIN servicos s ON s.id=a.servico_id AND s.barbearia_id=a.barbearia_id JOIN barbearias br ON br.id=a.barbearia_id WHERE a.id=$1 AND a.barbearia_id=$2`,[appointmentId,barbeariaId]);
   return r.rows[0]||null;
 }
 
-function trackingMessage(a,{confirmed=false}={}){
-  const title=confirmed||a.status==='confirmado'?'Agendamento confirmado ✅':'Agendamento recebido ✅';
-  const url=trackingUrl(a.slug,a.tracking_code);const code=formatTrackingCode(a.tracking_code);
-  return `${title}\n${a.servico} com ${a.barbeiro}\n${String(a.data).slice(0,10).split('-').reverse().join('/')} às ${String(a.horario).slice(0,5)}\n\nCódigo de acompanhamento: *${code}*${url?`\nAcompanhe ou gerencie: ${url}`:''}\n\nNo WhatsApp, envie *ACOMPANHAR* para consultar seus próximos horários.`;
+function trackingMessage(a,{confirmed=false,paymentConfirmed=false}={}){
+  const date=String(a.data).slice(0,10).split('-').reverse().join('/'),time=String(a.horario).slice(0,5);
+  const url=trackingUrl(a.slug,a.tracking_code),code=formatTrackingCode(a.tracking_code);
+  const paid=Number(a.valor_pago||0);
+  const title=paymentConfirmed?'Pagamento confirmado ✅\nSeu agendamento está confirmado!':confirmed||a.status==='confirmado'?'Agendamento confirmado ✅':'Agendamento recebido ✅';
+  const paymentLine=paymentConfirmed?`\n💳 Pagamento: Pix confirmado${paid>0?` • R$ ${paid.toFixed(2).replace('.',',')}`:''}`:'';
+  return `${title}\n\n✂️ Serviço: *${a.servico}*\n👤 Profissional: *${a.barbeiro}*\n📅 Data: *${date}*\n🕒 Horário: *${time}*${paymentLine}\n\n🔐 Código de acompanhamento: *${code}*${url?`\n🔗 Acompanhe ou gerencie: ${url}`:''}\n\nSe precisar consultar seus horários por aqui, envie *ACOMPANHAR*.\n\nAté breve na *${a.barbearia}*!`;
 }
 
-async function sendAppointmentTracking({barbeariaId,appointmentId,confirmed=false}){
+async function sendAppointmentTracking({barbeariaId,appointmentId,confirmed=false,paymentConfirmed=false}){
   try{
     const a=await appointmentDetails(barbeariaId,appointmentId);if(!a)return {ok:false,reason:'not_found'};
     if(!a.tracking_code){a.tracking_code=await ensureTrackingCode(pool,barbeariaId,appointmentId);}
     const integ=await wp.activeConnection(barbeariaId);if(!integ)return {ok:false,reason:'whatsapp_not_connected',code:a.tracking_code};
     const phone=normalizePhone(a.telefone);if(phone.length<10)return {ok:false,reason:'invalid_phone',code:a.tracking_code};
-    await wp.sendText(integ,phone,trackingMessage(a,{confirmed}));return {ok:true,code:a.tracking_code};
+    await wp.sendText(integ,phone,trackingMessage(a,{confirmed,paymentConfirmed}));return {ok:true,code:a.tracking_code};
   }catch(e){console.error('booking_tracking_whatsapp',e.message);return {ok:false,reason:e.message};}
 }
 

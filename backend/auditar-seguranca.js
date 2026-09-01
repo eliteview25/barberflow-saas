@@ -27,6 +27,7 @@ const mp = read('src/services/mercadoPago.js');
 const oauth = read('src/services/mercadoPagoOAuth.js');
 const pub = read('src/routes/publico.js');
 const reservations = read('src/services/reservations.js');
+const bookingTracking = read('src/services/bookingTracking.js');
 const webhook = read('src/services/webhookInbox.js');
 const automacoes = read('src/routes/automacoes.js');
 const tenant = read('src/routes/tenant.js');
@@ -57,7 +58,7 @@ const frontFiles = filesRecursive(path.resolve(root, '../frontend'));
 const front = frontFiles.map(p => fs.readFileSync(p, 'utf8')).join('\n');
 const runtime = filesRecursive(path.join(root, 'src'), /\.js$/i).map(p => fs.readFileSync(p, 'utf8')).join('\n');
 
-console.log('=== Auditoria estática de regressão de segurança 4.4.0 ===');
+console.log('=== Auditoria estática de regressão de segurança 4.4.1 ===');
 check(/contentSecurityPolicy\s*:\s*\{/.test(app) && !/contentSecurityPolicy\s*:\s*false/.test(app), 'CSP está habilitada');
 check(/bf_session/.test(mw) && /httpOnly\s*:\s*true/.test(sec) && /validateCsrf/.test(mw), 'Sessão usa cookie HttpOnly e CSRF');
 check(/token_version/.test(auth) && /token_version/.test(mw), 'Versão de sessão revoga JWTs antigos');
@@ -90,6 +91,9 @@ check(/flows\/:id\/activate/.test(wa) && /exigirRecurso\('automacoes'\)/.test(wa
 check(/webhook_events/.test(mig) && /ON CONFLICT\(provider,event_id\)/.test(webhook) && /proxima_tentativa/.test(webhook), 'Webhooks usam inbox persistente, idempotência e retry');
 check(/WHEN webhook_events\.status IN \('processado','processando','falha_permanente'\) THEN webhook_events\.atualizado_em/.test(webhook), 'Retry duplicado não renova artificialmente claim de webhook em processamento');
 check(/paymentMatchesReservation/.test(reservations) && /external_reference/.test(reservations) && /currency/.test(reservations), 'Pagamento é reconciliado por referência, moeda e valor');
+check(/WHERE id=\$1 AND barbearia_id=\$2 FOR UPDATE/.test(reservations) && /sendAppointmentTracking/.test(reservations) && /paymentConfirmed:true/.test(reservations), 'Pix manual é confirmado com lock de tenant e aviso WhatsApp pós-commit');
+check(/pagamentos-pendentes\/:id\/confirmar/.test(tenant) && /exigirStepUp/.test(tenant) && /whatsapp_enviado/.test(tenant), 'Aprovação manual de Pix exige step-up e informa entrega da confirmação');
+check(/Pagamento confirmado ✅/.test(bookingTracking) && /Código de acompanhamento/.test(bookingTracking), 'Confirmação WhatsApp de Pix contém dados e código de acompanhamento');
 check(/mp_payment_id/.test(mig) && /ux_reserva_mp_payment/.test(mig) && /ux_venda_final_agendamento/.test(mig), 'Banco impede pagamento/venda final duplicados');
 check(/fk_ag_cliente_tenant/.test(mig) && /fk_venda_cliente_tenant/.test(mig) && /VALIDATE CONSTRAINT/.test(mig), 'FKs compostas multi-tenant são criadas e validadas');
 check(/bf_enforce_user_tenant_kind/.test(mig), 'Trigger impede papel Supermaster em tenant de cliente');
@@ -222,4 +226,4 @@ if (leaked) {
 }
 console.log(`Resumo: ${fail} falha(s), ${warn} aviso(s).`);
 process.exitCode = fail ? 1 : 0;
-if (!fail) console.log('🔐 Auditoria estática 4.4.0 passou.');
+if (!fail) console.log('🔐 Auditoria estática 4.4.1 passou.');
