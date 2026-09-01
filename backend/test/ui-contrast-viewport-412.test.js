@@ -26,6 +26,6 @@ test('assets 4.4.6 quebram o cache antigo em todas as páginas',()=>{
   walk(path.join(root,'frontend'));
   for(const file of pages){
     const html=fs.readFileSync(file,'utf8');
-    if(html.includes('/style.css'))assert.match(html,/style\.css\?v=20260901-v446/,path.relative(root,file));
+    if(html.includes('/style.css'))assert.match(html,/style\.css\?v=20260901-v448/,path.relative(root,file));
   }
 });

@@ -2230,3 +2230,49 @@ body:not(.public-bg):not(.auth-body):not(.legal-page) .slot.selected{
   .client-mobile-card .client-delete-btn{grid-column:1/-1!important;width:100%!important}
   .service-card-head{grid-template-columns:38px minmax(0,1fr)!important}.service-card-head>.service-status{grid-column:2!important;justify-self:start!important}
 }
+
+
+/* =========================================================
+   4.4.8 — confirmação de Pix compacta e centralizada no mobile
+   Mantém a lógica one-click da 4.4.7; alteração apenas visual.
+   ========================================================= */
+@media(max-width:760px){
+  #dashboardPixModal,
+  #pixManualConfirmModal{
+    align-items:center!important;
+    justify-content:center!important;
+    padding:max(16px,env(safe-area-inset-top)) 14px max(16px,env(safe-area-inset-bottom))!important;
+    overflow:auto!important;
+  }
+  #dashboardPixModal .dashboard-pix-modal-box,
+  #pixManualConfirmModal .dashboard-pix-modal-box{
+    width:min(92vw,420px)!important;
+    max-width:420px!important;
+    max-height:min(82dvh,620px)!important;
+    border-radius:16px!important;
+    padding:0!important;
+    overflow:auto!important;
+    margin:auto!important;
+    box-shadow:0 22px 60px rgba(0,0,0,.48)!important;
+  }
+  #dashboardPixModal .dashboard-pix-modal-box .modal-head,
+  #pixManualConfirmModal .dashboard-pix-modal-box .modal-head{
+    border-radius:16px 16px 0 0!important;
+  }
+  #dashboardPixModal .dashboard-pix-modal-actions,
+  #pixManualConfirmModal .dashboard-pix-modal-actions{
+    border-radius:0 0 16px 16px!important;
+  }
+  #dashboardPixModal .dashboard-pix-modal-details,
+  #pixManualConfirmModal .dashboard-pix-modal-details{
+    margin-top:10px!important;
+    margin-bottom:10px!important;
+  }
+}
+@media(max-width:380px){
+  #dashboardPixModal .dashboard-pix-modal-box,
+  #pixManualConfirmModal .dashboard-pix-modal-box{
+    width:min(94vw,390px)!important;
+    max-height:84dvh!important;
+  }
+}

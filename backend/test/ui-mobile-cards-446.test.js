@@ -48,7 +48,7 @@ test('seleções autenticadas não usam fundo branco e selected usa borda',()=>{
 test('assets das páginas alteradas apontam para v446',()=>{
   for(const rel of ['frontend/pages/agendamentos.html','frontend/pages/clientes.html','frontend/pages/servicos.html']){
     const html=read(rel);
-    assert.match(html,/style\.css\?v=20260901-v446/);
+    assert.match(html,/style\.css\?v=20260901-v448/);
     assert.match(html,/common\.js\?v=20260901-v446/);
   }
 });

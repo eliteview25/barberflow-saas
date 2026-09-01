@@ -1,4 +1,4 @@
-# BarberFlow SaaS 4.4.7 — Pix em um clique + UI mobile refinada
+# BarberFlow SaaS 4.4.8 — Pix em um clique + card compacto no mobile
 
 SaaS multiempresa para gestão de barbearias com agenda, clientes, equipe, serviços, página pública, pagamentos, PDV/estoque, CRM, fidelidade, automações, Supermaster e planos Starter/Pro/Premium.
 
@@ -114,3 +114,10 @@ Para upload real das fotos, configure `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_K
 
 ## 4.4.7
 Aprovação de Pix manual em um clique, sem segundo modal de step-up, com registro de auditoria e controles de tenant/papel preservados.
+
+
+## 4.4.8
+
+- Card de confirmação/recebimento de Pix menor e centralizado no mobile.
+- Mantida a confirmação Pix em um clique da 4.4.7.
+- Sem alteração de regras de segurança, agenda ou pagamento.

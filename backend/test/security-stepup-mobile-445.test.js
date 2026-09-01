@@ -30,6 +30,6 @@ test('step-up acompanha viewport visual quando teclado mobile abre',()=>{
 
 test('cache de common e css foi renovado para 4.4.6 no dashboard',()=>{
   const html=read('frontend/index.html');
-  assert.match(html,/style\.css\?v=20260901-v446/);
+  assert.match(html,/style\.css\?v=20260901-v448/);
   assert.match(html,/common\.js\?v=20260901-v446/);
 });
