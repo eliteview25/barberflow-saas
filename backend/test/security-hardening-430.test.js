@@ -72,3 +72,13 @@ test('erros de infraestrutura e respostas brutas de provedores não chegam ao cl
   assert.match(oauth,/stateHash\(state\)/);
   assert.match(oauth,/encrypt\(verifier\)/);
 });
+
+test('boot HTTP não depende de billing externo nem do job de backup',()=>{
+  const app=read('backend/src/app.js');
+  const requiredLine=(app.match(/const required=\[[^\n]+/)||[''])[0];
+  for(const key of ['LOGIN_THROTTLE_SECRET','BILLING_WEBHOOK_SECRET','BACKUP_UPLOAD_URL','BACKUP_ENCRYPTION_KEY'])assert.doesNotMatch(requiredLine,new RegExp(key));
+  assert.match(app,/BACKUP_UPLOAD_URL/);
+  assert.match(app,/BACKUP_ENCRYPTION_KEY é obrigatório quando BACKUP_UPLOAD_URL estiver configurada/);
+  const account=read('backend/src/services/accountSecurity.js');
+  assert.match(account,/LOGIN_THROTTLE_SECRET\|\|process\.env\.JWT_SECRET/);
+});

@@ -1,4 +1,4 @@
-# BarberFlow 4.3.0 — produção segura
+# BarberFlow 4.3.1 — produção segura
 
 ## Implantação
 
@@ -20,7 +20,7 @@ npm run qa
 npm run audit:pilot
 ```
 
-A migração é idempotente. A 4.3.0 altera os requisitos de sessão; usuários existentes poderão precisar entrar novamente.
+A migração é idempotente. A base 4.3.0 altera os requisitos de sessão; usuários existentes poderão precisar entrar novamente.
 
 Depois que a nova instância estiver iniciada e acessível por `APP_URL`, execute de um runner autorizado:
 

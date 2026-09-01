@@ -16,8 +16,10 @@ async function ensureAccountSecuritySchema(){
 }
 
 function loginSubjectHash(email){
+  // LOGIN_THROTTLE_SECRET pode ser dedicado; se ausente, deriva uma chave de finalidade
+  // a partir do JWT_SECRET, sem reutilizar o segredo JWT diretamente como HMAC de e-mail.
   const root=String(process.env.LOGIN_THROTTLE_SECRET||process.env.JWT_SECRET||'');
-  if(!root&&process.env.NODE_ENV==='production')throw new Error('LOGIN_THROTTLE_SECRET/JWT_SECRET ausente');
+  if(!root&&process.env.NODE_ENV==='production')throw new Error('JWT_SECRET ausente para derivar chave de throttle');
   const key=crypto.createHmac('sha256',root||'barberflow-dev-only').update('barberflow:login-throttle:v1').digest();
   const raw=String(email||'').trim().toLowerCase();
   const subject=raw.length<=160&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)?raw:'__invalid__';

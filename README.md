@@ -1,12 +1,12 @@
-# BarberFlow SaaS 4.3.0 — segurança reforçada
+# BarberFlow SaaS 4.3.1 — segurança reforçada + hotfix de boot
 
 SaaS multiempresa para gestão de barbearias com agenda, clientes, equipe, serviços, página pública, pagamentos, PDV/estoque, CRM, fidelidade, automações, Supermaster e planos Starter/Pro/Premium.
 
 ## Segurança desta versão
 
-A 4.3.0 passou por revisão integral do código seguindo OWASP Top 10 2025, OWASP API Security 2023, ASVS e OWASP Top 10 para aplicações com IA. Foram reforçados autenticação, autorização multi-tenant, MFA, sessões, webhooks, pagamentos, OAuth, uploads, erros, segredos, banco, backups e o agente de IA.
+A base 4.3.0 passou por revisão integral do código seguindo OWASP Top 10 2025, OWASP API Security 2023, ASVS e OWASP Top 10 para aplicações com IA. Foram reforçados autenticação, autorização multi-tenant, MFA, sessões, webhooks, pagamentos, OAuth, uploads, erros, segredos, banco, backups e o agente de IA.
 
-Leia **`SECURITY-AUDIT-4.3.0.md`**, **`BARBERFLOW-4.3.0.md`** e **`PRE-DEPLOY-SECURITY.md`** antes do deploy.
+Leia **`HOTFIX-4.3.1.md`**, **`SECURITY-AUDIT-4.3.0.md`**, **`BARBERFLOW-4.3.0.md`** e **`PRE-DEPLOY-SECURITY.md`** antes do deploy.
 
 ## Local
 

@@ -2,12 +2,18 @@ const path=require('path');const express=require('express');const cors=require('
 const advanced=require('./routes/advanced'),operacao=require('./routes/operacao'),master=require('./routes/master'),whatsapp=require('./routes/whatsapp'),ai=require('./routes/ai'),uploads=require('./routes/uploads'),automacoes=require('./routes/automacoes'),pagamentos=require('./routes/pagamentos'),auth=require('./routes/auth'),clientes=require('./routes/clientes'),barbeiros=require('./routes/barbeiros'),servicos=require('./routes/servicos'),agendamentos=require('./routes/agendamentos'),tenant=require('./routes/tenant'),publico=require('./routes/publico'),integracoes=require('./routes/integracoes'),support=require('./routes/support'),notificacoes=require('./routes/notificacoes'),store=require('./routes/store'),storePublic=require('./routes/storePublic'),marketing=require('./routes/marketing'),marketingPublic=require('./routes/marketingPublic');
 
 if(process.env.NODE_ENV==='production'){
-  const required=['JWT_SECRET','APP_URL','DB_HOST','DB_NAME','DB_USER','DB_PASSWORD','APP_SECRETS_ENCRYPTION_KEY','BOOKING_OTP_PEPPER','LOGIN_THROTTLE_SECRET','CRON_SECRET','MP_WEBHOOK_TENANT_SECRET','BILLING_WEBHOOK_SECRET','TURNSTILE_SECRET_KEY','TURNSTILE_SITE_KEY','RESEND_API_KEY','EMAIL_FROM','DB_SSL','BACKUP_UPLOAD_URL','BACKUP_ENCRYPTION_KEY'];
+  // Só bloqueia o boot por configuração necessária para servir a aplicação.
+  // Integrações opcionais (billing externo e backup remoto) falham fechadas no próprio recurso/job.
+  const required=['JWT_SECRET','APP_URL','DB_HOST','DB_NAME','DB_USER','DB_PASSWORD','APP_SECRETS_ENCRYPTION_KEY','BOOKING_OTP_PEPPER','CRON_SECRET','MP_WEBHOOK_TENANT_SECRET','TURNSTILE_SECRET_KEY','TURNSTILE_SITE_KEY','RESEND_API_KEY','EMAIL_FROM','DB_SSL'];
   const missing=required.filter(k=>!process.env[k]);if(missing.length)throw new Error(`Configuração segura ausente: ${missing.join(', ')}`);
-  const secretKeys=['JWT_SECRET','APP_SECRETS_ENCRYPTION_KEY','BOOKING_OTP_PEPPER','LOGIN_THROTTLE_SECRET','CRON_SECRET','MP_WEBHOOK_TENANT_SECRET','BILLING_WEBHOOK_SECRET','BACKUP_ENCRYPTION_KEY'];
-  for(const k of secretKeys)if(String(process.env[k]).length<48||/change.?me|troque|example|barberflow/i.test(process.env[k]))throw new Error(`Segredo inseguro em ${k}`);
-  if(new Set(secretKeys.map(k=>process.env[k])).size!==secretKeys.length)throw new Error('Cada finalidade sensível deve usar um segredo diferente');
-  for(const k of ['APP_URL','BACKUP_UPLOAD_URL']){const u=new URL(process.env[k]);if(u.protocol!=='https:'||u.username||u.password)throw new Error(`${k} deve ser HTTPS e não pode conter credenciais`)}
+  const mandatorySecrets=['JWT_SECRET','APP_SECRETS_ENCRYPTION_KEY','BOOKING_OTP_PEPPER','CRON_SECRET','MP_WEBHOOK_TENANT_SECRET'];
+  const optionalSecrets=['LOGIN_THROTTLE_SECRET','BILLING_WEBHOOK_SECRET','BACKUP_ENCRYPTION_KEY'];
+  for(const k of mandatorySecrets)if(String(process.env[k]).length<48||/change.?me|troque|example|barberflow/i.test(process.env[k]))throw new Error(`Segredo inseguro em ${k}`);
+  for(const k of optionalSecrets)if(process.env[k]&&(String(process.env[k]).length<48||/change.?me|troque|example|barberflow/i.test(process.env[k])))throw new Error(`Segredo inseguro em ${k}`);
+  const configuredSecrets=[...mandatorySecrets,...optionalSecrets].filter(k=>process.env[k]);
+  if(new Set(configuredSecrets.map(k=>process.env[k])).size!==configuredSecrets.length)throw new Error('Cada finalidade sensível configurada deve usar um segredo diferente');
+  {const u=new URL(process.env.APP_URL);if(u.protocol!=='https:'||u.username||u.password)throw new Error('APP_URL deve ser HTTPS e não pode conter credenciais')}
+  if(process.env.BACKUP_UPLOAD_URL){const u=new URL(process.env.BACKUP_UPLOAD_URL);if(u.protocol!=='https:'||u.username||u.password)throw new Error('BACKUP_UPLOAD_URL deve ser HTTPS e não pode conter credenciais');if(!process.env.BACKUP_ENCRYPTION_KEY)throw new Error('BACKUP_ENCRYPTION_KEY é obrigatório quando BACKUP_UPLOAD_URL estiver configurada')}
   for(const k of ['MP_OAUTH_REDIRECT_URI','EVOLUTION_API_URL','NFSE_API_URL','ALERT_WEBHOOK_URL','AUTOMATION_WEBHOOK_URL'])if(process.env[k]){const u=new URL(process.env[k]);if(u.protocol!=='https:'||u.username||u.password)throw new Error(`${k} deve ser HTTPS e não pode conter credenciais`)}
   if(process.env.MP_OAUTH_REDIRECT_URI&&new URL(process.env.MP_OAUTH_REDIRECT_URI).origin!==new URL(process.env.APP_URL).origin)throw new Error('MP_OAUTH_REDIRECT_URI deve usar a mesma origem de APP_URL');
   if(process.env.ALLOW_LEGACY_PLATFORM_MP_ENV==='true')throw new Error('ALLOW_LEGACY_PLATFORM_MP_ENV não é permitido em produção');

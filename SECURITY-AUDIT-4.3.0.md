@@ -62,3 +62,7 @@ Antes de produção, ainda é obrigatório:
 8. reexecutar auditoria de dependências em todo deploy.
 
 O `img-src https:` da CSP permanece amplo para suportar imagens externas configuráveis. O pipeline de upload recomendado é Cloudinary; se a operação não precisar de URLs externas, restrinja futuramente a diretiva aos hosts usados. Limites em memória continuam como primeira camada por IP, enquanto login/MFA/step-up usam estado persistente; em múltiplas instâncias, complemente com rate limit distribuído no edge.
+
+## Nota operacional 4.3.1
+
+O hotfix 4.3.1 separa requisitos de **boot HTTP** de requisitos de **jobs/integrações opcionais**. `BACKUP_UPLOAD_URL`, `BACKUP_ENCRYPTION_KEY` e `BILLING_WEBHOOK_SECRET` não derrubam mais o processo web quando ausentes. O job `npm run backup` permanece fail-closed em produção sem backup remoto, e o webhook billing permanece fail-closed sem segredo. `LOGIN_THROTTLE_SECRET` pode ser dedicado; quando ausente, a chave de anonimização é derivada de `JWT_SECRET` com separação de finalidade por HMAC.
