@@ -3,7 +3,17 @@ const pool=require('../config/db');
 async function ensureTenantLifecycleSchema(db=pool){
   await db.query(`ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS exclusao_programada_em TIMESTAMP`);
   await db.query(`ALTER TABLE barbearias ADD COLUMN IF NOT EXISTS excluida_por INTEGER`);
+  await db.query(`CREATE TABLE IF NOT EXISTS tenant_deletion_tokens(
+    id BIGSERIAL PRIMARY KEY,
+    barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    token_hash VARCHAR(64) UNIQUE NOT NULL,
+    expira_em TIMESTAMP NOT NULL,
+    usado_em TIMESTAMP,
+    criado_em TIMESTAMP NOT NULL DEFAULT NOW()
+  )`);
   await db.query(`CREATE INDEX IF NOT EXISTS ix_barbearias_exclusao_programada ON barbearias(exclusao_programada_em) WHERE exclusao_programada_em IS NOT NULL`);
+  await db.query(`CREATE INDEX IF NOT EXISTS ix_tenant_deletion_tokens_tenant_expira ON tenant_deletion_tokens(barbearia_id,expira_em)`);
 }
 
 async function deleteTenantData(id,db){
@@ -17,7 +27,7 @@ async function deleteTenantData(id,db){
   const ordered=[
     'marketing_envios','marketing_cupom_usos','marketing_indicacao_conversoes','marketing_indicacao_codigos','marketing_campanhas','marketing_links','marketing_modelos','marketing_cupons','marketing_indicacoes_config',
     'automacoes_envios','avaliacoes','reservas_pagamento','fila_espera','fidelidade_saldos','vendas','horarios_trabalho','agendamentos',
-    'legal_acceptances','support_tickets','notificacoes','booking_otps','metas_financeiras','ai_uso_mensal','ai_config','automacoes_config','fidelidade_config','pacotes',
+    'legal_acceptances','support_tickets','notificacoes','booking_otps','metas_financeiras','ai_uso_mensal','ai_config','automacoes_config','fidelidade_config','pacotes','tenant_deletion_tokens',
     'whatsapp_fluxos','whatsapp_conexoes','integracoes_whatsapp_qr','whatsapp_verify_tokens','whatsapp_sessoes','integracoes_whatsapp','oauth_states','integracoes_pagamento',
     'assinaturas_pagamentos','assinaturas_cobrancas','produtos','clientes','usuarios','barbeiros','servicos','assinaturas'
   ];

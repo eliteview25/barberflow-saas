@@ -1,6 +1,6 @@
 {
   "name": "eliteflow-saas",
-  "version": "4.5.5",
+  "version": "4.5.7",
   "description": "EliteFlow: Gestão de Barbearia - gestão e agendamento para barbearias",
   "main": "server.js",
   "scripts": {

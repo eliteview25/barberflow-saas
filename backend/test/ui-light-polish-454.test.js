@@ -45,7 +45,7 @@ test('WhatsApp e construtor de fluxo usam superfícies claras e seleção por bo
 test('páginas administrativas recebem cache novo do CSS sem trocar JS desnecessariamente',()=>{
   for(const file of ['frontend/index.html','frontend/master.html','frontend/pages/clientes.html','frontend/pages/automacoes.html']){
     const html=read(file);
-    assert.match(html,/style\.css\?v=20260901-v455/);
+    assert.match(html,/style\.css\?v=20260902-v457/);
     assert.match(html,/theme\.js\?v=20260901-v453/);
   }
 });

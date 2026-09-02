@@ -34,4 +34,24 @@ async function sendVerificationEmail({to,token}){
   });
 }
 
-module.exports={sendEmail,sendVerificationEmail,htmlEscape};
+async function sendTenantDeletionEmail({to,nome,barbearia,token,expiresAt}){
+  const base=String(process.env.APP_URL||'http://localhost:3001').replace(/\/$/,'');
+  const link=`${base}/restaurar-conta.html?token=${encodeURIComponent(token)}`;
+  const prazo=expiresAt?new Date(expiresAt).toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'}):'30 dias';
+  return sendEmail({
+    to,
+    subject:'Exclusão da sua barbearia agendada no EliteFlow',
+    html:`<p>Olá, ${htmlEscape(nome||'proprietário')}.</p><p>A barbearia <strong>${htmlEscape(barbearia||'')}</strong> foi desativada e teve a exclusão definitiva agendada para ${htmlEscape(prazo)}.</p><p>A cobrança recorrente foi interrompida e os acessos foram encerrados. Pagamentos já realizados não são reembolsados automaticamente.</p><p>Se isso foi um engano, restaure a barbearia dentro do prazo:</p><p><a href="${htmlEscape(link)}">Restaurar minha barbearia</a></p><p>O link é individual, de uso único e expira junto com o prazo de recuperação. Se você não solicitou esta ação, restaure a conta e contate o suporte imediatamente.</p>`
+  });
+}
+
+async function sendTenantRestoredEmail({to,nome,barbearia}){
+  const base=String(process.env.APP_URL||'http://localhost:3001').replace(/\/$/,'');
+  return sendEmail({
+    to,
+    subject:'Sua barbearia foi restaurada no EliteFlow',
+    html:`<p>Olá, ${htmlEscape(nome||'proprietário')}.</p><p>A barbearia <strong>${htmlEscape(barbearia||'')}</strong> foi restaurada com sucesso.</p><p>Os acessos que haviam sido desativados pela solicitação foram liberados novamente. A assinatura permanece cancelada por segurança; entre no EliteFlow para reativar um plano antes de voltar a usar os recursos pagos.</p><p><a href="${htmlEscape(`${base}/login.html`)}">Entrar no EliteFlow</a></p>`
+  });
+}
+
+module.exports={sendEmail,sendVerificationEmail,sendTenantDeletionEmail,sendTenantRestoredEmail,htmlEscape};

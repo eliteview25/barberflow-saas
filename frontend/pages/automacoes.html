@@ -1,4 +1,4 @@
-<!doctype html><html lang="pt-BR"><head><link rel="icon" type="image/svg+xml" href="/favicon.svg?v=20260901-v453"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260901-v453"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Automações — EliteFlow: Gestão de Barbearia</title><script src="/js/theme.js?v=20260901-v453"></script><link rel="stylesheet" href="/style.css?v=20260901-v455"></head><body class="auth-checking"><div id="shell"></div><main class="main"><header class="topbar"><div><h1>Automações</h1><p>WhatsApp, IA, lembretes e relacionamento com clientes.</p></div></header><div id="msg" class="notice hidden"></div>
+<!doctype html><html lang="pt-BR"><head><link rel="icon" type="image/svg+xml" href="/favicon.svg?v=20260901-v453"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260901-v453"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Automações — EliteFlow: Gestão de Barbearia</title><script src="/js/theme.js?v=20260901-v453"></script><link rel="stylesheet" href="/style.css?v=20260902-v457"></head><body class="auth-checking"><div id="shell"></div><main class="main"><header class="topbar"><div><h1>Automações</h1><p>WhatsApp, IA, lembretes e relacionamento com clientes.</p></div></header><div id="msg" class="notice hidden"></div>
 
 <section class="panel whatsapp-provider-center"><div class="panel-head"><div><h2>WhatsApp — escolha como conectar</h2><p class="muted">Configure uma ou mais opções e escolha qual o EliteFlow deve usar. Você pode trocar depois sem apagar as outras conexões.</p></div><span id="activeProviderBadge" class="badge">Carregando...</span></div>
 <div id="providerCards" class="provider-choice-grid"></div>
@@ -40,7 +40,7 @@
 <section class="panel whatsapp-flow-builder" id="whatsappFlowBuilder">
   <div class="panel-head flow-builder-head"><div><span class="flow-kicker">AGENDAMENTO AUTOMÁTICO</span><h2>Construtor de fluxo do WhatsApp</h2><p class="muted">Crie experiências diferentes para cada barbearia sem alterar as regras seguras de agenda e pagamento.</p></div><span id="flowActiveBadge" class="badge">Carregando...</span></div>
   <div class="flow-builder-toolbar">
-    <div><strong>Fluxos desta barbearia</strong><small>Somente o fluxo marcado como ativo atende novos agendamentos.</small></div>
+    <div><strong>Fluxos desta barbearia</strong><small>O fluxo marcado como ativo será usado quando o modo Fluxo padrão estiver ligado.</small></div>
     <button id="newFlowBtn" type="button" class="btn btn-primary">+ Novo fluxo</button>
   </div>
   <div id="newFlowForm" class="flow-new-form hidden">
@@ -79,19 +79,26 @@
 <p id="templateHelp" class="muted"></p><button id="salvarAuto" class="btn btn-primary">Salvar automações</button></section>
 
 <section class="panel ai-settings-panel" id="iaWhatsapp">
-  <div class="panel-head"><div><h2>🤖 Inteligência Artificial no WhatsApp</h2><p class="muted">Configure o atendente inteligente com fallback seguro para o fluxo clássico do EliteFlow.</p></div><span id="aiStatus" class="badge">Verificando...</span></div>
+  <div class="panel-head"><div><h2>🤖 Inteligência Artificial no WhatsApp</h2><p class="muted">Escolha como as novas conversas serão atendidas. O fluxo e a IA podem funcionar separados ou juntos.</p></div><span id="aiStatus" class="badge">Verificando...</span></div>
   <div id="aiPlanHint" class="notice">Carregando disponibilidade do plano...</div>
+  <div class="ai-mode-selector" aria-labelledby="aiModeTitle">
+    <div class="ai-mode-heading"><div><h3 id="aiModeTitle">Canais de atendimento ativos</h3><p class="muted">Mantenha pelo menos uma opção ligada. A alteração vale para novas conversas; atendimentos em andamento terminam com segurança.</p></div><span id="aiModeSummary" class="badge">Fluxo padrão</span></div>
+    <div class="ai-mode-grid">
+      <label class="ai-mode-card" for="flowAtivo"><input id="flowAtivo" type="checkbox" checked><span class="ai-mode-copy"><strong>Fluxo padrão</strong><small>Menus e etapas configuradas, sem consumo de IA.</small></span><span class="ai-mode-switch" aria-hidden="true"></span></label>
+      <label class="ai-mode-card" for="aiAtivo"><input id="aiAtivo" type="checkbox"><span class="ai-mode-copy"><strong>Inteligência Artificial <em>Premium</em></strong><small>Entende linguagem natural e usa a agenda real.</small></span><span class="ai-mode-switch" aria-hidden="true"></span></label>
+    </div>
+  </div>
   <div id="aiConfigForm" class="ai-config-grid">
-    <div class="ai-config-main">
-      <label class="check-row"><input id="aiAtivo" type="checkbox"> Ativar IA para entender mensagens livres no WhatsApp</label>
+    <div class="ai-config-main" id="aiAdvancedSettings">
+      <div class="ai-config-title"><div><h3>Personalização da IA</h3><p class="muted">Estas opções são usadas sempre que a Inteligência Artificial estiver ligada.</p></div></div>
       <div class="form-grid"><div class="field"><label>Nome do assistente</label><input id="aiNome" maxlength="60" placeholder="Sofia"></div><div class="field"><label>Tom de atendimento</label><select id="aiTom"><option value="profissional">Profissional</option><option value="amigavel">Amigável</option><option value="descontraido">Descontraído</option></select></div></div>
       <div class="field"><label>Mensagem inicial</label><textarea id="aiMensagemInicial" rows="3" maxlength="500" placeholder="Olá! Sou a assistente virtual..."></textarea></div>
-      <div class="field"><label>Mensagem ao transferir para humano</label><textarea id="aiMensagemFallback" rows="3" maxlength="500"></textarea></div>
+      <div class="field"><label>Mensagem quando for necessário atendimento humano</label><textarea id="aiMensagemFallback" rows="3" maxlength="500"></textarea></div>
       <h3>O que a IA poderá fazer</h3><div class="toggle-grid ai-toggle-grid"><label class="check-row"><input id="aiConsultarHorarios" type="checkbox"> Consultar horários disponíveis</label><label class="check-row"><input id="aiCriarAgendamento" type="checkbox"> Criar agendamentos</label><label class="check-row"><input id="aiReagendar" type="checkbox"> Reagendar</label><label class="check-row"><input id="aiCancelar" type="checkbox"> Cancelar agendamentos</label><label class="check-row"><input id="aiInformarPrecos" type="checkbox"> Informar serviços e preços</label><label class="check-row"><input id="aiEnviarPagamento" type="checkbox"> Enviar link de pagamento</label></div>
       <h3>Transferir para uma pessoa quando</h3><div class="toggle-grid ai-toggle-grid"><label class="check-row"><input id="aiTransferirSolicitacao" type="checkbox"> O cliente pedir atendimento humano</label><label class="check-row"><input id="aiTransferirReclamacao" type="checkbox"> Houver reclamação</label><label class="check-row"><input id="aiTransferirPagamento" type="checkbox"> Houver problema de pagamento</label></div>
-      <button id="salvarIa" type="button" class="btn btn-dark">Salvar IA</button>
+      <button id="salvarIa" type="button" class="btn btn-dark">Salvar modo e IA</button>
     </div>
-    <aside class="ai-roadmap-card"><span class="ai-coming-badge">GUARDRAILS</span><h3>IA + fluxo seguro</h3><p>A IA interpreta intenção e linguagem natural. Ações continuam passando pelas regras do EliteFlow; ela não acessa PostgreSQL diretamente.</p><ul><li>Entende pedidos de agendamento</li><li>Consulta horários permitidos</li><li>Reagenda com validação de vaga</li><li>Cancela agendamentos do próprio número</li><li>Informa serviços e preços</li><li>Fallback automático para o fluxo clássico</li></ul><div class="ai-quota"><strong>Premium</strong><span>Limite configurável de atendimentos/mês</span></div><small>A ativação exige OPENAI_API_KEY no ambiente.</small></aside>
+    <aside class="ai-roadmap-card"><span class="ai-coming-badge">GUARDRAILS</span><h3>Escolha com segurança</h3><p>A IA interpreta intenção e linguagem natural. Ações continuam passando pelas regras do EliteFlow; ela não acessa PostgreSQL diretamente.</p><ul><li><strong>Só fluxo:</strong> atendimento guiado tradicional</li><li><strong>Só IA:</strong> conversa natural e mensagem de apoio quando for preciso atendimento humano</li><li><strong>Ambos:</strong> IA nas mensagens livres e fluxo ao receber gatilhos como “oi”</li><li>Agenda, vaga e pagamento sempre validados no servidor</li><li>Clientes não Premium permanecem no fluxo padrão</li></ul><div class="ai-quota"><strong>Premium</strong><span>IA opcional e configurável por barbearia</span></div><small>A ativação da IA exige OPENAI_API_KEY no ambiente.</small></aside>
   </div>
 </section>
 
@@ -99,4 +106,4 @@
 
 
 <section class="panel"><h2>Compatibilidade dos provedores</h2><div class="provider-compat-grid"><div><strong>Meta Cloud API</strong><span>Atendimento, templates, Marketing, entrega/leitura</span></div><div><strong>360dialog</strong><span>Atendimento, templates Meta, Marketing, entrega/leitura</span></div><div><strong>Twilio</strong><span>Atendimento, Content SID, Marketing e status</span></div><div><strong>Evolution / QR</strong><span>Atendimento e mensagens livres; sem templates oficiais</span></div></div><p class="muted">Fora da janela de atendimento, provedores oficiais exigem templates aprovados. No Evolution, a barbearia assume o risco operacional da conexão não oficial.</p></section>
-</main><script src="/js/common.js?v=20260901-v453"></script><script src="/js/automacoes.js?v=20260901-v453"></script></body></html>
+</main><script src="/js/common.js?v=20260901-v453"></script><script src="/js/automacoes.js?v=20260902-v457"></script></body></html>

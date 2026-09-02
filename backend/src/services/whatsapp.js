@@ -6,7 +6,7 @@ const {createTrustedAppointment,lockSlot,slotContext}=require('./booking');
 const {criarPreferenciaAgendamento,safeMercadoPagoCheckoutUrl}=require('./mercadoPago');
 const {getSellerAccessToken}=require('./mercadoPagoOAuth');
 const {routeIntent}=require('./aiAgent');
-const {getAiConfig}=require('./aiConfig');
+const {getAiConfig,normalizeMode,modeUsesFlow,modeUsesAi}=require('./aiConfig');
 const wf=require('./whatsappFlows');
 const {formatTrackingCode,statusLabel,trackingUrl,normalizeTrackingCode}=require('./bookingTracking');
 
@@ -30,9 +30,10 @@ async function trackingReply(integ,from,msg){
   return sendText(integ,from,`Seus agendamentos 📅\n\n${lines}\n\nVocê pode acompanhar também pela página pública usando seu WhatsApp e o código acima.`);
 }
 
-async function aiInitial(integ,from,msg,ctx){
-  if(!ctx.recursos.includes('ia_whatsapp')||/^(menu|oi|ol[aá]|in[ií]cio|inicio)$/i.test(msg))return false;
-  const cfg=await getAiConfig(integ.barbearia_id);if(!cfg.ativo)return false;
+async function aiInitial(integ,from,msg,ctx,cfg,options={}){
+  const aiOnly=options.mode==='ia',isGreeting=/^(menu|oi|ol[aá]|in[ií]cio|inicio)$/i.test(msg);
+  if(!ctx.recursos.includes('ia_whatsapp')||(!aiOnly&&isGreeting)||!modeUsesAi(cfg.modo_atendimento))return false;
+  const bookingCta=aiOnly?'Para agendar, diga o serviço, o profissional e a data que prefere.':'Digite *oi* para iniciar o fluxo de agendamento.';
   const [servicos,barbeiros]=await Promise.all([pool.query(`SELECT id,nome,duracao,preco FROM servicos WHERE barbearia_id=$1 AND ativo=true ORDER BY nome`,[integ.barbearia_id]),pool.query(`SELECT id,nome FROM barbeiros WHERE barbearia_id=$1 AND ativo=true ORDER BY nome`,[integ.barbearia_id])]);
   let ai;try{ai=await routeIntent({barbeariaId:integ.barbearia_id,message:msg,services:servicos.rows,barbers:barbeiros.rows})}catch(e){console.error('ai_router_fallback',e.message);return false}if(!ai||Number(ai.confidence||0)<0.45)return false;
   const match=(list,name)=>{const q=String(name||'').trim().toLowerCase();if(!q)return null;return list.find(x=>x.nome.toLowerCase()===q)||list.find(x=>x.nome.toLowerCase().includes(q)||q.includes(x.nome.toLowerCase()))||null};
@@ -43,13 +44,13 @@ async function aiInitial(integ,from,msg,ctx){
     if(ai.horario){
       const sc=await slotContext(pool,{barbeariaId:integ.barbearia_id,barbeiroId:br.id,servicoId:sv.id,data:ai.data,horario:ai.horario});
       const livre=sc.ok&&hs.some(h=>String(h).slice(0,5)===String(ai.horario).slice(0,5));
-      if(livre){await sendText(integ,from,`Sim. ✅ *${br.nome}* está livre em ${dataBr} às *${String(ai.horario).slice(0,5)}* para ${sv.nome}.\n\nDigite *oi* para iniciar o agendamento.`);return true}
+      if(livre){await sendText(integ,from,`Sim. ✅ *${br.nome}* está livre em ${dataBr} às *${String(ai.horario).slice(0,5)}* para ${sv.nome}.\n\n${bookingCta}`);return true}
       const alternativas=hs.slice(0,8).map(h=>String(h).slice(0,5)).join(', ');
-      await sendText(integ,from,`Esse horário não está disponível para *${br.nome}* em ${dataBr}.${alternativas?`\n\nHorários livres: ${alternativas}`:''}\n\nDigite *oi* para agendar.`);return true;
+      await sendText(integ,from,`Esse horário não está disponível para *${br.nome}* em ${dataBr}.${alternativas?`\n\nHorários livres: ${alternativas}`:''}\n\n${bookingCta}`);return true;
     }
-    await sendText(integ,from,hs.length?`Horários realmente livres de ${sv.nome} com ${br.nome} em ${dataBr}:\n${hs.slice(0,12).map(x=>String(x).slice(0,5)).join(', ')}\n\nDigite *oi* para agendar.`:'Não encontrei horários livres nessa combinação. Digite *oi* para escolher outra opção.');return true;
+    await sendText(integ,from,hs.length?`Horários realmente livres de ${sv.nome} com ${br.nome} em ${dataBr}:\n${hs.slice(0,12).map(x=>String(x).slice(0,5)).join(', ')}\n\n${bookingCta}`:`Não encontrei horários livres nessa combinação. ${aiOnly?'Diga outra data ou profissional.':'Digite *oi* para escolher outra opção.'}`);return true;
   }
-  if(ai.intent==='precos'&&cfg.informar_precos){await sendText(integ,from,`Serviços e preços:\n${servicos.rows.map((x,i)=>`${i+1}. ${x.nome} — R$ ${Number(x.preco).toFixed(2).replace('.',',')}`).join('\n')}\n\nSe quiser agendar, responda *oi*.`);return true}
+  if(ai.intent==='precos'&&cfg.informar_precos){await sendText(integ,from,`Serviços e preços:\n${servicos.rows.map((x,i)=>`${i+1}. ${x.nome} — R$ ${Number(x.preco).toFixed(2).replace('.',',')}`).join('\n')}\n\n${bookingCta}`);return true}
   if(ai.intent==='falar_humano'){await sendText(integ,from,cfg.mensagem_fallback||'Vou chamar alguém da equipe para continuar seu atendimento.');return true}
   if(['status_agendamento','cancelar','reagendar'].includes(ai.intent)){
     const tel=digits(from),r=await pool.query(`SELECT a.id,a.data,a.horario,a.status,s.nome servico,b.nome barbeiro FROM agendamentos a JOIN clientes c ON c.id=a.cliente_id AND c.barbearia_id=a.barbearia_id JOIN servicos s ON s.id=a.servico_id AND s.barbearia_id=a.barbearia_id JOIN barbeiros b ON b.id=a.barbeiro_id AND b.barbearia_id=a.barbearia_id WHERE a.barbearia_id=$1 AND regexp_replace(c.telefone,'\\D','','g')=$2 AND a.data>=CURRENT_DATE AND a.status NOT IN ('cancelado','concluido','nao_compareceu') ORDER BY a.data,a.horario LIMIT 10`,[integ.barbearia_id,tel]);
@@ -60,12 +61,14 @@ async function aiInitial(integ,from,msg,ctx){
     if(ai.intent==='reagendar'&&cfg.reagendar){await saveSession(integ.barbearia_id,from,'ai_reagendar_select',{agendamentos:r.rows});await sendText(integ,from,`Qual agendamento deseja reagendar?\n${list}\n\nDigite o número.`);return true}
   }
   if((ai.intent==='agendar'||ai.intent==='consultar_horarios')&&cfg.criar_agendamento){
-    if(ai.intent==='consultar_horarios'&&cfg.consultar_horarios&&sv&&br&&ai.data){const hs=await slots(integ.barbearia_id,br.id,sv.id,ai.data);await sendText(integ,from,hs.length?`Horários de ${sv.nome} com ${br.nome} em ${String(ai.data).split('-').reverse().join('/')}:\n${hs.slice(0,12).map(x=>String(x).slice(0,5)).join(', ')}\n\nDigite *oi* para agendar.`:'Não encontrei horários livres nessa combinação. Digite *oi* para escolher outra opção.');return true}
+    if(ai.intent==='consultar_horarios'&&cfg.consultar_horarios&&sv&&br&&ai.data){const hs=await slots(integ.barbearia_id,br.id,sv.id,ai.data);await sendText(integ,from,hs.length?`Horários de ${sv.nome} com ${br.nome} em ${String(ai.data).split('-').reverse().join('/')}:\n${hs.slice(0,12).map(x=>String(x).slice(0,5)).join(', ')}\n\n${bookingCta}`:`Não encontrei horários livres nessa combinação. ${aiOnly?'Diga outra data ou profissional.':'Digite *oi* para escolher outra opção.'}`);return true}
     if(sv){const d={servico:sv,servicos:servicos.rows,barbeiros:barbeiros.rows};if(br){d.barbeiro=br;if(ai.data){const hs=await slots(integ.barbearia_id,br.id,sv.id,ai.data);if(hs.length){d.data=ai.data;d.horarios=hs;await saveSession(integ.barbearia_id,from,'horario',d);await sendText(integ,from,`Entendi: ${sv.nome} com ${br.nome}. Horários em ${String(ai.data).split('-').reverse().join('/')}:\n${hs.map((h,i)=>`${i+1}. ${String(h).slice(0,5)}`).join('\n')}\n\nDigite o número do horário.`);return true}}await saveSession(integ.barbearia_id,from,'data',d);await sendText(integ,from,`Entendi: ${sv.nome} com ${br.nome}. Qual data você prefere? Envie DD/MM, hoje ou amanhã.`);return true}await saveSession(integ.barbearia_id,from,'barbeiro',d);await sendText(integ,from,`Entendi que você quer ${sv.nome}. Escolha o barbeiro:\n${barbeiros.rows.map((x,i)=>`${i+1}. ${x.nome}`).join('\n')}`);return true}
+    if(aiOnly){await sendText(integ,from,servicos.rowCount?`Qual serviço você deseja? Escreva o nome de uma destas opções:\n${servicos.rows.map(x=>`• ${x.nome}`).join('\n')}`:'Ainda não há serviços disponíveis para agendamento.');return true}
   }
-  if(ai.intent==='saudacao'){await sendText(integ,from,cfg.mensagem_inicial||'Olá! Como posso ajudar? Digite *oi* para agendar.');return true}
-  if(perguntaDisponibilidade){await sendText(integ,from,'Para confirmar disponibilidade eu preciso consultar a agenda real. Digite *oi* e escolha serviço, profissional e data; assim eu mostro somente horários realmente livres.');return true}
-  if(ai.resposta){await sendText(integ,from,`${ai.resposta}\n\nPara agendar, digite *oi*.`);return true}
+  if(ai.intent==='saudacao'){await sendText(integ,from,cfg.mensagem_inicial||`Olá! Como posso ajudar? ${bookingCta}`);return true}
+  if(perguntaDisponibilidade&&!aiOnly){await sendText(integ,from,'Para confirmar disponibilidade eu preciso consultar a agenda real. Digite *oi* e escolha serviço, profissional e data; assim eu mostro somente horários realmente livres.');return true}
+  if(perguntaDisponibilidade){await sendText(integ,from,'Para confirmar disponibilidade eu preciso consultar a agenda real. Informe o serviço, o profissional e a data; assim eu mostro somente horários realmente livres.');return true}
+  if(ai.resposta){await sendText(integ,from,`${ai.resposta}\n\n${bookingCta}`);return true}
   return false;
 }
 
@@ -75,8 +78,10 @@ async function processIncoming(integ,from,text){
   if(/^(sair|parar|cancelar\s*(promoções|promocoes)?|não\s+quero\s+(promoções|promocoes)|nao\s+quero\s+(promoções|promocoes))$/i.test(msg)){await pool.query(`UPDATE clientes SET marketing_opt_in=false,marketing_opt_out_em=NOW() WHERE barbearia_id=$1 AND regexp_replace(telefone,'\\D','','g')=$2`,[integ.barbearia_id,tel]);await resetSession(integ.barbearia_id,from);return sendText(integ,from,'Tudo certo. Você não receberá mais promoções da barbearia. Mensagens do seu atendimento e agendamentos continuam funcionando normalmente.');}
   if(/^(promoções|promocoes|quero\s+promoções|quero\s+promocoes)$/i.test(msg)){const opt=await pool.query(`UPDATE clientes SET marketing_opt_in=true,marketing_opt_in_em=NOW(),marketing_opt_out_em=NULL,marketing_opt_in_origem='whatsapp' WHERE barbearia_id=$1 AND regexp_replace(telefone,'\\D','','g')=$2 RETURNING id`,[integ.barbearia_id,tel]);await resetSession(integ.barbearia_id,from);if(!opt.rowCount)return sendText(integ,from,'Ainda não encontrei um cadastro com este WhatsApp. Faça um agendamento ou compra e marque a opção de receber promoções; depois você poderá gerenciar a autorização por aqui.');return sendText(integ,from,'Pronto! Você autorizou o recebimento de promoções da barbearia. Para cancelar quando quiser, responda *SAIR*.');}
   if(/^(acompanhar|meus?\s+agendamentos?|status)(?:\s+[A-Za-z0-9-]{8,20})?$/i.test(msg)||/^(?:[A-F0-9]{4}-?){3}$/i.test(msg)){await resetSession(integ.barbearia_id,from);return trackingReply(integ,from,msg);}
+  const aiCfg=await getAiConfig(integ.barbearia_id),savedMode=normalizeMode(aiCfg.modo_atendimento,aiCfg.ativo===true),mode=ctx.recursos.includes('ia_whatsapp')?savedMode:'fluxo',useFlow=modeUsesFlow(mode),useAi=modeUsesAi(mode);
   const flowRestart=wf.matchesTrigger(flow,msg);if(flowRestart)await resetSession(integ.barbearia_id,from);
-  let s=await getSession(integ.barbearia_id,from);if(!s&&!flowRestart&&await aiInitial(integ,from,msg,ctx))return;s=await getSession(integ.barbearia_id,from);
+  let s=await getSession(integ.barbearia_id,from);if(!s&&useAi&&(!flowRestart||mode==='ia')&&await aiInitial(integ,from,msg,ctx,aiCfg,{mode}))return;s=await getSession(integ.barbearia_id,from);
+  if(!s&&!useFlow)return sendText(integ,from,aiCfg.mensagem_fallback||'Vou chamar alguém da equipe para continuar seu atendimento.');
   if(!s){
     const [serv,cfg]=await Promise.all([pool.query(`SELECT id,nome,duracao,preco FROM servicos WHERE barbearia_id=$1 AND ativo=true ORDER BY nome`,[integ.barbearia_id]),publicConfig(integ.barbearia_id)]);if(!serv.rowCount)return sendText(integ,from,'Ainda não há serviços disponíveis para agendamento.');
     const dados={servicos:serv.rows,flow_id:flow.id};await saveSession(integ.barbearia_id,from,'servico',dados);const opcoes=serv.rows.map((x,i)=>`${i+1}. *${x.nome}* — R$ ${Number(x.preco).toFixed(2).replace('.',',')}`).join('\n');const welcome=wf.renderMessage(flow,'boas_vindas',{barbearia:cfg?.nome||'barbearia'});const choose=wf.renderMessage(flow,'servico',{barbearia:cfg?.nome||'barbearia',opcoes});return sendText(integ,from,[welcome,choose].filter(Boolean).join('\n\n'));

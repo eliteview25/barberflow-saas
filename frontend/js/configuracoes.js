@@ -43,6 +43,30 @@ if(requireAuth(['dono','gerente'])){
     disableCode:document.getElementById('mfaDisableCode'),
     desativar:document.getElementById('desativarMfa')
   };
+  const tenantDeleteEls={
+    zone:document.getElementById('tenantDangerZone'),open:document.getElementById('openTenantDelete'),modal:document.getElementById('tenantDeleteModal'),close:document.getElementById('closeTenantDelete'),cancel:document.getElementById('cancelTenantDelete'),aware:document.getElementById('tenantDeleteAware'),confirmText:document.getElementById('tenantDeleteConfirm'),confirm:document.getElementById('confirmTenantDelete'),error:document.getElementById('tenantDeleteError')
+  };
+  function tenantDeleteReady(){return tenantDeleteEls.aware?.checked===true&&tenantDeleteEls.confirmText?.value==='EXCLUIR'}
+  function updateTenantDeleteButton(){if(tenantDeleteEls.confirm)tenantDeleteEls.confirm.disabled=!tenantDeleteReady()}
+  function closeTenantDelete(){tenantDeleteEls.modal?.classList.add('hidden');document.body.classList.remove('modal-open');if(tenantDeleteEls.aware)tenantDeleteEls.aware.checked=false;if(tenantDeleteEls.confirmText)tenantDeleteEls.confirmText.value='';tenantDeleteEls.error?.classList.add('hidden');updateTenantDeleteButton()}
+  function openTenantDelete(){if(user.papel!=='dono')return;tenantDeleteEls.modal?.classList.remove('hidden');document.body.classList.add('modal-open');tenantDeleteEls.error?.classList.add('hidden');setTimeout(()=>tenantDeleteEls.aware?.focus(),40)}
+  if(user.papel==='dono')tenantDeleteEls.zone?.classList.remove('hidden');
+  tenantDeleteEls.open?.addEventListener('click',openTenantDelete);
+  tenantDeleteEls.close?.addEventListener('click',closeTenantDelete);
+  tenantDeleteEls.cancel?.addEventListener('click',closeTenantDelete);
+  tenantDeleteEls.modal?.addEventListener('click',e=>{if(e.target===tenantDeleteEls.modal)closeTenantDelete()});
+  tenantDeleteEls.aware?.addEventListener('change',updateTenantDeleteButton);
+  tenantDeleteEls.confirmText?.addEventListener('input',()=>{tenantDeleteEls.confirmText.value=tenantDeleteEls.confirmText.value.toUpperCase().replace(/[^A-Z]/g,'').slice(0,7);updateTenantDeleteButton()});
+  tenantDeleteEls.confirm?.addEventListener('click',async()=>{
+    if(!tenantDeleteReady())return;
+    tenantDeleteEls.error?.classList.add('hidden');tenantDeleteEls.confirm.disabled=true;tenantDeleteEls.confirm.textContent='Interrompendo cobrança...';
+    try{
+      const result=await api('/conta/barbearia',{method:'DELETE',body:JSON.stringify({confirmacao:'EXCLUIR',ciente:true})});
+      localStorage.removeItem('bf_user');localStorage.removeItem('bf_barbearia');localStorage.removeItem('bf_assinatura');sessionStorage.clear();
+      location.replace(`/conta-excluida.html?emails=${Number(result.emails_recuperacao_enviados||0)}&total=${Number(result.emails_recuperacao_total||0)}`);
+    }catch(e){tenantDeleteEls.error.textContent=e.message;tenantDeleteEls.error.classList.remove('hidden');tenantDeleteEls.confirm.disabled=false;tenantDeleteEls.confirm.textContent='Excluir e encerrar acessos'}
+  });
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!tenantDeleteEls.modal?.classList.contains('hidden'))closeTenantDelete()});
   let mfaEnabled=false,mfaPendingPassword='',mfaRawSecret='';
   function digits6(v){return String(v||'').replace(/\D/g,'').slice(0,6)}
   function formatSecret(v){return String(v||'').replace(/\s/g,'').match(/.{1,4}/g)?.join(' ')||''}

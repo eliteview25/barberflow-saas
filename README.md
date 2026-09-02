@@ -1,4 +1,4 @@
-# EliteFlow: Gestão de Barbearia 4.5.5
+# EliteFlow: Gestão de Barbearia 4.5.7
 
 SaaS multiempresa para gestão de barbearias com agenda, clientes, equipe, serviços, página pública, pagamentos, PDV/estoque, CRM, marketing, automações, WhatsApp, financeiro, Supermaster e planos Starter/Pro/Premium.
 
@@ -45,19 +45,33 @@ Novas contas entram como `trial_pendente`. Após a verificação do e-mail, o tr
 
 O anual corresponde a 10 mensalidades e libera 12 meses de uso.
 
+## Atendimento do WhatsApp no Premium
+
+Cada barbearia Premium escolhe, em **Automações**, quais canais atenderão novas conversas:
+
+- **Fluxo padrão** — menus e etapas configuradas, sem consumo de IA.
+- **Somente IA** — interpretação de linguagem natural com ações validadas pelo servidor.
+- **IA + fluxo** — IA para mensagens livres e fluxo padrão para seus gatilhos, como “oi”.
+
+O fluxo padrão vem ligado em instalações novas. Configurações antigas com IA ativa são migradas automaticamente para **IA + fluxo**; clientes fora do Premium permanecem no fluxo padrão.
+
 ## Segurança
 
 A aplicação mantém isolamento multi-tenant, sessão por cookie HttpOnly, CSRF, CSP, MFA/TOTP, step-up para ações sensíveis, rate limit, validação de webhooks, idempotência financeira, auditoria, proteção de uploads e validações de autorização por papel e tenant.
+
+O dono pode solicitar a exclusão da própria barbearia em **Configurações > Segurança**. A ação exige confirmação de identidade, interrompe a recorrência, revoga as sessões e inicia retenção de 30 dias. Durante esse prazo, a conta pode ser restaurada por um link individual de uso único enviado por e-mail; a assinatura permanece cancelada até reativação explícita.
 
 Nunca versione `.env`, credenciais, backups, dumps, logs ou arquivos de produção.
 
 ## LGPD e documentos legais
 
-A versão 4.5.5 inclui revisão de privacidade e conformidade. Antes do lançamento comercial, configure os dados jurídicos reais da operação no ambiente.
+A revisão de privacidade e conformidade da versão 4.5.5 continua válida na 4.5.7. Antes do lançamento comercial, configure os dados jurídicos reais da operação no ambiente.
 
 Documentos atuais mantidos no repositório:
 
-- `ELITEFLOW-4.5.5.md` — resumo da versão atual.
+- `ALTERACOES-4.5.7.md` — resumo da versão atual.
+- `ALTERACOES-4.5.6.md` — resumo da versão anterior.
+- `ELITEFLOW-4.5.5.md` — resumo consolidado da versão anterior.
 - `LEGAL-README.md` — configuração e publicação das páginas legais.
 - `LGPD-COMPLIANCE-4.5.5.md` — matriz de conformidade.
 - `MAPA-DADOS-LGPD.md` — mapa resumido de dados pessoais.

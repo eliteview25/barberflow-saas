@@ -34,10 +34,11 @@ CREATE TABLE IF NOT EXISTS integracoes_pagamento(id SERIAL PRIMARY KEY,barbearia
 CREATE TABLE IF NOT EXISTS oauth_states(id SERIAL PRIMARY KEY,barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,state TEXT UNIQUE NOT NULL,code_verifier TEXT NOT NULL,provedor VARCHAR(40) NOT NULL DEFAULT 'mercadopago',expira_em TIMESTAMP NOT NULL,criado_em TIMESTAMP DEFAULT NOW());
 
 
--- Preparação para IA no WhatsApp (motor será integrado na próxima etapa)
+-- Modos de atendimento do WhatsApp: fluxo padrão, somente IA ou ambos
 CREATE TABLE IF NOT EXISTS ai_config(
   barbearia_id INTEGER PRIMARY KEY REFERENCES barbearias(id) ON DELETE CASCADE,
   ativo BOOLEAN NOT NULL DEFAULT false,
+  modo_atendimento VARCHAR(12) NOT NULL DEFAULT 'fluxo' CHECK(modo_atendimento IN ('fluxo','ia','ambos')),
   nome_assistente VARCHAR(60) NOT NULL DEFAULT 'Sofia',
   tom VARCHAR(20) NOT NULL DEFAULT 'amigavel' CHECK(tom IN ('profissional','amigavel','descontraido')),
   mensagem_inicial VARCHAR(500), mensagem_fallback VARCHAR(500),
@@ -48,6 +49,17 @@ CREATE TABLE IF NOT EXISTS ai_config(
   transferir_pagamento BOOLEAN NOT NULL DEFAULT true, limite_mensal INTEGER NOT NULL DEFAULT 500,
   criado_em TIMESTAMP NOT NULL DEFAULT NOW(), atualizado_em TIMESTAMP NOT NULL DEFAULT NOW()
 );
+ALTER TABLE ai_config ADD COLUMN IF NOT EXISTS modo_atendimento VARCHAR(12);
+UPDATE ai_config SET modo_atendimento=CASE WHEN ativo THEN 'ambos' ELSE 'fluxo' END WHERE modo_atendimento IS NULL;
+UPDATE ai_config SET modo_atendimento='fluxo',ativo=false WHERE modo_atendimento NOT IN ('fluxo','ia','ambos');
+ALTER TABLE ai_config ALTER COLUMN modo_atendimento SET DEFAULT 'fluxo';
+ALTER TABLE ai_config ALTER COLUMN modo_atendimento SET NOT NULL;
+DO $$ BEGIN
+  IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conname='ck_ai_config_modo_atendimento' AND conrelid='ai_config'::regclass) THEN
+    ALTER TABLE ai_config ADD CONSTRAINT ck_ai_config_modo_atendimento CHECK(modo_atendimento IN ('fluxo','ia','ambos')) NOT VALID;
+  END IF;
+END $$;
+ALTER TABLE ai_config VALIDATE CONSTRAINT ck_ai_config_modo_atendimento;
 CREATE TABLE IF NOT EXISTS ai_uso_mensal(
   barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,
   mes DATE NOT NULL, atendimentos INTEGER NOT NULL DEFAULT 0,
@@ -130,6 +142,16 @@ ALTER TABLE assinaturas ADD COLUMN IF NOT EXISTS ciclo_cobranca VARCHAR(20) NOT 
 ALTER TABLE assinaturas_pagamentos ADD COLUMN IF NOT EXISTS ciclo_cobranca VARCHAR(20) NOT NULL DEFAULT 'mensal';
 CREATE INDEX IF NOT EXISTS ix_produtos_loja ON produtos(barbearia_id,mostrar_na_loja,ativo);
 CREATE INDEX IF NOT EXISTS ix_barbearias_exclusao_programada ON barbearias(exclusao_programada_em) WHERE exclusao_programada_em IS NOT NULL;
+CREATE TABLE IF NOT EXISTS tenant_deletion_tokens(
+  id BIGSERIAL PRIMARY KEY,
+  barbearia_id INTEGER NOT NULL REFERENCES barbearias(id) ON DELETE CASCADE,
+  usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  token_hash VARCHAR(64) UNIQUE NOT NULL,
+  expira_em TIMESTAMP NOT NULL,
+  usado_em TIMESTAMP,
+  criado_em TIMESTAMP NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS ix_tenant_deletion_tokens_tenant_expira ON tenant_deletion_tokens(barbearia_id,expira_em);
 
 
 -- EliteFlow 2.7: e-commerce, checkout automático e entrega por distância

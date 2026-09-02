@@ -31,7 +31,9 @@ const {
 const { cleanText } = require('../utils/validation');
 const {LEGAL_VERSION}=require('../services/launchReadiness');
 const {notificar}=require('../services/notifications');
-const {sendVerificationEmail}=require('../services/email');
+const {sendVerificationEmail,sendTenantRestoredEmail}=require('../services/email');
+const {ensureTenantLifecycleSchema}=require('../services/tenantLifecycle');
+const {audit}=require('../services/audit');
 const {checkLoginThrottle,recordLoginFailure,clearLoginFailures,verifyAndConsumeTotp}=require('../services/accountSecurity');
 
 const router = express.Router();
@@ -537,6 +539,44 @@ router.post(
         }catch(e){console.error('resend_verification_failed',e.message);return res.status(503).json({erro:'Não foi possível enviar o e-mail agora. Tente novamente em alguns minutos.'})}
     }
 );
+
+
+/* =========================================================
+   RESTAURAR BARBEARIA DURANTE A RETENÇÃO
+   O token recebido por e-mail é individual e de uso único.
+========================================================= */
+
+router.post('/restaurar-barbearia',async(req,res)=>{
+    const token=String(req.body?.token||'').trim();
+    const invalid=()=>res.status(400).json({erro:'Link de restauração inválido ou expirado'});
+    if(!/^[A-Za-z0-9_-]{40,100}$/.test(token))return invalid();
+    try{
+        await ensureTenantLifecycleSchema();
+        const c=await pool.connect();let restored;
+        try{
+            await c.query('BEGIN');
+            const row=(await c.query(`SELECT t.id token_id,t.barbearia_id,t.usuario_id,t.expira_em,t.usado_em,
+                b.nome barbearia_nome,b.excluido_em,b.exclusao_programada_em,COALESCE(b.is_system,false) is_system,
+                u.nome usuario_nome,u.email usuario_email
+                FROM tenant_deletion_tokens t
+                JOIN barbearias b ON b.id=t.barbearia_id
+                JOIN usuarios u ON u.id=t.usuario_id AND u.barbearia_id=t.barbearia_id
+                WHERE t.token_hash=$1 FOR UPDATE OF t,b`,[sha256(token)])).rows[0];
+            const now=Date.now(),expires=row?.expira_em?new Date(row.expira_em).getTime():0,purgeAt=row?.exclusao_programada_em?new Date(row.exclusao_programada_em).getTime():0;
+            if(!row||row.usado_em||row.is_system||!row.excluido_em||!expires||expires<=now||!purgeAt||purgeAt<=now){await c.query('ROLLBACK');return invalid()}
+            const tenant=await c.query(`UPDATE barbearias SET ativo=true,excluido_em=NULL,exclusao_programada_em=NULL,excluida_por=NULL
+                WHERE id=$1 AND COALESCE(is_system,false)=false AND exclusao_programada_em>NOW() RETURNING id,nome`,[row.barbearia_id]);
+            if(!tenant.rowCount){await c.query('ROLLBACK');return invalid()}
+            await c.query(`UPDATE usuarios SET ativo=true,desativado_por_exclusao=false WHERE barbearia_id=$1 AND desativado_por_exclusao=true AND papel<>'super_admin'`,[row.barbearia_id]);
+            await c.query(`UPDATE tenant_deletion_tokens SET usado_em=NOW() WHERE barbearia_id=$1 AND usado_em IS NULL`,[row.barbearia_id]);
+            await audit({usuario:{id:row.usuario_id},ip:req.ip,headers:req.headers},{acao:'tenant.barbearia.restaurada_por_token',barbeariaId:row.barbearia_id,alvoTipo:'barbearia',alvoId:row.barbearia_id,detalhes:{nome:row.barbearia_nome,assinatura_reativacao_necessaria:true}},c);
+            await c.query('COMMIT');
+            restored={to:row.usuario_email,nome:row.usuario_nome,barbearia:tenant.rows[0].nome};
+        }catch(e){await c.query('ROLLBACK').catch(()=>{});throw e}finally{c.release()}
+        sendTenantRestoredEmail(restored).catch(e=>console.error('tenant_restored_email_failed',{message:e.message}));
+        return res.json({mensagem:'Barbearia restaurada com sucesso. Entre novamente e reative sua assinatura para liberar os recursos pagos.',assinatura_reativacao_necessaria:true});
+    }catch(e){console.error('tenant_restore_failed',{message:e.message});return res.status(500).json({erro:'Não foi possível restaurar a barbearia agora'})}
+});
 
 
 /* =========================================================

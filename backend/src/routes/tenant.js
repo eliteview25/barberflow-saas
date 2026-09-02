@@ -1,4 +1,4 @@
-const express=require('express'); const bcrypt=require('bcryptjs'); const pool=require('../config/db'); const {autenticar,exigirPapel,exigirAssinatura,exigirStepUp}=require('../middlewares/auth'); const {criarAssinatura,buscarAssinaturaPorReferencia,checkoutUrlAssinatura,obterAssinatura,atualizarStatusAssinatura,atualizarPlanoAssinatura,criarPagamentoPixAssinatura,precoPlano}=require('../services/mercadoPago'); const {exigirRecurso,contextoPlano,catalogoPublico}=require('../services/planos'); const {strongPassword,validEmail,normalizePhone}=require('../utils/security'); const {cleanText,safeColor,safeHttpUrl,intId,isoDate}=require('../utils/validation'); const {confirmManualPix}=require('../services/reservations'); const {audit}=require('../services/audit'); const {onboardingStatus}=require('../services/launchReadiness'); const {ensureSubscriptionPaymentSchema,sincronizarPagamentoPixById,newIdempotencyKey}=require('../services/subscriptionPayments'); const {financialEntries,financialCharts,dashboardRevenue,goalsForMonth,saveGoals}=require('../services/financeAnalytics'); const {getPlatformMercadoPagoCredentials,diagnosePlatformMercadoPago}=require('../services/platformPaymentGateways'); const router=express.Router(); router.use(autenticar);
+const express=require('express'); const bcrypt=require('bcryptjs'); const pool=require('../config/db'); const {autenticar,exigirPapel,exigirAssinatura,exigirStepUp}=require('../middlewares/auth'); const {criarAssinatura,buscarAssinaturaPorReferencia,checkoutUrlAssinatura,obterAssinatura,atualizarStatusAssinatura,atualizarPlanoAssinatura,criarPagamentoPixAssinatura,precoPlano}=require('../services/mercadoPago'); const {exigirRecurso,contextoPlano,catalogoPublico}=require('../services/planos'); const {strongPassword,validEmail,normalizePhone,randomToken,sha256,clearSession}=require('../utils/security'); const {cleanText,safeColor,safeHttpUrl,intId,isoDate}=require('../utils/validation'); const {confirmManualPix}=require('../services/reservations'); const {audit}=require('../services/audit'); const {onboardingStatus}=require('../services/launchReadiness'); const {ensureSubscriptionPaymentSchema,sincronizarPagamentoPixById,newIdempotencyKey}=require('../services/subscriptionPayments'); const {financialEntries,financialCharts,dashboardRevenue,goalsForMonth,saveGoals}=require('../services/financeAnalytics'); const {getPlatformMercadoPagoCredentials,diagnosePlatformMercadoPago}=require('../services/platformPaymentGateways'); const {ensureTenantLifecycleSchema}=require('../services/tenantLifecycle'); const {sendTenantDeletionEmail}=require('../services/email'); const router=express.Router(); router.use(autenticar);
 router.get('/dashboard',exigirAssinatura,async(req,res)=>{
   try{
     const b=req.usuario.barbearia_id;
@@ -188,5 +188,49 @@ router.post('/assinatura/checkout',exigirPapel('dono'),exigirStepUp,async(req,re
   }
 });
 router.post('/assinatura/sincronizar',exigirPapel('dono'),async(req,res)=>{try{const r=await pool.query(`SELECT id,referencia_externa,status,plano,plano_pendente,provedor FROM assinaturas WHERE barbearia_id=$1 ORDER BY id DESC LIMIT 1`,[req.usuario.barbearia_id]);const a=r.rows[0];if(a?.provedor==='mercadopago_pix'){await ensureSubscriptionPaymentSchema();const px=(await pool.query(`SELECT id,referencia_externa FROM assinaturas_pagamentos WHERE barbearia_id=$1 AND status IN ('pendente','criando') AND referencia_externa IS NOT NULL ORDER BY id DESC LIMIT 1`,[req.usuario.barbearia_id])).rows[0];if(!px)return res.status(400).json({erro:'Nenhum Pix pendente para sincronizar'});await sincronizarPagamentoPixById(px.referencia_externa,req.usuario.barbearia_id);return res.json({mensagem:'Pagamento Pix sincronizado'});}const id=a?.referencia_externa;if(!id)return res.status(400).json({erro:'Nenhuma assinatura Mercado Pago vinculada'});const mp=await obterAssinatura(id);await pool.query(`UPDATE assinaturas SET plano=CASE WHEN $1='authorized' THEN COALESCE(plano_pendente,plano) ELSE plano END,plano_pendente=CASE WHEN $1 IN ('authorized','canceled') THEN NULL ELSE plano_pendente END,status=CASE WHEN $1='authorized' THEN 'ativa' WHEN $1='paused' THEN 'inadimplente' WHEN $1='canceled' AND status='ativa' THEN 'cancelada' ELSE status END,provedor_status=$1,checkout_url=COALESCE($2,checkout_url),proxima_cobranca=$3,billing_change_pending=false,atualizado_em=NOW() WHERE id=$4`,[mp.status,checkoutUrlAssinatura(mp)||null,mp.next_payment_date?String(mp.next_payment_date).slice(0,10):null,a.id]);res.json({mensagem:'Assinatura sincronizada',status_mercadopago:mp.status});}catch(e){console.error(e);res.status(502).json({erro:'Não foi possível sincronizar com o Mercado Pago'});}});
+router.delete('/conta/barbearia',exigirPapel('dono'),exigirStepUp,async(req,res)=>{
+  if(req.body?.confirmacao!=='EXCLUIR'||req.body?.ciente!==true)return res.status(400).json({erro:'Confirme que leu os efeitos e digite EXCLUIR para continuar'});
+  const barbeariaId=req.usuario.barbearia_id;
+  try{
+    await ensureTenantLifecycleSchema();
+    const pre=(await pool.query(`SELECT b.id,b.nome,b.excluido_em,COALESCE(b.is_system,false) is_system,a.provedor,a.referencia_externa,a.status assinatura_status,a.provedor_status
+      FROM barbearias b LEFT JOIN LATERAL (SELECT provedor,referencia_externa,status FROM assinaturas WHERE barbearia_id=b.id ORDER BY id DESC LIMIT 1) a ON true
+      WHERE b.id=$1`,[barbeariaId])).rows[0];
+    if(!pre||pre.is_system)return res.status(404).json({erro:'Barbearia não encontrada'});
+    if(pre.excluido_em)return res.status(409).json({erro:'A exclusão desta barbearia já foi solicitada'});
+    if(pre.provedor==='mercadopago'&&pre.referencia_externa&&!(pre.assinatura_status==='cancelada'&&pre.provedor_status==='canceled')){
+      try{await atualizarStatusAssinatura(pre.referencia_externa,'canceled')}
+      catch(e){console.error('tenant_cancel_subscription_before_delete',e.providerCode||e.status||'provider_error');return res.status(502).json({erro:'Não foi possível interromper a cobrança recorrente. Nenhum acesso foi desativado; tente novamente.'})}
+    }
+
+    const c=await pool.connect();const recovery=[];let deleted;
+    try{
+      await c.query('BEGIN');
+      const tenant=(await c.query(`SELECT id,nome,excluido_em FROM barbearias WHERE id=$1 AND COALESCE(is_system,false)=false FOR UPDATE`,[barbeariaId])).rows[0];
+      if(!tenant){await c.query('ROLLBACK');return res.status(404).json({erro:'Barbearia não encontrada'})}
+      if(tenant.excluido_em){await c.query('ROLLBACK');return res.status(409).json({erro:'A exclusão desta barbearia já foi solicitada'})}
+      const owners=(await c.query(`SELECT id,nome,email FROM usuarios WHERE barbearia_id=$1 AND papel='dono' AND ativo=true ORDER BY id FOR UPDATE`,[barbeariaId])).rows;
+      if(!owners.length){await c.query('ROLLBACK');return res.status(409).json({erro:'Nenhum dono ativo foi encontrado para receber a recuperação'})}
+      deleted=(await c.query(`UPDATE barbearias SET ativo=false,excluido_em=NOW(),exclusao_programada_em=NOW()+INTERVAL '30 days',excluida_por=$2 WHERE id=$1 RETURNING nome,exclusao_programada_em`,[barbeariaId,req.usuario.id])).rows[0];
+      await c.query(`DELETE FROM tenant_deletion_tokens WHERE barbearia_id=$1`,[barbeariaId]);
+      for(const owner of owners){
+        const token=randomToken(32);
+        await c.query(`INSERT INTO tenant_deletion_tokens(barbearia_id,usuario_id,token_hash,expira_em) VALUES($1,$2,$3,$4)`,[barbeariaId,owner.id,sha256(token),deleted.exclusao_programada_em]);
+        recovery.push({to:owner.email,nome:owner.nome,token});
+      }
+      await c.query(`UPDATE usuarios SET desativado_por_exclusao=true,ativo=false,token_version=COALESCE(token_version,0)+1 WHERE barbearia_id=$1 AND papel<>'super_admin' AND ativo=true`,[barbeariaId]);
+      await c.query(`UPDATE assinaturas SET status_antes_exclusao=CASE WHEN status<>'cancelada' THEN status ELSE status_antes_exclusao END,status='cancelada',provedor_status=CASE WHEN provedor='mercadopago' THEN 'canceled' ELSE provedor_status END,plano_pendente=NULL,billing_change_pending=false,billing_idempotency_key=NULL,atualizado_em=NOW() WHERE id=(SELECT id FROM assinaturas WHERE barbearia_id=$1 ORDER BY id DESC LIMIT 1)`,[barbeariaId]);
+      await c.query(`UPDATE assinaturas_pagamentos SET status='cancelado',atualizado_em=NOW() WHERE barbearia_id=$1 AND status IN ('criando','pendente')`,[barbeariaId]).catch(e=>{if(e.code!=='42P01')throw e});
+      await audit(req,{acao:'tenant.barbearia.exclusao_solicitada',barbeariaId,alvoTipo:'barbearia',alvoId:barbeariaId,detalhes:{nome:tenant.nome,retencao_dias:30,exclusao_permanente:false,cobranca_recorrente_interrompida:pre.provedor==='mercadopago'&&!!pre.referencia_externa}},c);
+      await c.query('COMMIT');
+    }catch(e){await c.query('ROLLBACK').catch(()=>{});throw e}finally{c.release()}
+
+    const delivered=await Promise.allSettled(recovery.map(x=>sendTenantDeletionEmail({...x,barbearia:deleted.nome,expiresAt:deleted.exclusao_programada_em})));
+    const sent=delivered.filter(x=>x.status==='fulfilled').length;
+    if(sent!==recovery.length)console.error('tenant_deletion_recovery_email_failed',{barbearia_id:barbeariaId,failed:recovery.length-sent});
+    clearSession(res);
+    return res.json({mensagem:'Barbearia desativada. A exclusão definitiva ocorrerá em 30 dias.',exclusao_programada_em:deleted.exclusao_programada_em,exclusao_em_dias:30,emails_recuperacao_enviados:sent,emails_recuperacao_total:recovery.length});
+  }catch(e){console.error('tenant_self_delete_failed',{barbearia_id:barbeariaId,message:e.message});return res.status(500).json({erro:'Não foi possível agendar a exclusão da barbearia'})}
+});
 router.post('/assinatura/cancelar',exigirPapel('dono'),exigirStepUp,async(req,res)=>{try{const r=await pool.query(`SELECT referencia_externa,provedor FROM assinaturas WHERE barbearia_id=$1 ORDER BY id DESC LIMIT 1`,[req.usuario.barbearia_id]);const a=r.rows[0];if(!a)return res.status(400).json({erro:'Assinatura não encontrada'});if(a.provedor==='mercadopago'&&a.referencia_externa)await atualizarStatusAssinatura(a.referencia_externa,'canceled');await pool.query(`UPDATE assinaturas SET status='cancelada',provedor_status='canceled',plano_pendente=NULL,billing_change_pending=false,atualizado_em=NOW() WHERE id=(SELECT id FROM assinaturas WHERE barbearia_id=$1 ORDER BY id DESC LIMIT 1)`,[req.usuario.barbearia_id]);res.json({mensagem:a.provedor==='mercadopago_pix'?'Plano pré-pago cancelado no EliteFlow':'Assinatura cancelada'});}catch(e){res.status(502).json({erro:'Não foi possível cancelar a assinatura'});}});
 module.exports=router;
